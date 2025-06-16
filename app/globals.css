@@ -1,0 +1,104 @@
+@import '@fontsource/montserrat/400.css';
+@import '@fontsource/montserrat/500.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 29, 29, 29;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 29, 29, 29;
+    --background-end-rgb: 29, 29, 29;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 11% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 11% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 11% 11%;
+    --primary: 191 76% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 93% 54%;
+    --secondary-foreground: 210 11% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 45 93% 54%;
+    --accent-foreground: 210 11% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 191 76% 50%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 210 11% 11%;
+    --foreground: 0 0% 98%;
+    --card: 210 11% 11%;
+    --card-foreground: 0 0% 98%;
+    --popover: 210 11% 11%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 191 76% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 93% 54%;
+    --secondary-foreground: 210 11% 11%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 45 93% 54%;
+    --accent-foreground: 210 11% 11%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 191 76% 50%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-montserrat;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-mkb-blue/30 rounded-md;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-mkb-blue/50;
+}
