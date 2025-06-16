@@ -1,31 +1,30 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Crown,
-  ShoppingCart,
-  Globe,
-  FileText,
-  Megaphone,
-  Code,
-  Server,
-  Chrome as Broom,
-  Link2,
-  Truck,
-  TrendingUp,
-  Users,
-  DollarSign,
-  Target,
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+import {
   Activity,
   AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Chrome as Broom,
   CheckCircle,
   Clock,
-  ArrowRight,
-  BarChart3
+  Code,
+  Crown,
+  DollarSign,
+  FileText,
+  Link2,
+  Megaphone,
+  Server,
+  ShoppingCart,
+  Tag,
+  Target,
+  TrendingUp,
+  Truck,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -113,10 +112,10 @@ const polesData = [
     ]
   },
   {
-    title: 'Pricing Angola',
-    icon: Globe,
-    href: '/dashboard/pricing-angola',
-    description: 'Gestion des tarifs pour le marché angolais',
+    title: 'Pricing',
+    icon: Tag,
+    href: '/dashboard/pricing/angola',
+    description: 'Gestion des tarifs et stratégies de prix',
     status: 'good',
     metrics: {
       performance: 85,
@@ -331,7 +330,7 @@ export default function DashboardPage() {
           {polesData.map((pole, index) => {
             const Icon = pole.icon;
             const StatusIcon = getStatusIcon(pole.status);
-            
+
             return (
               <motion.div
                 key={pole.title}
@@ -362,7 +361,7 @@ export default function DashboardPage() {
                         {pole.description}
                       </CardDescription>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-4">
                       {/* Performance Bar */}
                       <div className="space-y-2">
@@ -371,12 +370,11 @@ export default function DashboardPage() {
                           <span className="text-sm font-bold text-mkb-blue">{pole.metrics.performance}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              pole.metrics.performance >= 90 ? 'bg-green-500' :
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${pole.metrics.performance >= 90 ? 'bg-green-500' :
                               pole.metrics.performance >= 80 ? 'bg-mkb-blue' :
-                              'bg-orange-500'
-                            }`}
+                                'bg-orange-500'
+                              }`}
                             style={{ width: `${pole.metrics.performance}%` }}
                           ></div>
                         </div>
@@ -407,8 +405,8 @@ export default function DashboardPage() {
 
                       {/* Action Button */}
                       <div className="pt-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="w-full text-mkb-blue hover:bg-mkb-blue/10 group-hover:bg-mkb-blue group-hover:text-white transition-all"
                         >
                           Voir le détail
@@ -448,7 +446,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-mkb-blue h-2 rounded-full"
                         style={{ width: `${pole.metrics.performance}%` }}
                       ></div>
@@ -475,15 +473,14 @@ export default function DashboardPage() {
               {['excellent', 'good', 'attention'].map((status) => {
                 const count = polesData.filter(pole => pole.status === status).length;
                 const StatusIcon = getStatusIcon(status);
-                
+
                 return (
                   <div key={status} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <StatusIcon className={`h-4 w-4 ${
-                        status === 'excellent' ? 'text-green-600' :
+                      <StatusIcon className={`h-4 w-4 ${status === 'excellent' ? 'text-green-600' :
                         status === 'good' ? 'text-blue-600' :
-                        'text-orange-600'
-                      }`} />
+                          'text-orange-600'
+                        }`} />
                       <span className="font-medium capitalize">{getStatusText(status)}</span>
                     </div>
                     <Badge variant="secondary" className={getStatusColor(status)}>
