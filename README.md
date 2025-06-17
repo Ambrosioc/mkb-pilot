@@ -51,8 +51,8 @@ docker --version
 ### 1. Cloner le repository
 
 ```bash
-git clone https://github.com/votre-username/mkb-pilot-dashboard.git
-cd mkb-pilot-dashboard
+git clone https://github.com/Ambrosioc/mkb-pilot
+cd mkb-pilot
 ```
 
 ### 2. Installer les dépendances
