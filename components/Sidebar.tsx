@@ -1,43 +1,20 @@
 'use client';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { useTabsStore } from '@/store/useTabsStore';
-import { motion } from 'framer-motion';
-import {
-  BarChart3,
-  Chrome as Broom,
-  Building2,
-  Calendar,
-  ChevronLeft,
-  Clock,
-  Code,
-  Crown,
-  DollarSign,
-  FileText,
-  Globe,
-  Handshake,
-  History,
-  Home,
-  Link2,
-  Megaphone,
-  MessageSquare,
-  Package,
-  Phone,
-  Server,
-  Settings,
-  Shield,
-  ShoppingCart, Tag,
-  Target,
-  TrendingUp,
-  Truck,
-  UserCheck,
-  Users,
-  Zap
-} from 'lucide-react';
-import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Home, ShoppingCart, Tag, FileText, Megaphone, Code, Server, 
+  Chrome as Broom, Link2, Crown, TrendingUp, BarChart3, Users, 
+  Calendar, Phone, Target, Package, DollarSign, Clock, UserCheck, 
+  Building2, MessageSquare, Zap, Shield, Settings, ChevronLeft,
+  Truck, MapPin, History, Handshake, Globe
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useTabsStore } from '@/store/useTabsStore';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -261,28 +238,6 @@ const navigationItems: MenuItem[] = [
     title: 'Pôle ACSG',
     icon: FileText,
     href: '/dashboard/acsg',
-    children: [
-      {
-        title: 'Factures',
-        icon: FileText,
-        href: '/dashboard/acsg/factures',
-      },
-      {
-        title: 'Suivi règlements',
-        icon: DollarSign,
-        href: '/dashboard/acsg/reglements',
-      },
-      {
-        title: 'SAV',
-        icon: Settings,
-        href: '/dashboard/acsg/sav',
-      },
-      {
-        title: 'RH',
-        icon: Users,
-        href: '/dashboard/acsg/rh',
-      },
-    ],
   },
   {
     title: 'Pôle Marketing',
@@ -417,8 +372,8 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
   const { openTab } = useTabsStore();
   const hasChildren = item.children && item.children.length > 0;
   const isActive = item.href === pathname;
-  const hasActiveChild = item.children?.some(child =>
-    child.href === pathname ||
+  const hasActiveChild = item.children?.some(child => 
+    child.href === pathname || 
     child.children?.some(subChild => subChild.href === pathname)
   );
 
@@ -442,16 +397,16 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group",
           paddingLeft,
-          isActive
-            ? "bg-[#2bbbdc]/10 border-l-4 border-[#2bbbdc] text-[#2bbbdc] font-medium"
+          isActive 
+            ? "bg-[#2bbbdc]/10 border-l-4 border-[#2bbbdc] text-[#2bbbdc] font-medium" 
             : hasActiveChild
-              ? "bg-[#2bbbdc]/5 text-[#2bbbdc]"
-              : "hover:bg-gray-100 text-gray-700 hover:text-[#2bbbdc]"
+            ? "bg-[#2bbbdc]/5 text-[#2bbbdc]"
+            : "hover:bg-gray-100 text-gray-700 hover:text-[#2bbbdc]"
         )}
         onClick={handleClick}
       >
         <Icon className="h-5 w-5 flex-shrink-0" />
-
+        
         {!collapsed && (
           <>
             <span className="font-medium text-sm flex-1">{item.title}</span>
@@ -478,16 +433,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   // Déterminer quel accordéon doit être ouvert par défaut basé sur le pathname
   React.useEffect(() => {
-    const currentPole = navigationItems.find(item =>
+    const currentPole = navigationItems.find(item => 
       item.children && (
         item.href === pathname ||
-        item.children.some(child =>
-          child.href === pathname ||
+        item.children.some(child => 
+          child.href === pathname || 
           child.children?.some(subChild => subChild.href === pathname)
         )
       )
     );
-
+    
     if (currentPole && !collapsed) {
       setOpenAccordion(currentPole.title);
     }
@@ -522,16 +477,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </>
           )}
         </motion.div>
-
+        
         <button
           onClick={onToggle}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
         >
-          <ChevronLeft
+          <ChevronLeft 
             className={cn(
               "h-5 w-5 transition-transform duration-300 text-gray-600",
               collapsed && "rotate-180"
-            )}
+            )} 
           />
         </button>
       </div>
@@ -552,34 +507,34 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
           {/* Accordéon pour les éléments avec enfants */}
           {!collapsed && (
-            <Accordion
-              type="single"
-              value={openAccordion}
+            <Accordion 
+              type="single" 
+              value={openAccordion} 
               onValueChange={setOpenAccordion}
               className="space-y-1"
             >
               {accordionItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = item.href === pathname;
-                const hasActiveChild = item.children?.some(child =>
-                  child.href === pathname ||
+                const hasActiveChild = item.children?.some(child => 
+                  child.href === pathname || 
                   child.children?.some(subChild => subChild.href === pathname)
                 );
 
                 return (
-                  <AccordionItem
-                    key={item.title}
+                  <AccordionItem 
+                    key={item.title} 
                     value={item.title}
                     className="border-none"
                   >
-                    <AccordionTrigger
+                    <AccordionTrigger 
                       className={cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 hover:no-underline hover:bg-gray-100 [&[data-state=open]]:bg-[#2bbbdc]/5",
-                        isActive
-                          ? "bg-[#2bbbdc]/10 border-l-4 border-[#2bbbdc] text-[#2bbbdc] font-medium"
+                        isActive 
+                          ? "bg-[#2bbbdc]/10 border-l-4 border-[#2bbbdc] text-[#2bbbdc] font-medium" 
                           : hasActiveChild
-                            ? "bg-[#2bbbdc]/5 text-[#2bbbdc]"
-                            : "text-gray-700 hover:text-[#2bbbdc]"
+                          ? "bg-[#2bbbdc]/5 text-[#2bbbdc]"
+                          : "text-gray-700 hover:text-[#2bbbdc]"
                       )}
                     >
                       <div className="flex items-center gap-3 flex-1">
