@@ -43,7 +43,7 @@ Avant de commencer, assurez-vous d'avoir installé :
 # Vérifier les versions
 node --version  # >= 18.0.0
 npm --version   # >= 9.0.0
-docker --version
+docker --version  # >= 20.10.0
 ```
 
 ## 🚀 Installation
