@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '@/store/useAuth';
-import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { Topbar } from '@/components/Topbar';
+import { TabBar } from '@/components/ui/TabBar';
+import { TabRenderer } from '@/components/ui/TabRenderer';
+import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -36,20 +38,22 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar 
+      <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
-        
-        <motion.main 
+        <TabBar />
+
+        <motion.main
           className="flex-1 overflow-y-auto p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
+          <TabRenderer />
           {children}
         </motion.main>
       </div>

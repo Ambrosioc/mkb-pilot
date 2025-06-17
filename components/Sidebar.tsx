@@ -3,6 +3,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useTabsStore } from '@/store/useTabsStore';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
@@ -35,7 +36,6 @@ import {
   Users,
   Zap
 } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -414,6 +414,7 @@ interface MenuItemComponentProps {
 }
 
 function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemComponentProps) {
+  const { openTab } = useTabsStore();
   const hasChildren = item.children && item.children.length > 0;
   const isActive = item.href === pathname;
   const hasActiveChild = item.children?.some(child =>
@@ -423,6 +424,16 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
 
   const Icon = item.icon;
   const paddingLeft = collapsed ? 'pl-3' : `pl-${3 + level * 4}`;
+
+  const handleClick = () => {
+    if (item.href) {
+      openTab({
+        name: item.title.toLowerCase().replace(/\s+/g, '-'),
+        label: item.title,
+        path: item.href
+      });
+    }
+  };
 
   // Pour les éléments sans enfants ou les sous-éléments
   if (!hasChildren || level > 0) {
@@ -437,6 +448,7 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
               ? "bg-[#2bbbdc]/5 text-[#2bbbdc]"
               : "hover:bg-gray-100 text-gray-700 hover:text-[#2bbbdc]"
         )}
+        onClick={handleClick}
       >
         <Icon className="h-5 w-5 flex-shrink-0" />
 
@@ -453,13 +465,7 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
       </div>
     );
 
-    return item.href ? (
-      <Link href={item.href}>
-        {content}
-      </Link>
-    ) : (
-      content
-    );
+    return content;
   }
 
   // Pour les éléments de niveau 0 avec enfants - utiliser l'accordéon
