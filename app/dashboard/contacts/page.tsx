@@ -5,34 +5,30 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { ContactDetailDrawer } from '@/components/ui/ContactDetailDrawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TagsManagementDialog } from '@/components/ui/TagsManagementDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import {
   Archive,
   Building2,
-  Calendar,
-  Car,
-  Download,
-  Edit,
   Eye,
-  FileText,
-  Filter,
-  History,
   Loader2,
   Mail,
-  MessageSquare,
   MoreHorizontal,
   Phone,
-  Plus,
-  Receipt,
-  Save,
   Search,
   Send,
   Star,
@@ -54,135 +50,72 @@ interface Contact {
   type: string;
   status: string;
   tags: string[];
-  notes: string | null;
   created_at: string;
-  updated_at?: string;
-}
-
-interface Interaction {
-  id: string;
-  contact_id: string;
-  type: string;
-  date: string;
-  description: string;
-  user: string;
-}
-
-interface Vehicle {
-  id: string;
-  brand: string;
-  model: string;
-  year: number;
-  status: string;
-}
-
-interface Document {
-  id: string;
-  type: string;
-  date: string;
-  status: string;
-  amount: number;
+  updated_at: string;
 }
 
 const contactsMetrics = [
   {
     title: 'Contacts Total',
-    value: '0',
-    change: '+0',
+    value: '1,247',
+    change: '+89',
     icon: Users,
     color: 'text-green-600',
   },
   {
     title: 'Particuliers',
-    value: '0',
-    change: '+0',
+    value: '892',
+    change: '+67',
     icon: User,
     color: 'text-mkb-blue',
   },
   {
     title: 'Professionnels',
-    value: '0',
-    change: '+0',
+    value: '355',
+    change: '+22',
     icon: Building2,
     color: 'text-purple-600',
   },
   {
     title: 'Prospects Chauds',
-    value: '0',
-    change: '+0',
+    value: '156',
+    change: '+34',
     icon: Star,
     color: 'text-mkb-yellow',
   },
 ];
 
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case 'Client particulier': return 'bg-blue-100 text-blue-800';
-    case 'Client pro': return 'bg-purple-100 text-purple-800';
-    case 'Lead': return 'bg-orange-100 text-orange-800';
-    case 'Partenaire': return 'bg-green-100 text-green-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'actif': return 'bg-green-100 text-green-800';
-    case 'prospect': return 'bg-orange-100 text-orange-800';
-    case 'inactif': return 'bg-gray-100 text-gray-800';
-    case 'archivé': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getTagColor = (tag: string) => {
-  switch (tag) {
-    case 'chaud': return 'bg-red-100 text-red-800';
-    case 'froid': return 'bg-blue-100 text-blue-800';
-    case 'vip': return 'bg-yellow-100 text-yellow-800';
-    case 'marchand': return 'bg-purple-100 text-purple-800';
-    case 'b2b': return 'bg-indigo-100 text-indigo-800';
-    case 'apporteur': return 'bg-green-100 text-green-800';
-    case 'relance': return 'bg-orange-100 text-orange-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
-
 export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [tagFilter, setTagFilter] = useState('all');
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editedContact, setEditedContact] = useState<Contact | null>(null);
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [emailData, setEmailData] = useState({ subject: '', message: '' });
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [isGroupEmailModalOpen, setIsGroupEmailModalOpen] = useState(false);
-  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [selectAllChecked, setSelectAllChecked] = useState(false);
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const [newTag, setNewTag] = useState('');
-  const [availableTags, setAvailableTags] = useState<string[]>([
-    'chaud', 'froid', 'vip', 'relance', 'b2b', 'apporteur', 'marchand'
-  ]);
+  const [isTagsManagementOpen, setIsTagsManagementOpen] = useState(false);
+  const [isGroupEmailOpen, setIsGroupEmailOpen] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [groupEmailData, setGroupEmailData] = useState({
+    subject: '',
+    message: ''
+  });
+  const [isSendingGroupEmail, setIsSendingGroupEmail] = useState(false);
   const [metrics, setMetrics] = useState(contactsMetrics);
-  const [isLoading, setIsLoading] = useState(true);
-  const [interactions, setInteractions] = useState<Interaction[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [activeTab, setActiveTab] = useState('info');
 
   useEffect(() => {
     fetchContacts();
+    fetchAvailableTags();
   }, []);
 
   const fetchContacts = async () => {
-    setIsLoading(true);
+    setLoading(true);
     try {
+      // Fetch contacts from Supabase
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
@@ -190,257 +123,93 @@ export default function ContactsPage() {
 
       if (error) throw error;
 
-      // Filter out archived contacts by default
-      const activeContacts = data.filter(contact => contact.status !== 'archivé');
-      setContacts(activeContacts);
+      // Fetch tags for each contact
+      const contactsWithTags = await Promise.all(
+        data.map(async (contact) => {
+          const { data: tagsData, error: tagsError } = await supabase
+            .from('contact_tags')
+            .select('tag')
+            .eq('contact_id', contact.id);
+
+          if (tagsError) {
+            console.error('Error fetching tags for contact:', tagsError);
+            return { ...contact, tags: [] };
+          }
+
+          return { ...contact, tags: tagsData.map(t => t.tag) };
+        })
+      );
+
+      setContacts(contactsWithTags);
 
       // Update metrics
-      updateMetrics(data);
+      const total = contactsWithTags.length;
+      const particuliers = contactsWithTags.filter(c => c.type === 'Client particulier').length;
+      const professionnels = contactsWithTags.filter(c => c.type === 'Client pro' || c.type === 'Partenaire').length;
+      const prospects = contactsWithTags.filter(c => c.tags.includes('chaud')).length;
+
+      setMetrics([
+        { ...metrics[0], value: total.toString() },
+        { ...metrics[1], value: particuliers.toString() },
+        { ...metrics[2], value: professionnels.toString() },
+        { ...metrics[3], value: prospects.toString() },
+      ]);
+
     } catch (error) {
       console.error('Error fetching contacts:', error);
       toast.error('Erreur lors du chargement des contacts');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const updateMetrics = (data: Contact[]) => {
-    const total = data.filter(c => c.status !== 'archivé').length;
-    const particuliers = data.filter(c => c.type === 'Client particulier' && c.status !== 'archivé').length;
-    const professionnels = data.filter(c => c.type === 'Client pro' && c.status !== 'archivé').length;
-    const chauds = data.filter(c => c.tags?.includes('chaud') && c.status !== 'archivé').length;
-
-    setMetrics([
-      { ...metrics[0], value: total.toString() },
-      { ...metrics[1], value: particuliers.toString() },
-      { ...metrics[2], value: professionnels.toString() },
-      { ...metrics[3], value: chauds.toString() },
-    ]);
-  };
-
-  const fetchContactDetails = async (contactId: string) => {
+  const fetchAvailableTags = async () => {
     try {
-      // Fetch contact
-      const { data: contactData, error: contactError } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('id', contactId)
-        .single();
+      const { data, error } = await supabase
+        .from('contact_tags')
+        .select('tag')
+        .order('tag');
 
-      if (contactError) throw contactError;
-      setSelectedContact(contactData);
-      setEditedContact(contactData);
+      if (error) throw error;
 
-      // Fetch mock interactions
-      // In a real app, you would fetch from a real table
-      const mockInteractions: Interaction[] = [
-        {
-          id: '1',
-          contact_id: contactId,
-          type: 'email',
-          date: '2024-03-15',
-          description: 'Email de suivi envoyé',
-          user: 'Jean Martin'
-        },
-        {
-          id: '2',
-          contact_id: contactId,
-          type: 'call',
-          date: '2024-03-10',
-          description: 'Appel pour discuter des options de véhicules',
-          user: 'Sophie Laurent'
-        },
-        {
-          id: '3',
-          contact_id: contactId,
-          type: 'meeting',
-          date: '2024-03-05',
-          description: 'Rendez-vous en concession',
-          user: 'Pierre Durand'
-        }
-      ];
-      setInteractions(mockInteractions);
-
-      // Fetch mock vehicles
-      const mockVehicles: Vehicle[] = [
-        {
-          id: '1',
-          brand: 'Peugeot',
-          model: '308',
-          year: 2023,
-          status: 'vendu'
-        },
-        {
-          id: '2',
-          brand: 'Renault',
-          model: 'Clio',
-          year: 2022,
-          status: 'intéressé'
-        }
-      ];
-      setVehicles(mockVehicles);
-
-      // Fetch mock documents
-      const mockDocuments: Document[] = [
-        {
-          id: '1',
-          type: 'devis',
-          date: '2024-03-12',
-          status: 'envoyé',
-          amount: 18500
-        },
-        {
-          id: '2',
-          type: 'facture',
-          date: '2024-03-15',
-          status: 'payé',
-          amount: 18500
-        }
-      ];
-      setDocuments(mockDocuments);
+      // Get unique tags
+      const uniqueTags = Array.from(new Set(data.map(t => t.tag)));
+      setAvailableTags(uniqueTags);
 
     } catch (error) {
-      console.error('Error fetching contact details:', error);
-      toast.error('Erreur lors du chargement des détails du contact');
+      console.error('Error fetching tags:', error);
     }
   };
 
-  const handleContactClick = (contact: Contact) => {
-    fetchContactDetails(contact.id);
+  const handleContactAdded = () => {
+    fetchContacts();
+    toast.success('Contact ajouté avec succès !');
+  };
+
+  const handleContactUpdated = () => {
+    fetchContacts();
+    fetchAvailableTags();
+  };
+
+  const handleViewContact = (contactId: string) => {
+    setSelectedContact(contactId);
     setIsDetailDrawerOpen(true);
-    setIsEditMode(false);
-    setActiveTab('info');
   };
 
-  const handleSaveContact = async () => {
-    if (!editedContact) return;
-
-    try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({
-          name: editedContact.name,
-          email: editedContact.email,
-          phone: editedContact.phone,
-          company: editedContact.company,
-          notes: editedContact.notes,
-          tags: editedContact.tags,
-          status: editedContact.status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editedContact.id);
-
-      if (error) throw error;
-
-      toast.success('Contact mis à jour avec succès');
-      setSelectedContact(editedContact);
-      setIsEditMode(false);
-      fetchContacts(); // Refresh the list
-    } catch (error) {
-      console.error('Error updating contact:', error);
-      toast.error('Erreur lors de la mise à jour du contact');
+  const handleSelectContact = (contactId: string, isChecked: boolean) => {
+    if (isChecked) {
+      setSelectedContacts(prev => [...prev, contactId]);
+    } else {
+      setSelectedContacts(prev => prev.filter(id => id !== contactId));
     }
   };
 
-  const handleArchiveContact = async () => {
-    if (!selectedContact) return;
-
-    try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({
-          status: 'archivé',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedContact.id);
-
-      if (error) throw error;
-
-      toast.success('Contact archivé avec succès');
-      setIsDetailDrawerOpen(false);
-      fetchContacts(); // Refresh the list
-    } catch (error) {
-      console.error('Error archiving contact:', error);
-      toast.error('Erreur lors de l\'archivage du contact');
-    }
-  };
-
-  const handleAddTag = () => {
-    if (!newTag.trim() || !editedContact) return;
-
-    // Add to available tags if it's a new tag
-    if (!availableTags.includes(newTag)) {
-      setAvailableTags([...availableTags, newTag]);
-    }
-
-    // Add to contact tags if not already there
-    if (!editedContact.tags.includes(newTag)) {
-      const updatedTags = [...editedContact.tags, newTag];
-      setEditedContact({ ...editedContact, tags: updatedTags });
-    }
-
-    setNewTag('');
-    setIsAddingTag(false);
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    if (!editedContact) return;
-    const updatedTags = editedContact.tags.filter(tag => tag !== tagToRemove);
-    setEditedContact({ ...editedContact, tags: updatedTags });
-  };
-
-  const handleSendEmail = async () => {
-    if (!selectedContact || !selectedContact.email) {
-      toast.error('Ce contact n\'a pas d\'adresse email');
-      return;
-    }
-
-    if (!emailData.subject || !emailData.message) {
-      toast.error('Veuillez remplir tous les champs');
-      return;
-    }
-
-    setIsSendingEmail(true);
-
-    try {
-      // In a real app, you would call an API endpoint to send the email
-      // For this demo, we'll simulate sending with a timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Log the interaction
-      const interactionData = {
-        contact_id: selectedContact.id,
-        type: 'email',
-        date: new Date().toISOString().split('T')[0],
-        description: `Email envoyé: ${emailData.subject}`,
-        user: 'Utilisateur actuel' // In a real app, this would be the logged-in user
-      };
-
-      // In a real app, you would save this to the database
-      console.log('Email sent:', {
-        to: selectedContact.email,
-        subject: emailData.subject,
-        message: emailData.message
-      });
-      console.log('Interaction logged:', interactionData);
-
-      // Add to interactions list for UI
-      setInteractions([
-        {
-          id: Date.now().toString(),
-          ...interactionData
-        },
-        ...interactions
-      ]);
-
-      toast.success('Email envoyé avec succès');
-      setIsEmailModalOpen(false);
-      setEmailData({ subject: '', message: '' });
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error('Erreur lors de l\'envoi de l\'email');
-    } finally {
-      setIsSendingEmail(false);
+  const handleSelectAll = (isChecked: boolean) => {
+    setSelectAll(isChecked);
+    if (isChecked) {
+      setSelectedContacts(filteredContacts.map(contact => contact.id));
+    } else {
+      setSelectedContacts([]);
     }
   };
 
@@ -450,86 +219,104 @@ export default function ContactsPage() {
       return;
     }
 
-    if (!emailData.subject || !emailData.message) {
+    if (!groupEmailData.subject || !groupEmailData.message) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
-    setIsSendingEmail(true);
+    setIsSendingGroupEmail(true);
 
     try {
       // Get selected contacts with email
-      const selectedContactsData = contacts.filter(
+      const selectedContactsWithEmail = contacts.filter(
         contact => selectedContacts.includes(contact.id) && contact.email
       );
 
-      if (selectedContactsData.length === 0) {
-        throw new Error('Aucun des contacts sélectionnés n\'a d\'adresse email');
+      if (selectedContactsWithEmail.length === 0) {
+        toast.error('Aucun des contacts sélectionnés n\'a d\'adresse email');
+        return;
       }
 
-      // In a real app, you would call an API endpoint to send the emails
+      // In a real app, here we would call an API endpoint to send the emails
       // For this demo, we'll simulate sending with a timeout
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log('Group email sent:', {
-        to: selectedContactsData.map(c => c.email),
-        subject: emailData.subject,
-        message: emailData.message
-      });
+      // Add interaction records for each contact
+      await Promise.all(
+        selectedContactsWithEmail.map(contact =>
+          supabase
+            .from('contact_interactions')
+            .insert({
+              contact_id: contact.id,
+              type: 'email',
+              date: new Date().toISOString().split('T')[0],
+              description: `Email groupé envoyé: ${groupEmailData.subject}`
+            })
+        )
+      );
 
-      toast.success(`Email envoyé à ${selectedContactsData.length} contacts`);
-      setIsGroupEmailModalOpen(false);
-      setEmailData({ subject: '', message: '' });
+      toast.success(`Email envoyé à ${selectedContactsWithEmail.length} contact(s)`);
+      setIsGroupEmailOpen(false);
+      setGroupEmailData({ subject: '', message: '' });
       setSelectedContacts([]);
-      setSelectAllChecked(false);
+      setSelectAll(false);
+
     } catch (error) {
       console.error('Error sending group email:', error);
-      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'envoi des emails');
+      toast.error('Erreur lors de l\'envoi des emails');
     } finally {
-      setIsSendingEmail(false);
+      setIsSendingGroupEmail(false);
     }
   };
 
-  const handleSelectAllContacts = (checked: boolean) => {
-    setSelectAllChecked(checked);
-    if (checked) {
-      setSelectedContacts(filteredContacts.map(contact => contact.id));
-    } else {
-      setSelectedContacts([]);
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Client particulier': return 'bg-blue-100 text-blue-800';
+      case 'Client pro': return 'bg-purple-100 text-purple-800';
+      case 'Lead': return 'bg-yellow-100 text-yellow-800';
+      case 'Partenaire': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleSelectContact = (contactId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedContacts([...selectedContacts, contactId]);
-    } else {
-      setSelectedContacts(selectedContacts.filter(id => id !== contactId));
-      setSelectAllChecked(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'actif': return 'bg-green-100 text-green-800';
+      case 'prospect': return 'bg-orange-100 text-orange-800';
+      case 'inactif': return 'bg-gray-100 text-gray-800';
+      case 'archivé': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleContactAdded = () => {
-    fetchContacts();
-    toast.success('Contact ajouté avec succès !');
+  const getTagColor = (tag: string) => {
+    // Generate a consistent color based on the tag name
+    const colorIndex = tag.charCodeAt(0) % TAG_COLORS.length;
+    return TAG_COLORS[colorIndex];
   };
 
+  const TAG_COLORS = [
+    'bg-mkb-blue text-white',
+    'bg-mkb-yellow text-black',
+    'bg-green-500 text-white',
+    'bg-purple-500 text-white',
+    'bg-red-500 text-white',
+    'bg-orange-500 text-white',
+    'bg-blue-500 text-white',
+    'bg-indigo-500 text-white',
+  ];
+
+  // Apply filters
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === 'all' || contact.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+    const matchesTag = tagFilter === 'all' || (contact.tags && contact.tags.includes(tagFilter));
 
-  const getInteractionIcon = (type: string) => {
-    switch (type) {
-      case 'email': return <Mail className="h-4 w-4 text-blue-500" />;
-      case 'call': return <Phone className="h-4 w-4 text-green-500" />;
-      case 'meeting': return <Calendar className="h-4 w-4 text-purple-500" />;
-      default: return <MessageSquare className="h-4 w-4 text-gray-500" />;
-    }
-  };
+    return matchesSearch && matchesType && matchesStatus && matchesTag;
+  });
 
   return (
     <div className="space-y-6">
@@ -598,7 +385,7 @@ export default function ContactsPage() {
       >
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="relative flex-1 min-w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -632,14 +419,90 @@ export default function ContactsPage() {
                   <SelectItem value="archivé">Archivé</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Plus de filtres
+              {availableTags.length > 0 && (
+                <Select value={tagFilter} onValueChange={setTagFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les tags</SelectItem>
+                    {availableTags.map(tag => (
+                      <SelectItem key={tag} value={tag}>
+                        {tag}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTagsManagementOpen(true)}
+              >
+                <Tag className="h-4 w-4 mr-2" />
+                Gérer les tags
               </Button>
             </div>
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Bulk Actions */}
+      {selectedContacts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="border-mkb-blue/20 bg-mkb-blue/5">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-mkb-blue text-white">
+                    {selectedContacts.length} sélectionné(s)
+                  </Badge>
+                  <span className="text-sm text-gray-600">
+                    {selectedContacts.length === 1
+                      ? '1 contact sélectionné'
+                      : `${selectedContacts.length} contacts sélectionnés`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsGroupEmailOpen(true)}
+                    disabled={selectedContacts.length === 0}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email groupé
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                    disabled={selectedContacts.length === 0}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Archiver
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContacts([]);
+                      setSelectAll(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Contacts Table */}
       <motion.div
@@ -648,33 +511,15 @@ export default function ContactsPage() {
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-mkb-black">
               Carnet de Contacts ({filteredContacts.length})
             </CardTitle>
-            {selectedContacts.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">
-                  {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} sélectionné{selectedContacts.length > 1 ? 's' : ''}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEmailData({ subject: '', message: '' });
-                    setIsGroupEmailModalOpen(true);
-                  }}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email groupé
-                </Button>
-              </div>
-            )}
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mkb-blue"></div>
+                <Loader2 className="h-12 w-12 text-mkb-blue animate-spin" />
               </div>
             ) : filteredContacts.length === 0 ? (
               <div className="text-center py-12">
@@ -694,11 +539,10 @@ export default function ContactsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 w-8">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-10">
                         <Checkbox
-                          checked={selectAllChecked}
-                          onCheckedChange={handleSelectAllContacts}
-                          aria-label="Sélectionner tous les contacts"
+                          checked={selectAll}
+                          onCheckedChange={handleSelectAll}
                         />
                       </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
@@ -716,18 +560,19 @@ export default function ContactsPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="border-b hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleContactClick(contact)}
+                        className="border-b hover:bg-gray-50"
                       >
-                        <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-3 px-4">
                           <Checkbox
                             checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={(checked) => handleSelectContact(contact.id, checked === true)}
-                            aria-label={`Sélectionner ${contact.name}`}
+                            onCheckedChange={(checked) => handleSelectContact(contact.id, !!checked)}
                           />
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
+                          <div
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => handleViewContact(contact.id)}
+                          >
                             <div className="w-10 h-10 bg-mkb-blue rounded-full flex items-center justify-center text-white font-medium">
                               {contact.name.split(' ').map(n => n[0]).join('')}
                             </div>
@@ -744,13 +589,25 @@ export default function ContactsPage() {
                             {contact.email && (
                               <div className="flex items-center gap-2 text-sm">
                                 <Mail className="h-3 w-3 text-gray-400" />
-                                <span>{contact.email}</span>
+                                <a
+                                  href={`mailto:${contact.email}`}
+                                  className="hover:text-mkb-blue hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {contact.email}
+                                </a>
                               </div>
                             )}
                             {contact.phone && (
                               <div className="flex items-center gap-2 text-sm">
                                 <Phone className="h-3 w-3 text-gray-400" />
-                                <span>{contact.phone}</span>
+                                <a
+                                  href={`tel:${contact.phone}`}
+                                  className="hover:text-mkb-blue hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {contact.phone}
+                                </a>
                               </div>
                             )}
                           </div>
@@ -769,64 +626,61 @@ export default function ContactsPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap gap-1">
-                            {contact.tags && contact.tags.map((tag, tagIndex) => (
-                              <Badge key={tagIndex} variant="secondary" className={`text-xs ${getTagColor(tag)}`}>
-                                {tag}
+                            {contact.tags && contact.tags.length > 0 ? (
+                              contact.tags.slice(0, 3).map((tag, tagIndex) => (
+                                <Badge
+                                  key={tagIndex}
+                                  variant="secondary"
+                                  className={`text-xs ${getTagColor(tag)}`}
+                                >
+                                  {tag}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-gray-400">Aucun tag</span>
+                            )}
+                            {contact.tags && contact.tags.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{contact.tags.length - 3}
                               </Badge>
-                            ))}
+                            )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               title="Voir détails"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleContactClick(contact);
-                              }}
+                              onClick={() => handleViewContact(contact.id)}
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Appeler"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (contact.phone) {
-                                  window.location.href = `tel:${contact.phone}`;
-                                } else {
-                                  toast.error('Ce contact n\'a pas de numéro de téléphone');
-                                }
-                              }}
-                            >
-                              <Phone className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Envoyer email"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (contact.email) {
-                                  setSelectedContact(contact);
-                                  setEmailData({ subject: '', message: '' });
-                                  setIsEmailModalOpen(true);
-                                } else {
-                                  toast.error('Ce contact n\'a pas d\'adresse email');
-                                }
-                              }}
-                            >
-                              <Mail className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Plus d'actions"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                            {contact.phone && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Appeler"
+                                asChild
+                              >
+                                <a href={`tel:${contact.phone}`}>
+                                  <Phone className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            )}
+                            {contact.email && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Envoyer email"
+                                asChild
+                              >
+                                <a href={`mailto:${contact.email}`}>
+                                  <Mail className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" title="Plus d'actions">
                               <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           </div>
@@ -864,11 +718,10 @@ export default function ContactsPage() {
                 variant="outline"
                 className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white"
                 onClick={() => {
-                  if (selectedContacts.length > 0) {
-                    setEmailData({ subject: '', message: '' });
-                    setIsGroupEmailModalOpen(true);
-                  } else {
+                  if (selectedContacts.length === 0) {
                     toast.error('Veuillez sélectionner au moins un contact');
+                  } else {
+                    setIsGroupEmailOpen(true);
                   }
                 }}
               >
@@ -877,20 +730,21 @@ export default function ContactsPage() {
               </Button>
               <Button
                 variant="outline"
-                className="border-gray-300"
                 onClick={() => {
-                  if (selectedContacts.length > 0) {
-                    setEmailData({ subject: '', message: '' });
-                    setIsGroupEmailModalOpen(true);
-                  } else {
+                  if (selectedContacts.length === 0) {
                     toast.error('Veuillez sélectionner au moins un contact');
+                  } else {
+                    setIsGroupEmailOpen(true);
                   }
                 }}
               >
                 <Mail className="mr-2 h-4 w-4" />
                 Email Groupé
               </Button>
-              <Button variant="outline" className="border-gray-300">
+              <Button
+                variant="outline"
+                onClick={() => setIsTagsManagementOpen(true)}
+              >
                 <Tag className="mr-2 h-4 w-4" />
                 Gestion Tags
               </Button>
@@ -919,556 +773,59 @@ export default function ContactsPage() {
       />
 
       {/* Contact Detail Drawer */}
-      <Drawer open={isDetailDrawerOpen} onOpenChange={setIsDetailDrawerOpen}>
-        <DrawerContent className="h-[85vh] max-h-[85vh] p-0">
-          <div className="flex flex-col h-full">
-            <DrawerHeader className="border-b pb-4 px-4">
-              <div className="flex items-center justify-between">
-                <DrawerTitle className="text-xl font-bold text-mkb-black flex items-center gap-2">
-                  {selectedContact && (
-                    <>
-                      <div className="w-10 h-10 bg-mkb-blue rounded-full flex items-center justify-center text-white font-medium">
-                        {selectedContact.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        {selectedContact.name}
-                        {selectedContact.company && (
-                          <div className="text-sm font-normal text-gray-500">{selectedContact.company}</div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </DrawerTitle>
-                <div className="flex items-center gap-2">
-                  {selectedContact?.phone && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.location.href = `tel:${selectedContact.phone}`}
-                    >
-                      <Phone className="h-4 w-4 mr-2" />
-                      Appeler
-                    </Button>
-                  )}
-                  {selectedContact?.email && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEmailData({ subject: '', message: '' });
-                        setIsEmailModalOpen(true);
-                      }}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <DrawerDescription>
-                {selectedContact && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge className={getTypeColor(selectedContact.type)}>
-                      {selectedContact.type}
-                    </Badge>
-                    <Badge className={getStatusColor(selectedContact.status)}>
-                      {selectedContact.status ? selectedContact.status.charAt(0).toUpperCase() + selectedContact.status.slice(1) : ''}
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      Ajouté le {new Date(selectedContact.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </DrawerDescription>
-            </DrawerHeader>
+      <ContactDetailDrawer
+        open={isDetailDrawerOpen}
+        onOpenChange={setIsDetailDrawerOpen}
+        contactId={selectedContact || undefined}
+        onContactUpdated={handleContactUpdated}
+      />
 
-            <div className="flex-1 overflow-y-auto">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="px-4 pt-4">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="info">Informations</TabsTrigger>
-                    <TabsTrigger value="history">Historique</TabsTrigger>
-                    <TabsTrigger value="documents">Documents</TabsTrigger>
-                  </TabsList>
-                </div>
+      {/* Tags Management Dialog */}
+      <TagsManagementDialog
+        open={isTagsManagementOpen}
+        onOpenChange={setIsTagsManagementOpen}
+        onTagsUpdated={handleContactUpdated}
+      />
 
-                <TabsContent value="info" className="p-4 space-y-6">
-                  {isEditMode ? (
-                    // Edit mode
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="name">Nom complet</Label>
-                          <Input
-                            id="name"
-                            value={editedContact?.name || ''}
-                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, name: e.target.value } : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            value={editedContact?.email || ''}
-                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, email: e.target.value } : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone">Téléphone</Label>
-                          <Input
-                            id="phone"
-                            value={editedContact?.phone || ''}
-                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="company">Société</Label>
-                          <Input
-                            id="company"
-                            value={editedContact?.company || ''}
-                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, company: e.target.value } : null)}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="status">Statut</Label>
-                        <Select
-                          value={editedContact?.status || 'actif'}
-                          onValueChange={(value) => setEditedContact(prev => prev ? { ...prev, status: value } : null)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Statut" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="actif">Actif</SelectItem>
-                            <SelectItem value="prospect">Prospect</SelectItem>
-                            <SelectItem value="inactif">Inactif</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="notes">Notes</Label>
-                        <Textarea
-                          id="notes"
-                          value={editedContact?.notes || ''}
-                          onChange={(e) => setEditedContact(prev => prev ? { ...prev, notes: e.target.value } : null)}
-                          className="min-h-[100px]"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <Label>Tags</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddingTag(true)}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Ajouter
-                          </Button>
-                        </div>
-
-                        {isAddingTag ? (
-                          <div className="flex items-center gap-2 mb-2">
-                            <Input
-                              value={newTag}
-                              onChange={(e) => setNewTag(e.target.value)}
-                              placeholder="Nouveau tag..."
-                              className="flex-1"
-                            />
-                            <Button size="sm" onClick={handleAddTag}>
-                              Ajouter
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setIsAddingTag(false);
-                                setNewTag('');
-                              }}
-                            >
-                              Annuler
-                            </Button>
-                          </div>
-                        ) : null}
-
-                        <div className="flex flex-wrap gap-2">
-                          {editedContact?.tags && editedContact.tags.map((tag, index) => (
-                            <Badge
-                              key={index}
-                              className={`${getTagColor(tag)} flex items-center gap-1`}
-                            >
-                              {tag}
-                              <button
-                                onClick={() => handleRemoveTag(tag)}
-                                className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                              >
-                                <X className="h-2 w-2" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-
-                        {!isAddingTag && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-500 mb-1">Tags suggérés :</p>
-                            <div className="flex flex-wrap gap-1">
-                              {availableTags
-                                .filter(tag => !editedContact?.tags.includes(tag))
-                                .map((tag, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="cursor-pointer hover:bg-gray-100"
-                                    onClick={() => {
-                                      if (editedContact) {
-                                        setEditedContact({
-                                          ...editedContact,
-                                          tags: [...editedContact.tags, tag]
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <Plus className="h-2 w-2 mr-1" />
-                                    {tag}
-                                  </Badge>
-                                ))
-                              }
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    // View mode
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-mkb-black">Informations de contact</h3>
-
-                          <div className="space-y-3">
-                            <div>
-                              <Label className="text-gray-500">Nom complet</Label>
-                              <p className="font-medium">{selectedContact?.name}</p>
-                            </div>
-
-                            {selectedContact?.email && (
-                              <div>
-                                <Label className="text-gray-500">Email</Label>
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{selectedContact.email}</p>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => {
-                                      setEmailData({ subject: '', message: '' });
-                                      setIsEmailModalOpen(true);
-                                    }}
-                                  >
-                                    <Mail className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedContact?.phone && (
-                              <div>
-                                <Label className="text-gray-500">Téléphone</Label>
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{selectedContact.phone}</p>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => window.location.href = `tel:${selectedContact.phone}`}
-                                  >
-                                    <Phone className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedContact?.company && (
-                              <div>
-                                <Label className="text-gray-500">Société</Label>
-                                <p className="font-medium">{selectedContact.company}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-mkb-black">Informations supplémentaires</h3>
-
-                          <div className="space-y-3">
-                            <div>
-                              <Label className="text-gray-500">Type</Label>
-                              <div>
-                                <Badge className={getTypeColor(selectedContact?.type || '')}>
-                                  {selectedContact?.type}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label className="text-gray-500">Statut</Label>
-                              <div>
-                                <Badge className={getStatusColor(selectedContact?.status || '')}>
-                                  {selectedContact?.status ? selectedContact.status.charAt(0).toUpperCase() + selectedContact.status.slice(1) : ''}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label className="text-gray-500">Tags</Label>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {selectedContact?.tags && selectedContact.tags.length > 0 ? (
-                                  selectedContact.tags.map((tag, index) => (
-                                    <Badge key={index} className={getTagColor(tag)}>
-                                      {tag}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-gray-500">Aucun tag</span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label className="text-gray-500">Date d'ajout</Label>
-                              <p className="font-medium">
-                                {selectedContact && new Date(selectedContact.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {selectedContact?.notes && (
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold text-mkb-black">Notes</h3>
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm whitespace-pre-line">{selectedContact.notes}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="history" className="p-4 space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-mkb-black">Historique des interactions</h3>
-
-                    {interactions.length > 0 ? (
-                      <div className="space-y-3">
-                        {interactions.map((interaction, index) => (
-                          <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="bg-white p-2 rounded-full shadow-sm">
-                              {getInteractionIcon(interaction.type)}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-mkb-black">
-                                  {interaction.type === 'email' ? 'Email envoyé' :
-                                    interaction.type === 'call' ? 'Appel téléphonique' :
-                                      interaction.type === 'meeting' ? 'Rendez-vous' : 'Interaction'}
-                                </p>
-                                <p className="text-xs text-gray-500">{interaction.date}</p>
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">{interaction.description}</p>
-                              <p className="text-xs text-gray-500 mt-1">Par {interaction.user}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <History className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">Aucune interaction enregistrée</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-mkb-black">Véhicules liés</h3>
-
-                    {vehicles.length > 0 ? (
-                      <div className="space-y-3">
-                        {vehicles.map((vehicle, index) => (
-                          <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="bg-white p-2 rounded-full shadow-sm">
-                              <Car className="h-4 w-4 text-mkb-blue" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-mkb-black">
-                                  {vehicle.brand} {vehicle.model} ({vehicle.year})
-                                </p>
-                                <Badge className={
-                                  vehicle.status === 'vendu' ? 'bg-green-100 text-green-800' :
-                                    vehicle.status === 'intéressé' ? 'bg-blue-100 text-blue-800' :
-                                      'bg-gray-100 text-gray-800'
-                                }>
-                                  {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <Car className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">Aucun véhicule lié</p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="documents" className="p-4 space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-mkb-black">Documents</h3>
-
-                    {documents.length > 0 ? (
-                      <div className="space-y-3">
-                        {documents.map((document, index) => (
-                          <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="bg-white p-2 rounded-full shadow-sm">
-                              {document.type === 'devis' ? (
-                                <FileText className="h-4 w-4 text-mkb-blue" />
-                              ) : (
-                                <Receipt className="h-4 w-4 text-mkb-yellow" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-mkb-black">
-                                  {document.type === 'devis' ? 'Devis' : 'Facture'} du {document.date}
-                                </p>
-                                <Badge className={
-                                  document.status === 'envoyé' ? 'bg-blue-100 text-blue-800' :
-                                    document.status === 'payé' ? 'bg-green-100 text-green-800' :
-                                      'bg-gray-100 text-gray-800'
-                                }>
-                                  {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between mt-1">
-                                <p className="text-sm text-gray-600">
-                                  Montant: {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(document.amount)}
-                                </p>
-                                <div className="flex gap-1">
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                    <Eye className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                    <Mail className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500">Aucun document</p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            <DrawerFooter className="border-t pt-4 px-4 mt-auto">
-              <div className="flex justify-between gap-4">
-                {isEditMode ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditMode(false);
-                        setEditedContact(selectedContact);
-                      }}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Annuler
-                    </Button>
-                    <Button
-                      className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
-                      onClick={handleSaveContact}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Enregistrer
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                        onClick={handleArchiveContact}
-                      >
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archiver
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <DrawerClose asChild>
-                        <Button variant="outline">
-                          <X className="mr-2 h-4 w-4" />
-                          Fermer
-                        </Button>
-                      </DrawerClose>
-                      <Button
-                        className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
-                        onClick={() => setIsEditMode(true)}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </DrawerFooter>
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Email Modal */}
-      <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-        <DialogContent className="max-w-md">
+      {/* Group Email Dialog */}
+      <Dialog open={isGroupEmailOpen} onOpenChange={setIsGroupEmailOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Envoyer un email</DialogTitle>
+            <DialogTitle>Envoyer un email groupé</DialogTitle>
             <DialogDescription>
-              Envoyer un email à {selectedContact?.name}
+              Envoyez un email à {selectedContacts.length} contact(s) sélectionné(s)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="email-to">Destinataire</Label>
-              <Input id="email-to" value={selectedContact?.email || ''} disabled />
+          <div className="space-y-6 py-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Destinataires</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedContacts.map(id => {
+                  const contact = contacts.find(c => c.id === id);
+                  if (!contact) return null;
+
+                  return (
+                    <Badge key={id} className="bg-blue-100 text-blue-800">
+                      {contact.name} {contact.email ? `(${contact.email})` : '(pas d\'email)'}
+                    </Badge>
+                  );
+                })}
+              </div>
+              {selectedContacts.some(id => !contacts.find(c => c.id === id)?.email) && (
+                <p className="text-xs text-red-600 mt-2">
+                  Attention: certains contacts sélectionnés n'ont pas d'adresse email.
+                </p>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="email-subject">Objet</Label>
+              <Label htmlFor="email-subject">Sujet</Label>
               <Input
                 id="email-subject"
-                placeholder="Objet de l'email"
-                value={emailData.subject}
-                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                placeholder="Sujet de l'email"
+                value={groupEmailData.subject}
+                onChange={(e) => setGroupEmailData({ ...groupEmailData, subject: e.target.value })}
               />
             </div>
 
@@ -1476,24 +833,36 @@ export default function ContactsPage() {
               <Label htmlFor="email-message">Message</Label>
               <Textarea
                 id="email-message"
-                placeholder="Votre message..."
-                className="min-h-[150px]"
-                value={emailData.message}
-                onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
+                placeholder="Contenu de l'email..."
+                className="min-h-[200px]"
+                value={groupEmailData.message}
+                onChange={(e) => setGroupEmailData({ ...groupEmailData, message: e.target.value })}
               />
+            </div>
+
+            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
+              <p className="font-medium mb-1">Placeholders disponibles:</p>
+              <ul className="space-y-1">
+                <li><code>&#123;&#123; nom &#125;&#125;</code> - Nom du contact</li>
+                <li><code>&#123;&#123; email &#125;&#125;</code> - Email du contact</li>
+                <li><code>&#123;&#123; societe &#125;&#125;</code> - Nom de la société (si disponible)</li>
+              </ul>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsGroupEmailOpen(false)}
+            >
               Annuler
             </Button>
             <Button
               className="bg-mkb-blue hover:bg-mkb-blue/90"
-              onClick={handleSendEmail}
-              disabled={isSendingEmail}
+              onClick={handleSendGroupEmail}
+              disabled={isSendingGroupEmail}
             >
-              {isSendingEmail ? (
+              {isSendingGroupEmail ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Envoi...
@@ -1505,87 +874,7 @@ export default function ContactsPage() {
                 </>
               )}
             </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Group Email Modal */}
-      <Dialog open={isGroupEmailModalOpen} onOpenChange={setIsGroupEmailModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Envoyer un email groupé</DialogTitle>
-            <DialogDescription>
-              Envoyer un email à {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="group-email-to">Destinataires</Label>
-              <div className="bg-gray-50 p-2 rounded-md max-h-[100px] overflow-y-auto">
-                <div className="flex flex-wrap gap-1">
-                  {selectedContacts.map(id => {
-                    const contact = contacts.find(c => c.id === id);
-                    return contact ? (
-                      <Badge key={id} variant="secondary" className="bg-gray-200">
-                        {contact.name} {contact.email ? `<${contact.email}>` : '(pas d\'email)'}
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {contacts.filter(c => selectedContacts.includes(c.id) && c.email).length} contact(s) avec email
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="group-email-subject">Objet</Label>
-              <Input
-                id="group-email-subject"
-                placeholder="Objet de l'email"
-                value={emailData.subject}
-                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="group-email-message">Message</Label>
-              <div className="text-xs text-gray-500 mb-1">
-                Vous pouvez utiliser les variables suivantes : <code className="bg-gray-100 px-1 rounded">{'{{nom}}'}</code>
-              </div>
-              <Textarea
-                id="group-email-message"
-                placeholder="Votre message..."
-                className="min-h-[150px]"
-                value={emailData.message}
-                onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsGroupEmailModalOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              className="bg-mkb-blue hover:bg-mkb-blue/90"
-              onClick={handleSendGroupEmail}
-              disabled={isSendingEmail}
-            >
-              {isSendingEmail ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Envoi...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Envoyer à {contacts.filter(c => selectedContacts.includes(c.id) && c.email).length} contact(s)
-                </>
-              )}
-            </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

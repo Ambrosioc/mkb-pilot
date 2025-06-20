@@ -1,30 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Users,
-  Save,
   Building2,
+  FileText,
+  Loader2,
   Mail,
   Phone,
-  User,
-  FileText,
+  Save,
   Tag,
-  Loader2,
+  User,
+  Users,
   X
 } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Drawer,
   DrawerClose,
@@ -34,6 +29,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TagManager } from '@/components/ui/TagManager';
+import { Textarea } from '@/components/ui/textarea';
 
 import { contactSchema, type ContactFormData } from '@/lib/schemas/contact';
 
@@ -45,6 +45,8 @@ interface ContactDrawerProps {
 
 export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactId, setContactId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
@@ -61,7 +63,6 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
   });
 
   const watchType = form.watch('type');
-  const watchTags = form.watch('tags') || [];
   const isCompanyRequired = watchType === 'Client pro' || watchType === 'Partenaire';
 
   const onSubmit = async (data: ContactFormData) => {
@@ -86,19 +87,40 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
         throw new Error(`Erreur lors de la création du contact: ${error.message}`);
       }
 
+      // Store the contact ID for tag management
+      setContactId(newContact.id);
+
+      // Add tags if any
+      if (selectedTags.length > 0) {
+        const tagInserts = selectedTags.map(tag => ({
+          contact_id: newContact.id,
+          tag
+        }));
+
+        const { error: tagError } = await supabase
+          .from('contact_tags')
+          .insert(tagInserts);
+
+        if (tagError) {
+          console.error('Erreur lors de l\'ajout des tags:', tagError);
+          // Continue anyway, we've already created the contact
+        }
+      }
+
       toast.success('Contact créé avec succès !');
-      
+
       // Réinitialiser le formulaire
       form.reset();
-      
+      setSelectedTags([]);
+
       // Fermer le drawer
       onOpenChange(false);
-      
+
       // Callback de succès
       if (onSuccess) {
         onSuccess();
       }
-      
+
     } catch (error) {
       console.error('Erreur:', error);
       toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
@@ -107,13 +129,9 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
     }
   };
 
-  const handleTagToggle = (tag: string) => {
-    const currentTags = form.getValues('tags') || [];
-    if (currentTags.includes(tag)) {
-      form.setValue('tags', currentTags.filter(t => t !== tag));
-    } else {
-      form.setValue('tags', [...currentTags, tag]);
-    }
+  const handleTagsChange = (tags: string[]) => {
+    setSelectedTags(tags);
+    form.setValue('tags', tags);
   };
 
   return (
@@ -129,7 +147,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
               Créer une nouvelle fiche contact dans le carnet d'adresses central
             </DrawerDescription>
           </DrawerHeader>
-          
+
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -241,10 +259,10 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                       <FormControl>
                         <div className="relative">
                           <FileText className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
-                          <Textarea 
-                            placeholder="Informations complémentaires, préférences, historique..." 
-                            className="pl-10 min-h-[120px]" 
-                            {...field} 
+                          <Textarea
+                            placeholder="Informations complémentaires, préférences, historique..."
+                            className="pl-10 min-h-[120px]"
+                            {...field}
                           />
                         </div>
                       </FormControl>
@@ -280,29 +298,44 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
 
                   <div>
                     <FormLabel className="text-mkb-black font-medium">Tags</FormLabel>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {['chaud', 'froid', 'vip', 'relance', 'b2b', 'apporteur', 'marchand'].map((tag) => (
-                        <Badge 
-                          key={tag}
-                          variant={watchTags.includes(tag) ? "default" : "outline"}
-                          className={`cursor-pointer ${
-                            watchTags.includes(tag) 
-                              ? 'bg-mkb-blue text-white' 
+                    {contactId ? (
+                      <TagManager
+                        contactId={contactId}
+                        existingTags={selectedTags}
+                        onTagsChange={handleTagsChange}
+                        className="mt-2"
+                      />
+                    ) : (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {['chaud', 'froid', 'vip', 'relance', 'b2b', 'apporteur', 'marchand'].map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant={selectedTags.includes(tag) ? "default" : "outline"}
+                            className={`cursor-pointer ${selectedTags.includes(tag)
+                              ? 'bg-mkb-blue text-white'
                               : 'hover:bg-mkb-blue/10'
-                          }`}
-                          onClick={() => handleTagToggle(tag)}
-                        >
-                          <Tag className="h-3 w-3 mr-1" />
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                              }`}
+                            onClick={() => {
+                              const newTags = selectedTags.includes(tag)
+                                ? selectedTags.filter(t => t !== tag)
+                                : [...selectedTags, tag];
+
+                              setSelectedTags(newTags);
+                              form.setValue('tags', newTags);
+                            }}
+                          >
+                            <Tag className="h-3 w-3 mr-1" />
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </form>
             </Form>
           </div>
-          
+
           <DrawerFooter className="border-t pt-4 px-4">
             <div className="flex justify-end gap-4">
               <DrawerClose asChild>
@@ -311,7 +344,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                   Annuler
                 </Button>
               </DrawerClose>
-              
+
               <Button
                 onClick={form.handleSubmit(onSubmit)}
                 disabled={isSubmitting}
