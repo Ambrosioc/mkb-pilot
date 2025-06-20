@@ -1,50 +1,49 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { ContactDrawer } from '@/components/forms/ContactDrawer';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { 
-  Users,
-  Plus,
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Phone,
-  Mail,
-  Building2,
-  User,
-  Calendar,
-  MessageSquare,
-  Tag,
-  Star,
-  Clock,
-  MoreHorizontal,
-  UserPlus,
+import { motion } from 'framer-motion';
+import {
   Archive,
-  Trash2,
-  Save,
-  X,
-  FileText,
+  Building2,
+  Calendar,
   Car,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  Filter,
   History,
-  CheckCircle,
   Loader2,
-  Send
+  Mail,
+  MessageSquare,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  Receipt,
+  Save,
+  Search,
+  Send,
+  Star,
+  Tag,
+  User,
+  UserPlus,
+  Users,
+  X
 } from 'lucide-react';
-import { ContactDrawer } from '@/components/forms/ContactDrawer';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface Contact {
   id: string;
@@ -516,8 +515,8 @@ export default function ContactsPage() {
 
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase()));
+      (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === 'all' || contact.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || contact.status === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
@@ -553,7 +552,7 @@ export default function ContactsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
+          <Button
             className="bg-mkb-blue hover:bg-mkb-blue/90"
             onClick={() => setIsContactDrawerOpen(true)}
           >
@@ -658,8 +657,8 @@ export default function ContactsPage() {
                 <span className="text-sm text-gray-500">
                   {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} sélectionné{selectedContacts.length > 1 ? 's' : ''}
                 </span>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setEmailData({ subject: '', message: '' });
@@ -682,7 +681,7 @@ export default function ContactsPage() {
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun contact trouvé</h3>
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau contact.</p>
-                <Button 
+                <Button
                   className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
                   onClick={() => setIsContactDrawerOpen(true)}
                 >
@@ -696,8 +695,8 @@ export default function ContactsPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-2 font-semibold text-gray-700 w-8">
-                        <Checkbox 
-                          checked={selectAllChecked} 
+                        <Checkbox
+                          checked={selectAllChecked}
                           onCheckedChange={handleSelectAllContacts}
                           aria-label="Sélectionner tous les contacts"
                         />
@@ -721,7 +720,7 @@ export default function ContactsPage() {
                         onClick={() => handleContactClick(contact)}
                       >
                         <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox 
+                          <Checkbox
                             checked={selectedContacts.includes(contact.id)}
                             onCheckedChange={(checked) => handleSelectContact(contact.id, checked === true)}
                             aria-label={`Sélectionner ${contact.name}`}
@@ -758,9 +757,9 @@ export default function ContactsPage() {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <Badge className={getTypeColor(contact.type)}>
-                            {contact.type === 'Client particulier' ? 'Particulier' : 
-                             contact.type === 'Client pro' ? 'Professionnel' : 
-                             contact.type}
+                            {contact.type === 'Client particulier' ? 'Particulier' :
+                              contact.type === 'Client pro' ? 'Professionnel' :
+                                contact.type}
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -779,9 +778,9 @@ export default function ContactsPage() {
                         </td>
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Voir détails"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -790,9 +789,9 @@ export default function ContactsPage() {
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Appeler"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -805,9 +804,9 @@ export default function ContactsPage() {
                             >
                               <Phone className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Envoyer email"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -822,9 +821,9 @@ export default function ContactsPage() {
                             >
                               <Mail className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Plus d'actions"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -854,15 +853,15 @@ export default function ContactsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button 
+              <Button
                 className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                 onClick={() => setIsContactDrawerOpen(true)}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
                 Nouveau Contact
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white"
                 onClick={() => {
                   if (selectedContacts.length > 0) {
@@ -876,8 +875,8 @@ export default function ContactsPage() {
                 <Phone className="mr-2 h-4 w-4" />
                 Campagne d'Appels
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-gray-300"
                 onClick={() => {
                   if (selectedContacts.length > 0) {
@@ -913,8 +912,8 @@ export default function ContactsPage() {
       </motion.div>
 
       {/* Contact Drawer */}
-      <ContactDrawer 
-        open={isContactDrawerOpen} 
+      <ContactDrawer
+        open={isContactDrawerOpen}
         onOpenChange={setIsContactDrawerOpen}
         onSuccess={handleContactAdded}
       />
@@ -942,8 +941,8 @@ export default function ContactsPage() {
                 </DrawerTitle>
                 <div className="flex items-center gap-2">
                   {selectedContact?.phone && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => window.location.href = `tel:${selectedContact.phone}`}
                     >
@@ -952,8 +951,8 @@ export default function ContactsPage() {
                     </Button>
                   )}
                   {selectedContact?.email && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => {
                         setEmailData({ subject: '', message: '' });
@@ -973,7 +972,7 @@ export default function ContactsPage() {
                       {selectedContact.type}
                     </Badge>
                     <Badge className={getStatusColor(selectedContact.status)}>
-                      {selectedContact.status.charAt(0).toUpperCase() + selectedContact.status.slice(1)}
+                      {selectedContact.status ? selectedContact.status.charAt(0).toUpperCase() + selectedContact.status.slice(1) : ''}
                     </Badge>
                     <span className="text-xs text-gray-500">
                       Ajouté le {new Date(selectedContact.created_at).toLocaleDateString()}
@@ -982,7 +981,7 @@ export default function ContactsPage() {
                 )}
               </DrawerDescription>
             </DrawerHeader>
-            
+
             <div className="flex-1 overflow-y-auto">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="px-4 pt-4">
@@ -992,7 +991,7 @@ export default function ContactsPage() {
                     <TabsTrigger value="documents">Documents</TabsTrigger>
                   </TabsList>
                 </div>
-                
+
                 <TabsContent value="info" className="p-4 space-y-6">
                   {isEditMode ? (
                     // Edit mode
@@ -1000,43 +999,43 @@ export default function ContactsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="name">Nom complet</Label>
-                          <Input 
-                            id="name" 
-                            value={editedContact?.name || ''} 
-                            onChange={(e) => setEditedContact(prev => prev ? {...prev, name: e.target.value} : null)}
+                          <Input
+                            id="name"
+                            value={editedContact?.name || ''}
+                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, name: e.target.value } : null)}
                           />
                         </div>
                         <div>
                           <Label htmlFor="email">Email</Label>
-                          <Input 
-                            id="email" 
-                            value={editedContact?.email || ''} 
-                            onChange={(e) => setEditedContact(prev => prev ? {...prev, email: e.target.value} : null)}
+                          <Input
+                            id="email"
+                            value={editedContact?.email || ''}
+                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, email: e.target.value } : null)}
                           />
                         </div>
                         <div>
                           <Label htmlFor="phone">Téléphone</Label>
-                          <Input 
-                            id="phone" 
-                            value={editedContact?.phone || ''} 
-                            onChange={(e) => setEditedContact(prev => prev ? {...prev, phone: e.target.value} : null)}
+                          <Input
+                            id="phone"
+                            value={editedContact?.phone || ''}
+                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, phone: e.target.value } : null)}
                           />
                         </div>
                         <div>
                           <Label htmlFor="company">Société</Label>
-                          <Input 
-                            id="company" 
-                            value={editedContact?.company || ''} 
-                            onChange={(e) => setEditedContact(prev => prev ? {...prev, company: e.target.value} : null)}
+                          <Input
+                            id="company"
+                            value={editedContact?.company || ''}
+                            onChange={(e) => setEditedContact(prev => prev ? { ...prev, company: e.target.value } : null)}
                           />
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="status">Statut</Label>
-                        <Select 
-                          value={editedContact?.status || 'actif'} 
-                          onValueChange={(value) => setEditedContact(prev => prev ? {...prev, status: value} : null)}
+                        <Select
+                          value={editedContact?.status || 'actif'}
+                          onValueChange={(value) => setEditedContact(prev => prev ? { ...prev, status: value } : null)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Statut" />
@@ -1048,44 +1047,44 @@ export default function ContactsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="notes">Notes</Label>
-                        <Textarea 
-                          id="notes" 
-                          value={editedContact?.notes || ''} 
-                          onChange={(e) => setEditedContact(prev => prev ? {...prev, notes: e.target.value} : null)}
+                        <Textarea
+                          id="notes"
+                          value={editedContact?.notes || ''}
+                          onChange={(e) => setEditedContact(prev => prev ? { ...prev, notes: e.target.value } : null)}
                           className="min-h-[100px]"
                         />
                       </div>
-                      
+
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <Label>Tags</Label>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setIsAddingTag(true)}
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             Ajouter
                           </Button>
                         </div>
-                        
+
                         {isAddingTag ? (
                           <div className="flex items-center gap-2 mb-2">
-                            <Input 
-                              value={newTag} 
-                              onChange={(e) => setNewTag(e.target.value)} 
+                            <Input
+                              value={newTag}
+                              onChange={(e) => setNewTag(e.target.value)}
                               placeholder="Nouveau tag..."
                               className="flex-1"
                             />
                             <Button size="sm" onClick={handleAddTag}>
                               Ajouter
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
                                 setIsAddingTag(false);
                                 setNewTag('');
@@ -1095,15 +1094,15 @@ export default function ContactsPage() {
                             </Button>
                           </div>
                         ) : null}
-                        
+
                         <div className="flex flex-wrap gap-2">
                           {editedContact?.tags && editedContact.tags.map((tag, index) => (
-                            <Badge 
-                              key={index} 
+                            <Badge
+                              key={index}
                               className={`${getTagColor(tag)} flex items-center gap-1`}
                             >
                               {tag}
-                              <button 
+                              <button
                                 onClick={() => handleRemoveTag(tag)}
                                 className="ml-1 hover:bg-red-200 rounded-full p-0.5"
                               >
@@ -1112,7 +1111,7 @@ export default function ContactsPage() {
                             </Badge>
                           ))}
                         </div>
-                        
+
                         {!isAddingTag && (
                           <div className="mt-2">
                             <p className="text-xs text-gray-500 mb-1">Tags suggérés :</p>
@@ -1120,9 +1119,9 @@ export default function ContactsPage() {
                               {availableTags
                                 .filter(tag => !editedContact?.tags.includes(tag))
                                 .map((tag, index) => (
-                                  <Badge 
-                                    key={index} 
-                                    variant="outline" 
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
                                     className="cursor-pointer hover:bg-gray-100"
                                     onClick={() => {
                                       if (editedContact) {
@@ -1149,21 +1148,21 @@ export default function ContactsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold text-mkb-black">Informations de contact</h3>
-                          
+
                           <div className="space-y-3">
                             <div>
                               <Label className="text-gray-500">Nom complet</Label>
                               <p className="font-medium">{selectedContact?.name}</p>
                             </div>
-                            
+
                             {selectedContact?.email && (
                               <div>
                                 <Label className="text-gray-500">Email</Label>
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{selectedContact.email}</p>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     className="h-6 w-6 p-0"
                                     onClick={() => {
                                       setEmailData({ subject: '', message: '' });
@@ -1175,15 +1174,15 @@ export default function ContactsPage() {
                                 </div>
                               </div>
                             )}
-                            
+
                             {selectedContact?.phone && (
                               <div>
                                 <Label className="text-gray-500">Téléphone</Label>
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{selectedContact.phone}</p>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     className="h-6 w-6 p-0"
                                     onClick={() => window.location.href = `tel:${selectedContact.phone}`}
                                   >
@@ -1192,7 +1191,7 @@ export default function ContactsPage() {
                                 </div>
                               </div>
                             )}
-                            
+
                             {selectedContact?.company && (
                               <div>
                                 <Label className="text-gray-500">Société</Label>
@@ -1201,10 +1200,10 @@ export default function ContactsPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold text-mkb-black">Informations supplémentaires</h3>
-                          
+
                           <div className="space-y-3">
                             <div>
                               <Label className="text-gray-500">Type</Label>
@@ -1214,16 +1213,16 @@ export default function ContactsPage() {
                                 </Badge>
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label className="text-gray-500">Statut</Label>
                               <div>
                                 <Badge className={getStatusColor(selectedContact?.status || '')}>
-                                  {selectedContact?.status.charAt(0).toUpperCase() + selectedContact?.status.slice(1)}
+                                  {selectedContact?.status ? selectedContact.status.charAt(0).toUpperCase() + selectedContact.status.slice(1) : ''}
                                 </Badge>
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label className="text-gray-500">Tags</Label>
                               <div className="flex flex-wrap gap-1 mt-1">
@@ -1238,7 +1237,7 @@ export default function ContactsPage() {
                                 )}
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label className="text-gray-500">Date d'ajout</Label>
                               <p className="font-medium">
@@ -1248,7 +1247,7 @@ export default function ContactsPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {selectedContact?.notes && (
                         <div className="space-y-2">
                           <h3 className="text-lg font-semibold text-mkb-black">Notes</h3>
@@ -1260,11 +1259,11 @@ export default function ContactsPage() {
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="history" className="p-4 space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-mkb-black">Historique des interactions</h3>
-                    
+
                     {interactions.length > 0 ? (
                       <div className="space-y-3">
                         {interactions.map((interaction, index) => (
@@ -1276,8 +1275,8 @@ export default function ContactsPage() {
                               <div className="flex items-center justify-between">
                                 <p className="font-medium text-mkb-black">
                                   {interaction.type === 'email' ? 'Email envoyé' :
-                                   interaction.type === 'call' ? 'Appel téléphonique' :
-                                   interaction.type === 'meeting' ? 'Rendez-vous' : 'Interaction'}
+                                    interaction.type === 'call' ? 'Appel téléphonique' :
+                                      interaction.type === 'meeting' ? 'Rendez-vous' : 'Interaction'}
                                 </p>
                                 <p className="text-xs text-gray-500">{interaction.date}</p>
                               </div>
@@ -1294,10 +1293,10 @@ export default function ContactsPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-mkb-black">Véhicules liés</h3>
-                    
+
                     {vehicles.length > 0 ? (
                       <div className="space-y-3">
                         {vehicles.map((vehicle, index) => (
@@ -1312,8 +1311,8 @@ export default function ContactsPage() {
                                 </p>
                                 <Badge className={
                                   vehicle.status === 'vendu' ? 'bg-green-100 text-green-800' :
-                                  vehicle.status === 'intéressé' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
+                                    vehicle.status === 'intéressé' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-gray-100 text-gray-800'
                                 }>
                                   {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                                 </Badge>
@@ -1330,11 +1329,11 @@ export default function ContactsPage() {
                     )}
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="documents" className="p-4 space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-mkb-black">Documents</h3>
-                    
+
                     {documents.length > 0 ? (
                       <div className="space-y-3">
                         {documents.map((document, index) => (
@@ -1353,8 +1352,8 @@ export default function ContactsPage() {
                                 </p>
                                 <Badge className={
                                   document.status === 'envoyé' ? 'bg-blue-100 text-blue-800' :
-                                  document.status === 'payé' ? 'bg-green-100 text-green-800' :
-                                  'bg-gray-100 text-gray-800'
+                                    document.status === 'payé' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
                                 }>
                                   {document.status.charAt(0).toUpperCase() + document.status.slice(1)}
                                 </Badge>
@@ -1389,13 +1388,13 @@ export default function ContactsPage() {
                 </TabsContent>
               </Tabs>
             </div>
-            
+
             <DrawerFooter className="border-t pt-4 px-4 mt-auto">
               <div className="flex justify-between gap-4">
                 {isEditMode ? (
                   <>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setIsEditMode(false);
                         setEditedContact(selectedContact);
@@ -1404,7 +1403,7 @@ export default function ContactsPage() {
                       <X className="mr-2 h-4 w-4" />
                       Annuler
                     </Button>
-                    <Button 
+                    <Button
                       className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                       onClick={handleSaveContact}
                     >
@@ -1415,8 +1414,8 @@ export default function ContactsPage() {
                 ) : (
                   <>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="border-red-300 text-red-600 hover:bg-red-50"
                         onClick={handleArchiveContact}
                       >
@@ -1431,7 +1430,7 @@ export default function ContactsPage() {
                           Fermer
                         </Button>
                       </DrawerClose>
-                      <Button 
+                      <Button
                         className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                         onClick={() => setIsEditMode(true)}
                       >
@@ -1456,40 +1455,40 @@ export default function ContactsPage() {
               Envoyer un email à {selectedContact?.name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="email-to">Destinataire</Label>
               <Input id="email-to" value={selectedContact?.email || ''} disabled />
             </div>
-            
+
             <div>
               <Label htmlFor="email-subject">Objet</Label>
-              <Input 
-                id="email-subject" 
-                placeholder="Objet de l'email" 
+              <Input
+                id="email-subject"
+                placeholder="Objet de l'email"
                 value={emailData.subject}
-                onChange={(e) => setEmailData({...emailData, subject: e.target.value})}
+                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="email-message">Message</Label>
-              <Textarea 
-                id="email-message" 
-                placeholder="Votre message..." 
+              <Textarea
+                id="email-message"
+                placeholder="Votre message..."
                 className="min-h-[150px]"
                 value={emailData.message}
-                onChange={(e) => setEmailData({...emailData, message: e.target.value})}
+                onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-mkb-blue hover:bg-mkb-blue/90"
               onClick={handleSendEmail}
               disabled={isSendingEmail}
@@ -1519,7 +1518,7 @@ export default function ContactsPage() {
               Envoyer un email à {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="group-email-to">Destinataires</Label>
@@ -1539,37 +1538,37 @@ export default function ContactsPage() {
                 {contacts.filter(c => selectedContacts.includes(c.id) && c.email).length} contact(s) avec email
               </p>
             </div>
-            
+
             <div>
               <Label htmlFor="group-email-subject">Objet</Label>
-              <Input 
-                id="group-email-subject" 
-                placeholder="Objet de l'email" 
+              <Input
+                id="group-email-subject"
+                placeholder="Objet de l'email"
                 value={emailData.subject}
-                onChange={(e) => setEmailData({...emailData, subject: e.target.value})}
+                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="group-email-message">Message</Label>
               <div className="text-xs text-gray-500 mb-1">
                 Vous pouvez utiliser les variables suivantes : <code className="bg-gray-100 px-1 rounded">{'{{nom}}'}</code>
               </div>
-              <Textarea 
-                id="group-email-message" 
-                placeholder="Votre message..." 
+              <Textarea
+                id="group-email-message"
+                placeholder="Votre message..."
                 className="min-h-[150px]"
                 value={emailData.message}
-                onChange={(e) => setEmailData({...emailData, message: e.target.value})}
+                onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setIsGroupEmailModalOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-mkb-blue hover:bg-mkb-blue/90"
               onClick={handleSendGroupEmail}
               disabled={isSendingEmail}

@@ -1,39 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { VehicleDetailDrawer } from '@/components/forms/VehicleDetailDrawer';
+import { VehicleDrawer } from '@/components/forms/VehicleDrawer';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Package,
-  Plus,
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  FileText,
-  Receipt,
-  ShoppingCart,
-  User,
-  Calendar,
+import { supabase } from '@/lib/supabase';
+import { motion } from 'framer-motion';
+import {
+  AlertTriangle,
   Archive,
-  Copy,
+  Car,
   CheckCircle,
   Clock,
-  AlertTriangle,
-  Car,
+  Eye,
+  FileText,
+  Filter,
   MoreHorizontal,
-  Download,
-  Printer,
-  Mail
+  Package,
+  Plus,
+  Receipt,
+  Search,
+  User
 } from 'lucide-react';
-import { VehicleDrawer } from '@/components/forms/VehicleDrawer';
-import { VehicleDetailDrawer } from '@/components/forms/VehicleDetailDrawer';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 
 const stockMetrics = [
   {
@@ -162,8 +155,8 @@ export default function StockPage() {
 
   const filteredVehicles = vehiclesData.filter(vehicle => {
     const matchesSearch = vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.reference.toLowerCase().includes(searchTerm.toLowerCase());
+      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.reference.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || vehicle.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -219,7 +212,7 @@ export default function StockPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
+          <Button
             className="bg-mkb-blue hover:bg-mkb-blue/90"
             onClick={() => setIsVehicleDrawerOpen(true)}
           >
@@ -318,7 +311,7 @@ export default function StockPage() {
                 <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun véhicule trouvé</h3>
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau véhicule.</p>
-                <Button 
+                <Button
                   className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
                   onClick={() => setIsVehicleDrawerOpen(true)}
                 >
@@ -391,9 +384,9 @@ export default function StockPage() {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Voir détails"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -402,31 +395,31 @@ export default function StockPage() {
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Créer facture"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleViewVehicle(vehicle.id);
                                 // Delay to allow drawer to open first
                                 setTimeout(() => {
-                                  document.querySelector('[data-value="documents"]')?.click();
+                                  (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
                                 }, 500);
                               }}
                             >
                               <Receipt className="h-3 w-3" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               title="Créer devis"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleViewVehicle(vehicle.id);
                                 // Delay to allow drawer to open first
                                 setTimeout(() => {
-                                  document.querySelector('[data-value="documents"]')?.click();
+                                  (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
                                 }, 500);
                               }}
                             >
@@ -459,7 +452,7 @@ export default function StockPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button 
+              <Button
                 className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                 onClick={() => setIsVehicleDrawerOpen(true)}
               >
@@ -496,8 +489,8 @@ export default function StockPage() {
       </motion.div>
 
       {/* Vehicle Drawer */}
-      <VehicleDrawer 
-        open={isVehicleDrawerOpen} 
+      <VehicleDrawer
+        open={isVehicleDrawerOpen}
         onOpenChange={setIsVehicleDrawerOpen}
         onSuccess={handleVehicleAdded}
       />
