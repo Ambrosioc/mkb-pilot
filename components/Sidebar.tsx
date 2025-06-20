@@ -404,7 +404,7 @@ interface MenuItemComponentProps {
 }
 
 function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemComponentProps) {
-  const { openTab } = useTabsStore();
+  const { openTab, isTabOpen } = useTabsStore();
   const hasChildren = item.children && item.children.length > 0;
   const isActive = item.href === pathname;
   const hasActiveChild = item.children?.some(child =>
@@ -417,11 +417,20 @@ function MenuItemComponent({ item, level, collapsed, pathname }: MenuItemCompone
 
   const handleClick = () => {
     if (item.href) {
-      openTab({
-        name: item.title.toLowerCase().replace(/\s+/g, '-'),
-        label: item.title,
-        path: item.href
-      });
+      // Vérifier si c'est la page d'accueil
+      const isHome = item.href === '/dashboard';
+
+      // Vérifier si l'onglet est déjà ouvert
+      const tabAlreadyOpen = isTabOpen(item.href);
+
+      // Si l'onglet n'est pas déjà ouvert, l'ajouter
+      if (!tabAlreadyOpen) {
+        openTab({
+          name: isHome ? 'home' : item.title.toLowerCase().replace(/\s+/g, '-'),
+          label: item.title,
+          path: item.href
+        });
+      }
     }
   };
 
