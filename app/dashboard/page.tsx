@@ -25,7 +25,8 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
-  BarChart3
+  BarChart3,
+  Package
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -57,6 +58,43 @@ const globalMetrics = [
     change: '+3',
     icon: Target,
     color: 'text-purple-600',
+  },
+];
+
+const centralModules = [
+  {
+    title: '📦 Stock Central',
+    icon: Package,
+    href: '/dashboard/stock',
+    description: 'Gestion centralisée de tous les véhicules',
+    status: 'excellent',
+    metrics: {
+      total: '247',
+      disponibles: '156',
+      reserves: '34'
+    },
+    activities: [
+      'Véhicules disponibles et réservés',
+      'Création factures et devis',
+      'Historique des mouvements'
+    ]
+  },
+  {
+    title: '📇 Contacts Central',
+    icon: Users,
+    href: '/dashboard/contacts',
+    description: 'Carnet d\'adresses unifié pour tous les pôles',
+    status: 'excellent',
+    metrics: {
+      total: '1,247',
+      particuliers: '892',
+      pros: '355'
+    },
+    activities: [
+      'Particuliers et professionnels',
+      'Historique des échanges',
+      'Tagging et segmentation'
+    ]
   },
 ];
 
@@ -310,6 +348,100 @@ export default function DashboardPage() {
             </Card>
           );
         })}
+      </motion.div>
+
+      {/* Central Modules */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-mkb-black">
+            Modules Centraux
+          </h2>
+          <Badge variant="secondary" className="bg-mkb-blue/10 text-mkb-blue">
+            Ressources Globales
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {centralModules.map((module, index) => {
+            const Icon = module.icon;
+            const StatusIcon = getStatusIcon(module.status);
+            
+            return (
+              <motion.div
+                key={module.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * index }}
+              >
+                <Card className="hover:shadow-lg transition-all duration-300 group cursor-pointer border-2 border-mkb-blue/20 bg-mkb-blue/5">
+                  <Link href={module.href}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-mkb-blue/20 rounded-lg">
+                            <Icon className="h-5 w-5 text-mkb-blue" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg text-mkb-black group-hover:text-mkb-blue transition-colors">
+                              {module.title}
+                            </CardTitle>
+                          </div>
+                        </div>
+                        <Badge className={`${getStatusColor(module.status)} border`}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {getStatusText(module.status)}
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-sm">
+                        {module.description}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      {/* Key Metrics */}
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        {Object.entries(module.metrics).map(([key, value]) => (
+                          <div key={key} className="text-center p-2 bg-white rounded-lg shadow-sm">
+                            <div className="font-semibold text-mkb-black">{value}</div>
+                            <div className="text-gray-500 capitalize">{key}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Activities */}
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Fonctionnalités</h4>
+                        <div className="space-y-1">
+                          {module.activities.map((activity, actIndex) => (
+                            <div key={actIndex} className="flex items-center text-xs text-gray-600">
+                              <div className="w-1.5 h-1.5 bg-mkb-blue rounded-full mr-2"></div>
+                              {activity}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="pt-2">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full text-mkb-blue hover:bg-mkb-blue/10 group-hover:bg-mkb-blue group-hover:text-white transition-all"
+                        >
+                          Accéder au module
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
       </motion.div>
 
       {/* Poles Overview */}
