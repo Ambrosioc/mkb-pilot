@@ -1,10 +1,10 @@
 'use client';
 
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase';
-import { User, AuthError } from '@supabase/supabase-js';
+import { AuthError, User } from '@supabase/supabase-js';
 import React, { useEffect } from 'react';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface AuthState {
   user: User | null;
