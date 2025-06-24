@@ -6,15 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "analyze": "ANALYZE=true next build",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "lint": "next lint"
   },
   "dependencies": {
     "@fontsource/montserrat": "^5.0.0",

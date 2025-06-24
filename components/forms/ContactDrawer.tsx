@@ -51,7 +51,6 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      type: undefined,
       name: '',
       email: '',
       phone: '',
