@@ -63,21 +63,24 @@ export function TagsManagementDialog({ open, onOpenChange, onTagsUpdated }: Tags
             const tagColors: Record<string, string> = {};
 
             data.forEach(item => {
-                if (tagCounts[item.tag]) {
-                    tagCounts[item.tag]++;
+                if (typeof item.tag !== 'string') return; // ✅ protection
+
+                const tag = item.tag as string; // Force TypeScript to understand it's a string
+                if (tagCounts[tag]) {
+                    tagCounts[tag]++;
                 } else {
-                    tagCounts[item.tag] = 1;
+                    tagCounts[tag] = 1;
                     // Assign a consistent color based on the tag name
-                    const colorIndex = item.tag.charCodeAt(0) % TAG_COLORS.length;
-                    tagColors[item.tag] = TAG_COLORS[colorIndex];
+                    const colorIndex = tag.charCodeAt(0) % TAG_COLORS.length;
+                    tagColors[tag] = (TAG_COLORS[colorIndex] ?? TAG_COLORS[0]) as string;
                 }
             });
 
             // Convert to array of TagData objects
             const tagData = Object.keys(tagCounts).map(tag => ({
                 tag,
-                count: tagCounts[tag],
-                color: tagColors[tag]
+                count: tagCounts[tag] ?? 0,
+                color: (tagColors[tag] ?? TAG_COLORS[0]) as string,
             }));
 
             setTags(tagData);

@@ -66,22 +66,31 @@ export function TagManager({ contactId, existingTags = [], onTagsChange, classNa
             const tagColors: Record<string, string> = {};
 
             data.forEach(item => {
-                if (tagCounts[item.tag]) {
-                    tagCounts[item.tag]++;
+                if (!item.tag) return; // Skip if tag is undefined
+
+                const tag = item.tag as string;
+                if (tagCounts[tag]) {
+                    tagCounts[tag]++;
                 } else {
-                    tagCounts[item.tag] = 1;
+                    tagCounts[tag] = 1;
                     // Assign a consistent color based on the tag name
-                    const colorIndex = item.tag.charCodeAt(0) % TAG_COLORS.length;
-                    tagColors[item.tag] = TAG_COLORS[colorIndex];
+                    const colorIndex = tag.charCodeAt(0) % TAG_COLORS.length;
+                    const selectedColor = TAG_COLORS[colorIndex]!;
+                    tagColors[tag] = selectedColor;
                 }
             });
 
-            // Convert to array of TagOption objects
-            const tagOptions = Object.keys(tagCounts).map(tag => ({
-                label: tag,
-                count: tagCounts[tag],
-                color: tagColors[tag]
-            }));
+            // Convert to array of TagOption objects with guaranteed values
+            const tagOptions: TagOption[] = Object.keys(tagCounts).map(tag => {
+                const count = tagCounts[tag]!;
+                const color = tagColors[tag]!;
+
+                return {
+                    label: tag,
+                    count,
+                    color
+                };
+            });
 
             setAllTags(tagOptions);
         } catch (error) {
