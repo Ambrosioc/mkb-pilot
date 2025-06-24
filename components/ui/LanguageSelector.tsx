@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,7 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Globe, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Language {
   code: string;
@@ -50,7 +50,7 @@ export function LanguageSelector() {
   const handleLanguageChange = (langCode: string) => {
     setSelectedLang(langCode);
     setCurrentLang(langCode);
-    
+
     // Ici vous pourrez ajouter la logique de traduction plus tard
     console.log('Langue sélectionnée:', langCode);
   };
@@ -62,14 +62,14 @@ export function LanguageSelector() {
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 hover:bg-gray-100 transition-colors"
-          title={`Langue actuelle: ${currentLanguage.name}`}
+          title={`Langue actuelle: ${currentLanguage?.name || 'Français'}`}
         >
-          <span className="text-base" role="img" aria-label={currentLanguage.name}>
-            {currentLanguage.flag}
+          <span className="text-base" role="img" aria-label={currentLanguage?.name || 'Français'}>
+            {currentLanguage?.flag || '🇫🇷'}
           </span>
         </Button>
       </DropdownMenuTrigger>
-      
+
       <DropdownMenuContent align="end" className="w-48">
         {languages.map((language) => (
           <DropdownMenuItem
