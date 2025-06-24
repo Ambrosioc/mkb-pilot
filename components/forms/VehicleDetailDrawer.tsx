@@ -1,36 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
 import {
   Car,
-  FileText,
-  Receipt,
-  User,
-  Calendar,
-  DollarSign,
-  MapPin,
-  Tag,
-  Clock,
-  Download,
-  Mail,
-  Loader2,
-  X,
   ChevronRight,
+  Download,
   Eye,
-  Printer
+  FileText,
+  Loader2,
+  Mail,
+  Printer,
+  Receipt,
+  X
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Drawer,
   DrawerClose,
@@ -40,8 +28,12 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 
 // Types
 interface VehicleDetailDrawerProps {
@@ -118,7 +110,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
   const [documentFormOpen, setDocumentFormOpen] = useState(false);
   const [documentForm, setDocumentForm] = useState<DocumentFormData>({
     contactId: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0] || '',
     type: 'devis',
     vatRate: 20,
     customPrice: 0,
@@ -257,7 +249,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
 
       // Update the document with a mock PDF URL
       const mockPdfUrl = `https://example.com/documents/${documentData.id}.pdf`;
-      
+
       await supabase
         .from('sales_documents')
         .update({ pdf_url: mockPdfUrl, status: 'generated' })
@@ -266,10 +258,10 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
       setDocumentId(documentData.id);
       setDocumentPreviewUrl(mockPdfUrl);
       toast.success(`${documentForm.type === 'devis' ? 'Devis' : 'Facture'} généré avec succès !`);
-      
+
       // Close the form and show the preview
       setDocumentFormOpen(false);
-      
+
     } catch (error) {
       console.error('Error generating document:', error);
       toast.error(`Erreur lors de la génération du ${documentForm.type === 'devis' ? 'devis' : 'facture'}`);
@@ -280,30 +272,30 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
 
   const handleSendEmail = async () => {
     if (!documentId) return;
-    
+
     const selectedContact = contacts.find(c => c.id === documentForm.contactId);
-    
+
     if (!selectedContact?.email) {
       toast.error('Le contact sélectionné n\'a pas d\'adresse email');
       return;
     }
-    
+
     setIsSendingEmail(true);
-    
+
     try {
       // In a real app, here we would call an API endpoint to send the email
       // For this demo, we'll simulate sending with a timeout
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Update the document status
       await supabase
         .from('sales_documents')
         .update({ sent_by_email: true, status: 'sent' })
         .eq('id', documentId);
-      
+
       toast.success(`Document envoyé par email à ${selectedContact.email}`);
       setSendEmailOpen(false);
-      
+
     } catch (error) {
       console.error('Error sending email:', error);
       toast.error('Erreur lors de l\'envoi de l\'email');
@@ -351,7 +343,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                 {loading ? 'Récupération des informations...' : `Référence: ${vehicle?.reference} • ${vehicle?.mileage?.toLocaleString()} km`}
               </DrawerDescription>
             </DrawerHeader>
-            
+
             <div className="flex-1 overflow-y-auto px-4 py-6">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
@@ -364,13 +356,13 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                     <TabsTrigger value="advertisement">Annonce</TabsTrigger>
                     <TabsTrigger value="documents">Documents</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="details" className="space-y-6">
                     {/* Vehicle Details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-mkb-black">Informations générales</h3>
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label className="text-gray-500">Marque</Label>
@@ -408,10 +400,10 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-mkb-black">Caractéristiques techniques</h3>
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                           {vehicle?.first_registration && (
                             <div>
@@ -462,7 +454,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                             </div>
                           )}
                         </div>
-                        
+
                         {(vehicle?.average_consumption || vehicle?.road_consumption || vehicle?.city_consumption) && (
                           <div className="mt-4">
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Consommation</h4>
@@ -490,11 +482,11 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-mkb-black">Informations commerciales</h3>
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                           {vehicle?.price_purchase && (
                             <div>
@@ -524,43 +516,43 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="advertisement" className="space-y-6">
                     {advertisement ? (
                       <>
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold text-mkb-black">Annonce</h3>
-                          
+
                           <div className="space-y-4">
                             <div>
                               <Label className="text-gray-500">Titre</Label>
                               <p className="font-medium">{advertisement.title}</p>
                             </div>
-                            
+
                             <div>
                               <Label className="text-gray-500">Description</Label>
                               <div className="bg-gray-50 p-3 rounded-md mt-1">
                                 <p className="text-sm whitespace-pre-line">{advertisement.description}</p>
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label className="text-gray-500">Prix affiché</Label>
                               <p className="font-medium text-lg text-mkb-blue">{formatPrice(advertisement.price)}</p>
                             </div>
                           </div>
                         </div>
-                        
+
                         {advertisement.photos && advertisement.photos.length > 0 && (
                           <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-mkb-black">Photos</h3>
-                            
+
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               {advertisement.photos.map((photo, index) => (
                                 <div key={index} className="aspect-video rounded-md overflow-hidden bg-gray-100">
-                                  <img 
-                                    src={photo} 
-                                    alt={`${vehicle?.brand} ${vehicle?.model}`} 
+                                  <img
+                                    src={photo}
+                                    alt={`${vehicle?.brand} ${vehicle?.model}`}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
@@ -580,7 +572,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                       </div>
                     )}
                   </TabsContent>
-                  
+
                   <TabsContent value="documents" className="space-y-6">
                     {documentPreviewUrl ? (
                       <div className="space-y-6">
@@ -595,7 +587,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="border rounded-lg overflow-hidden">
                           <div className="bg-gray-50 p-4 border-b flex items-center justify-between">
                             <h3 className="font-medium text-mkb-black">
@@ -622,17 +614,17 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col gap-4">
-                          <Button 
+                          <Button
                             className="w-full bg-mkb-blue hover:bg-mkb-blue/90"
                             onClick={() => window.open(documentPreviewUrl, '_blank')}
                           >
                             <Download className="mr-2 h-4 w-4" />
                             Télécharger le document
                           </Button>
-                          
-                          <Button 
+
+                          <Button
                             className="w-full"
                             variant="outline"
                             onClick={() => setSendEmailOpen(true)}
@@ -649,9 +641,9 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                           <h3 className="text-lg font-medium text-gray-700">Créer un document</h3>
                           <p className="text-gray-500 mt-2">Générez un devis ou une facture pour ce véhicule.</p>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button 
+                          <Button
                             className="h-20 bg-mkb-blue hover:bg-mkb-blue/90"
                             onClick={() => handleCreateDocument('devis')}
                           >
@@ -661,8 +653,8 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                               <div className="text-xs opacity-90">Générer un devis pour ce véhicule</div>
                             </div>
                           </Button>
-                          
-                          <Button 
+
+                          <Button
                             className="h-20 bg-mkb-yellow hover:bg-mkb-yellow/90 text-mkb-black"
                             onClick={() => handleCreateDocument('facture')}
                           >
@@ -679,7 +671,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                 </Tabs>
               )}
             </div>
-            
+
             <DrawerFooter className="border-t pt-4 px-4 mt-auto">
               <div className="flex justify-end gap-4">
                 <DrawerClose asChild>
@@ -688,9 +680,9 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                     Fermer
                   </Button>
                 </DrawerClose>
-                
+
                 {activeTab === 'details' && (
-                  <Button 
+                  <Button
                     className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                     onClick={() => setActiveTab('advertisement')}
                   >
@@ -698,9 +690,9 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
-                
+
                 {activeTab === 'advertisement' && (
-                  <Button 
+                  <Button
                     className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                     onClick={() => setActiveTab('documents')}
                   >
@@ -725,13 +717,13 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
               Remplissez les informations pour générer {documentType === 'devis' ? 'un devis' : 'une facture'} pour ce véhicule
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="contact">Client *</Label>
-                <Select 
-                  value={documentForm.contactId} 
+                <Select
+                  value={documentForm.contactId}
                   onValueChange={(value) => handleDocumentFormChange('contactId', value)}
                 >
                   <SelectTrigger>
@@ -751,43 +743,43 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                   </div>
                 )}
               </div>
-              
+
               <div>
                 <Label htmlFor="date">Date d'émission *</Label>
-                <Input 
-                  type="date" 
-                  value={documentForm.date} 
+                <Input
+                  type="date"
+                  value={documentForm.date}
                   onChange={(e) => handleDocumentFormChange('date', e.target.value)}
                 />
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-gray-700">Informations de prix</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="customPrice">Prix personnalisé (€)</Label>
-                  <Input 
-                    type="number" 
-                    value={documentForm.customPrice} 
+                  <Input
+                    type="number"
+                    value={documentForm.customPrice}
                     onChange={(e) => handleDocumentFormChange('customPrice', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="discount">Remise (%)</Label>
-                  <Input 
-                    type="number" 
-                    value={documentForm.discount} 
+                  <Input
+                    type="number"
+                    value={documentForm.discount}
                     onChange={(e) => handleDocumentFormChange('discount', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="vatRate">Taux de TVA (%)</Label>
-                  <Select 
-                    value={documentForm.vatRate.toString()} 
+                  <Select
+                    value={documentForm.vatRate.toString()}
                     onValueChange={(value) => handleDocumentFormChange('vatRate', parseFloat(value))}
                   >
                     <SelectTrigger>
@@ -802,67 +794,67 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                   </Select>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea 
-                  placeholder="Informations complémentaires à inclure dans le document..." 
-                  value={documentForm.notes} 
+                <Textarea
+                  placeholder="Informations complémentaires à inclure dans le document..."
+                  value={documentForm.notes}
                   onChange={(e) => handleDocumentFormChange('notes', e.target.value)}
                 />
               </div>
             </div>
-            
+
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Aperçu du prix</h3>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Prix de base</span>
                   <span>{formatPrice(documentForm.customPrice || advertisement?.price || 0)}</span>
                 </div>
-                
+
                 {(documentForm.discount || 0) > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Remise ({documentForm.discount}%)</span>
                     <span>-{formatPrice(((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100)}</span>
                   </div>
                 )}
-                
+
                 <div className="flex justify-between text-sm">
                   <span>Prix HT</span>
                   <span>{formatPrice(
-                    (documentForm.customPrice || advertisement?.price || 0) - 
+                    (documentForm.customPrice || advertisement?.price || 0) -
                     ((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100
                   )}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-sm">
                   <span>TVA ({documentForm.vatRate}%)</span>
                   <span>{formatPrice(
-                    ((documentForm.customPrice || advertisement?.price || 0) - 
-                    ((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100) * 
+                    ((documentForm.customPrice || advertisement?.price || 0) -
+                      ((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100) *
                     (documentForm.vatRate / 100)
                   )}</span>
                 </div>
-                
+
                 <div className="flex justify-between font-medium border-t pt-2 mt-2">
                   <span>Total TTC</span>
                   <span className="text-mkb-blue">{formatPrice(
-                    ((documentForm.customPrice || advertisement?.price || 0) - 
-                    ((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100) * 
+                    ((documentForm.customPrice || advertisement?.price || 0) -
+                      ((documentForm.customPrice || advertisement?.price || 0) * (documentForm.discount || 0)) / 100) *
                     (1 + (documentForm.vatRate / 100))
                   )}</span>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setDocumentFormOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-mkb-blue hover:bg-mkb-blue/90"
               onClick={generateDocument}
               disabled={isGeneratingDocument || !documentForm.contactId}
@@ -892,40 +884,40 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
               Envoyer le document au client par email
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-blue-800 mb-2">Informations d'envoi</h3>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-700">Document</span>
                   <span className="font-medium">{documentForm.type === 'devis' ? 'Devis' : 'Facture'} #{documentId}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-700">Destinataire</span>
                   <span className="font-medium">{contacts.find(c => c.id === documentForm.contactId)?.name}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-700">Email</span>
                   <span className="font-medium">{contacts.find(c => c.id === documentForm.contactId)?.email}</span>
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Switch id="send-copy" />
               <Label htmlFor="send-copy">M'envoyer une copie</Label>
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setSendEmailOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-mkb-blue hover:bg-mkb-blue/90"
               onClick={handleSendEmail}
               disabled={isSendingEmail}
