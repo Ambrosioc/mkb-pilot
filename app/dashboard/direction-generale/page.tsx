@@ -1,38 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Crown,
-  TrendingUp,
-  Users,
-  DollarSign,
-  Target,
+import { motion } from 'framer-motion';
+import {
   BarChart3,
   Calendar,
-  FileText,
-  Upload,
+  Crown,
+  DollarSign,
   Download,
   Eye,
+  FileText,
   Filter,
   Plus,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Activity,
-  PieChart,
-  LineChart,
-  Building2,
-  Briefcase,
   Shield,
-  Zap
+  Target,
+  TrendingUp,
+  Upload,
+  Users
 } from 'lucide-react';
+import { useState } from 'react';
 
 // Mock data pour les KPI consolidés
 const consolidatedKPIs = [
@@ -360,9 +349,8 @@ export default function DirectionGeneraleG4Page() {
                       <h3 className="font-semibold text-mkb-black text-sm">{kpi.title}</h3>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-mkb-black">{kpi.value}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          kpi.change.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
+                        <span className={`text-xs px-2 py-1 rounded-full ${kpi.change.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
                           {kpi.change}
                         </span>
                       </div>
@@ -433,23 +421,21 @@ export default function DirectionGeneraleG4Page() {
                       <td className="py-3 px-4 text-gray-600">{pole.responsable}</td>
                       <td className="py-3 px-4 text-center font-semibold">{pole.volume.toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          pole.tauxErreur < 1 ? 'bg-green-100 text-green-700' :
+                        <span className={`px-2 py-1 rounded-full text-xs ${pole.tauxErreur < 1 ? 'bg-green-100 text-green-700' :
                           pole.tauxErreur < 3 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
+                            'bg-red-100 text-red-700'
+                          }`}>
                           {pole.tauxErreur}%
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                pole.progression >= 90 ? 'bg-green-500' :
+                            <div
+                              className={`h-2 rounded-full ${pole.progression >= 90 ? 'bg-green-500' :
                                 pole.progression >= 70 ? 'bg-mkb-blue' :
-                                'bg-orange-500'
-                              }`}
+                                  'bg-orange-500'
+                                }`}
                               style={{ width: `${pole.progression}%` }}
                             ></div>
                           </div>
@@ -498,8 +484,8 @@ export default function DirectionGeneraleG4Page() {
                   className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start gap-4">
-                    <img 
-                      src={director.avatar} 
+                    <img
+                      src={director.avatar}
                       alt={director.name}
                       className="w-12 h-12 rounded-full object-cover"
                     />
@@ -513,7 +499,7 @@ export default function DirectionGeneraleG4Page() {
                           {getStatusText(director.status)}
                         </Badge>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div>
                           <div className="flex items-center justify-between text-sm mb-1">
@@ -521,13 +507,13 @@ export default function DirectionGeneraleG4Page() {
                             <span className="font-semibold">{director.tasksCompleted}/{director.totalTasks}</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                               className="bg-mkb-blue h-2 rounded-full"
                               style={{ width: `${(director.tasksCompleted / director.totalTasks) * 100}%` }}
                             ></div>
                           </div>
                         </div>
-                        
+
                         <div>
                           <p className="text-sm font-medium text-gray-700 mb-1">Projets pilotés:</p>
                           <div className="flex flex-wrap gap-1">
@@ -538,7 +524,7 @@ export default function DirectionGeneraleG4Page() {
                             ))}
                           </div>
                         </div>
-                        
+
                         <div className="bg-gray-50 p-3 rounded">
                           <p className="text-xs text-gray-600 mb-1">Dernier commentaire CEO:</p>
                           <p className="text-sm italic">"{director.lastComment}"</p>
@@ -579,15 +565,14 @@ export default function DirectionGeneraleG4Page() {
               <div className="space-y-4">
                 {reports.map((report, index) => (
                   <div key={report.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                    <div className={`w-3 h-3 rounded-full mt-2 ${
-                      report.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'
-                    }`}></div>
+                    <div className={`w-3 h-3 rounded-full mt-2 ${report.status === 'published' ? 'bg-green-500' : 'bg-yellow-500'
+                      }`}></div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="font-semibold text-mkb-black">{report.title}</h4>
                         <Badge variant="outline" className="text-xs">
-                          {report.type === 'weekly' ? 'Hebdo' : 
-                           report.type === 'monthly' ? 'Mensuel' : 'Trimestriel'}
+                          {report.type === 'weekly' ? 'Hebdo' :
+                            report.type === 'monthly' ? 'Mensuel' : 'Trimestriel'}
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{report.date} • {report.author}</p>
@@ -640,9 +625,8 @@ export default function DirectionGeneraleG4Page() {
                 {strategicDocs.map((doc, index) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
-                        doc.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                      }`}>
+                      <div className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${doc.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
                         {doc.type.toUpperCase()}
                       </div>
                       <div>
@@ -713,19 +697,19 @@ export default function DirectionGeneraleG4Page() {
               {financialData.revenue.map((data, index) => (
                 <div key={index} className="flex flex-col items-center gap-2 flex-1">
                   <div className="flex items-end gap-1 h-40">
-                    <div 
+                    <div
                       className="bg-green-500 rounded-t w-6"
                       style={{ height: `${(data.value / 2500000) * 100}%` }}
                       title="Revenus"
                     ></div>
-                    <div 
+                    <div
                       className="bg-red-500 rounded-t w-6"
-                      style={{ height: `${(financialData.expenses[index].value / 2500000) * 100}%` }}
+                      style={{ height: `${((financialData.expenses[index]?.value || 0) / 2500000) * 100}%` }}
                       title="Dépenses"
                     ></div>
-                    <div 
+                    <div
                       className="bg-mkb-blue rounded-t w-6"
-                      style={{ height: `${(financialData.profit[index].value / 2500000) * 100}%` }}
+                      style={{ height: `${((financialData.profit[index]?.value || 0) / 2500000) * 100}%` }}
                       title="Bénéfices"
                     ></div>
                   </div>
@@ -733,7 +717,7 @@ export default function DirectionGeneraleG4Page() {
                 </div>
               ))}
             </div>
-            
+
             <div className="flex justify-center gap-6 mt-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>

@@ -28,7 +28,15 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-const stockMetrics = [
+interface StockMetric {
+  title: string;
+  value: string;
+  change: string;
+  icon: typeof Package;
+  color: string;
+}
+
+const stockMetrics: StockMetric[] = [
   {
     title: 'Véhicules Total',
     value: '247',
@@ -83,7 +91,7 @@ export default function StockPage() {
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [vehiclesData, setVehiclesData] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [metrics, setMetrics] = useState(stockMetrics);
+  const [metrics, setMetrics] = useState<StockMetric[]>(stockMetrics);
 
   useEffect(() => {
     fetchVehicles();
@@ -138,11 +146,12 @@ export default function StockPage() {
       const reserves = transformedData.filter(v => v.status === 'reserve' || v.status === 'réservé').length;
       const aVerifier = transformedData.filter(v => v.status === 'a-verifier').length;
 
+      const [totalMetric, disponiblesMetric, reservesMetric, aVerifierMetric] = stockMetrics;
       setMetrics([
-        { ...metrics[0], value: total.toString() },
-        { ...metrics[1], value: disponibles.toString() },
-        { ...metrics[2], value: reserves.toString() },
-        { ...metrics[3], value: aVerifier.toString() },
+        { ...totalMetric, value: total.toString() } as StockMetric,
+        { ...disponiblesMetric, value: disponibles.toString() } as StockMetric,
+        { ...reservesMetric, value: reserves.toString() } as StockMetric,
+        { ...aVerifierMetric, value: aVerifier.toString() } as StockMetric,
       ]);
 
     } catch (error) {
@@ -499,7 +508,7 @@ export default function StockPage() {
       <VehicleDetailDrawer
         open={isDetailDrawerOpen}
         onOpenChange={setIsDetailDrawerOpen}
-        vehicleId={selectedVehicle || undefined}
+        vehicleId={selectedVehicle || ''}
       />
     </div>
   );

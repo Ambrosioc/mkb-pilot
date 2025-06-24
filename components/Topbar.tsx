@@ -1,8 +1,6 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Search, User, LogOut, Command } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,21 +10,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
-import { useAuthStore } from '@/store/useAuth';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { motion } from 'framer-motion';
+import { LogOut, Search, User } from 'lucide-react';
 import Link from 'next/link';
+import { memo } from 'react';
 
-export function Topbar() {
-  const { user, signOut } = useAuthStore();
-  const router = useRouter();
+export const Topbar = memo(() => {
+  const { user, logout, getFullName } = useAuth();
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
+    await logout();
+  };
+
+  const getUserInitials = (email: string) => {
+    return email.charAt(0).toUpperCase();
+  };
+
+  const getUserDisplayName = () => {
+    const fullName = getFullName();
+    return fullName || user?.email?.split('@')[0] || 'Utilisateur';
   };
 
   return (
@@ -68,9 +74,12 @@ export function Topbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-gray-100">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2" alt="Profile" />
+                  <AvatarImage
+                    src={user?.avatar_url || "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2"}
+                    alt="Profile"
+                  />
                   <AvatarFallback className="bg-mkb-blue text-white text-sm">
-                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    {user?.email ? getUserInitials(user.email) : 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -79,7 +88,7 @@ export function Topbar() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user?.user_metadata?.full_name || 'Utilisateur'}
+                    {getUserDisplayName()}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email}
@@ -104,4 +113,6 @@ export function Topbar() {
       </div>
     </motion.header>
   );
-}
+});
+
+Topbar.displayName = 'Topbar';

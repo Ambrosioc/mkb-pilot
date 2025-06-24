@@ -1,8 +1,8 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
-import { AuthError, User } from '@supabase/supabase-js';
-import React, { useEffect } from 'react';
+import type { User } from '@/types';
+import { AuthError } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -10,10 +10,11 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   initialized: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<{ error: AuthError | null }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,7 +24,7 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       initialized: false,
 
-      signUp: async (email: string, password: string, fullName: string) => {
+      signUp: async (email: string, password: string, firstName: string, lastName: string) => {
         set({ loading: true });
         
         try {
@@ -32,7 +33,8 @@ export const useAuthStore = create<AuthState>()(
             password,
             options: {
               data: {
-                full_name: fullName,
+                full_name: `${firstName} ${lastName}`,
+                role: 'user',
               }
             }
           });
@@ -43,7 +45,29 @@ export const useAuthStore = create<AuthState>()(
           }
 
           if (data.user) {
-            set({ user: data.user, loading: false });
+            // Utiliser la fonction RPC pour créer le profil utilisateur
+            const { error: userError } = await supabase
+              .rpc('create_user_profile', {
+                auth_user_id: data.user.id,
+                prenom: firstName,
+                nom: lastName,
+                email: data.user.email!
+              });
+
+            if (userError) {
+              console.error('Erreur lors de la création du profil utilisateur:', userError);
+            }
+
+            const user: User = {
+              id: data.user.id,
+              email: data.user.email!,
+              first_name: firstName,
+              last_name: lastName,
+              avatar_url: data.user.user_metadata?.avatar_url,
+              created_at: data.user.created_at,
+              updated_at: data.user.updated_at || data.user.created_at,
+            };
+            set({ user, loading: false });
           }
 
           return { error: null };
@@ -67,7 +91,29 @@ export const useAuthStore = create<AuthState>()(
             return { error };
           }
 
-          set({ user: data.user, loading: false });
+          if (data.user) {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('prenom, nom, email, photo_url')
+              .eq('auth_user_id', data.user.id)
+              .single();
+
+            if (userError) {
+              console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+            }
+
+            const user: User = {
+              id: data.user.id,
+              email: data.user.email!,
+              first_name: userData?.prenom || '',
+              last_name: userData?.nom || '',
+              avatar_url: userData?.photo_url || data.user.user_metadata?.avatar_url,
+              created_at: data.user.created_at,
+              updated_at: data.user.updated_at || data.user.created_at,
+            };
+            set({ user, loading: false });
+          }
+
           return { error: null };
         } catch (error) {
           set({ loading: false });
@@ -77,17 +123,106 @@ export const useAuthStore = create<AuthState>()(
 
       signOut: async () => {
         set({ loading: true });
-        await supabase.auth.signOut();
-        set({ user: null, loading: false });
+        try {
+          await supabase.auth.signOut();
+          set({ user: null, loading: false });
+        } catch (error) {
+          console.error('Erreur lors de la déconnexion:', error);
+          set({ loading: false });
+        }
+      },
+
+      updateProfile: async (updates: Partial<User>) => {
+        const { user } = get();
+        if (!user) return { error: { message: 'Utilisateur non connecté' } as AuthError };
+
+        set({ loading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: updates
+          });
+
+          if (error) {
+            set({ loading: false });
+            return { error };
+          }
+
+          if (data.user) {
+            const updatedUser: User = {
+              ...user,
+              ...updates,
+              updated_at: new Date().toISOString(),
+            };
+            set({ user: updatedUser, loading: false });
+          }
+
+          return { error: null };
+        } catch (error) {
+          set({ loading: false });
+          return { error: error as AuthError };
+        }
       },
 
       initialize: async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        set({ user: session?.user ?? null, initialized: true });
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('prenom, nom, email, photo_url')
+              .eq('auth_user_id', session.user.id)
+              .single();
 
-        supabase.auth.onAuthStateChange((event, session) => {
-          set({ user: session?.user ?? null });
-        });
+            if (userError) {
+              console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+            }
+
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email!,
+              first_name: userData?.prenom || '',
+              last_name: userData?.nom || '',
+              avatar_url: userData?.photo_url || session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at || session.user.created_at,
+            };
+            set({ user, initialized: true });
+          } else {
+            set({ user: null, initialized: true });
+          }
+
+          supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+              const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('prenom, nom, email, photo_url')
+                .eq('auth_user_id', session.user.id)
+                .single();
+
+              if (userError) {
+                console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+              }
+
+              const user: User = {
+                id: session.user.id,
+                email: session.user.email!,
+                first_name: userData?.prenom || '',
+                last_name: userData?.nom || '',
+                avatar_url: userData?.photo_url || session.user.user_metadata?.avatar_url,
+                created_at: session.user.created_at,
+                updated_at: session.user.updated_at || session.user.created_at,
+              };
+              set({ user });
+            } else {
+              set({ user: null });
+            }
+          });
+        } catch (error) {
+          console.error('Erreur lors de l\'initialisation:', error);
+          set({ user: null, initialized: true });
+        }
       },
     }),
     {
@@ -96,26 +231,4 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({ user: state.user }),
     }
   )
-);
-
-// Provider Component
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const initialize = useAuthStore((state) => state.initialize);
-  const initialized = useAuthStore((state) => state.initialized);
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  if (!initialized) {
-    return React.createElement(
-      'div',
-      { className: 'min-h-screen bg-white flex items-center justify-center' },
-      React.createElement('div', {
-        className: 'animate-spin rounded-full h-32 w-32 border-b-2 border-mkb-blue'
-      })
-    );
-  }
-
-  return React.createElement(React.Fragment, null, children);
-}
+); 

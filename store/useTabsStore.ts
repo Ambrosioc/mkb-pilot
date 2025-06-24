@@ -1,15 +1,8 @@
 'use client';
 
+import type { Tab } from '@/types';
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-
-export interface Tab {
-  id: string;
-  name: string;
-  label: string;
-  path: string;
-  icon?: string;
-}
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface TabsState {
   openTabs: Tab[];
@@ -21,6 +14,7 @@ interface TabsState {
   closeAllTabs: () => void;
   isTabOpen: (path: string) => boolean;
   getActiveTab: () => Tab | null;
+  updateTab: (tabId: string, updates: Partial<Omit<Tab, 'id'>>) => void;
 }
 
 export const useTabsStore = create<TabsState>()(
@@ -31,7 +25,7 @@ export const useTabsStore = create<TabsState>()(
       maxTabs: 6,
 
       openTab: (tabData) => {
-        const { openTabs, maxTabs, activeTabId } = get();
+        const { openTabs, maxTabs } = get();
         
         // Générer un ID unique basé sur le path
         const tabId = `tab-${tabData.path.replace(/\//g, '-')}`;
@@ -112,6 +106,14 @@ export const useTabsStore = create<TabsState>()(
       getActiveTab: () => {
         const { openTabs, activeTabId } = get();
         return openTabs.find(tab => tab.id === activeTabId) || null;
+      },
+
+      updateTab: (tabId, updates) => {
+        const { openTabs } = get();
+        const updatedTabs = openTabs.map(tab => 
+          tab.id === tabId ? { ...tab, ...updates } : tab
+        );
+        set({ openTabs: updatedTabs });
       }
     }),
     {

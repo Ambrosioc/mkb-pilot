@@ -1,305 +1,272 @@
-# 🚀 MKB Pilot Dashboard
+# MKB Pilot Dashboard
 
-Un dashboard d'entreprise modulaire et moderne construit avec Next.js, TypeScript et Supabase. MKB Pilot offre une interface intuitive pour gérer différents pôles d'activité avec des modules spécialisés pour le commercial, la technique, le marketing et plus encore.
+Dashboard professionnel MKB Pilot - Application web moderne et performante pour la gestion d'entreprise.
 
-## 📋 Sommaire
+## 🚀 Fonctionnalités
 
-- [🛠️ Stack Technique](#️-stack-technique)
-- [📋 Prérequis](#-prérequis)
-- [🚀 Installation](#-installation)
-- [🗄️ Configuration Supabase](#️-configuration-supabase)
-- [⚙️ Configuration Environnement](#️-configuration-environnement)
-- [🏃‍♂️ Démarrage](#️-démarrage)
-- [📁 Structure du Projet](#-structure-du-projet)
-- [🧪 Test du Module](#-test-du-module)
-- [📦 Dépendances Principales](#-dépendances-principales)
-- [🧹 Nettoyage](#-nettoyage)
-- [🤝 Contribution](#-contribution)
+- **Interface moderne** : Design responsive avec Tailwind CSS et Radix UI
+- **Gestion des onglets** : Navigation multi-onglets avec persistance
+- **Authentification** : Système d'auth sécurisé avec Supabase
+- **Modules spécialisés** : Pôles Direction, Commercial, Transport, etc.
+- **Gestion des contacts** : Carnet d'adresses unifié
+- **Gestion du stock** : Suivi des véhicules et inventaire
+- **Tableaux de bord** : Métriques et KPIs en temps réel
+- **Notifications** : Système de notifications en temps réel
+- **Thèmes** : Support des thèmes clair/sombre
+- **Internationalisation** : Support multi-langues
 
-## 🛠️ Stack Technique
+## 🏗️ Architecture
 
-| Technologie | Version | Description |
-|-------------|---------|-------------|
-| **Next.js** | 13.5+ | Framework React avec App Router |
-| **TypeScript** | 5.2+ | Typage statique |
-| **Tailwind CSS** | 3.3+ | Framework CSS utilitaire |
-| **ShadCN UI** | Latest | Composants UI modernes |
-| **Framer Motion** | 10.16+ | Animations fluides |
-| **Supabase** | 2.38+ | Base de données et authentification |
-| **React Hook Form** | 7.53+ | Gestion des formulaires |
-| **Zod** | 3.23+ | Validation de schémas |
-| **Zustand** | 4.4+ | Gestion d'état globale |
+### Structure du projet
 
-## 📋 Prérequis
+```
+mkb-dashboard/
+├── app/                    # Pages Next.js 14 (App Router)
+│   ├── dashboard/         # Pages du dashboard
+│   ├── login/            # Pages d'authentification
+│   └── layout.tsx        # Layout principal
+├── components/           # Composants React
+│   ├── ui/              # Composants UI de base
+│   ├── providers/       # Providers React
+│   └── navigation/      # Composants de navigation
+├── hooks/               # Hooks personnalisés
+├── lib/                 # Utilitaires et configuration
+├── store/               # Stores Zustand
+├── types/               # Types TypeScript
+└── supabase/            # Migrations et configuration DB
+```
 
-Avant de commencer, assurez-vous d'avoir installé :
+### Technologies utilisées
 
-- **Node.js** (version 18.0 ou supérieure)
-- **npm** ou **yarn** ou **pnpm**
-- **Docker** (pour Supabase local)
-- **Git**
+- **Framework** : Next.js 14 avec App Router
+- **Langage** : TypeScript 5.2+
+- **Styling** : Tailwind CSS 3.3+
+- **UI Components** : Radix UI + shadcn/ui
+- **State Management** : Zustand 4.4+
+- **Database** : Supabase (PostgreSQL)
+- **Authentication** : Supabase Auth
+- **Animations** : Framer Motion
+- **Charts** : Recharts
+- **Forms** : React Hook Form + Zod
+
+## 🚀 Démarrage rapide
+
+### Prérequis
+
+- Node.js 18+ 
+- npm ou yarn
+- Compte Supabase
+
+### Installation
+
+1. **Cloner le repository**
+   ```bash
+   git clone <repository-url>
+   cd mkb-dashboard
+   ```
+
+2. **Installer les dépendances**
+   ```bash
+   npm install
+   ```
+
+3. **Configuration Supabase**
+   - Créer un projet Supabase
+   - Copier les variables d'environnement :
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Lancer le serveur de développement**
+   ```bash
+   npm run dev
+   ```
+
+5. **Ouvrir l'application**
+   ```
+   http://localhost:3000
+   ```
+
+## 📦 Scripts disponibles
 
 ```bash
-# Vérifier les versions
-node --version  # >= 18.0.0
-npm --version   # >= 9.0.0
-docker --version  # >= 20.10.0
+npm run dev          # Serveur de développement
+npm run build        # Build de production
+npm run start        # Serveur de production
+npm run lint         # Vérification ESLint
+npm run type-check   # Vérification TypeScript
+npm run analyze      # Analyse du bundle
 ```
 
-## 🚀 Installation
+## 🏗️ Architecture technique
 
-### 1. Cloner le repository
+### Hooks personnalisés
 
-```bash
-git clone https://github.com/Ambrosioc/mkb-pilot
-cd mkb-pilot
+- `useAuth()` : Gestion de l'authentification
+- `useTabs()` : Gestion des onglets
+- `useNotifications()` : Gestion des notifications
+
+### Stores Zustand
+
+- `useAuthStore` : État d'authentification
+- `useTabsStore` : État des onglets
+
+### Types TypeScript
+
+Tous les types sont centralisés dans `/types/index.ts` :
+- `User`, `Contact`, `Vehicle`
+- `Tab`, `MenuItem`, `Notification`
+- `Permission`, `Role`, `Log`
+- Et bien d'autres...
+
+### Configuration
+
+- `/lib/constants.ts` : Constantes de l'application
+- `/lib/supabase.ts` : Configuration Supabase
+- `/lib/utils.ts` : Utilitaires généraux
+
+## 🎨 Design System
+
+### Couleurs principales
+
+```css
+--mkb-blue: #2bbbdc
+--mkb-yellow: #f59e0b
+--success: #10b981
+--warning: #f59e0b
+--error: #ef4444
 ```
 
-### 2. Installer les dépendances
+### Composants UI
 
-```bash
-# Avec npm
-npm install
+Tous les composants suivent les principes de design de shadcn/ui :
+- Accessibilité (ARIA)
+- Responsive design
+- Thèmes clair/sombre
+- Animations fluides
 
-# Avec yarn
-yarn install
+## 🔧 Optimisations de performance
 
-# Avec pnpm
-pnpm install
-```
+### Next.js 14
 
-## 🗄️ Configuration Supabase
+- **App Router** : Routage optimisé
+- **Server Components** : Rendu côté serveur
+- **Streaming** : Chargement progressif
+- **Image Optimization** : Optimisation automatique
 
-### 1. Initialiser Supabase
+### Bundle Optimization
 
-```bash
-# Installer Supabase CLI (si pas déjà fait)
-npm install -g @supabase/cli
+- **Tree Shaking** : Élimination du code inutilisé
+- **Code Splitting** : Division automatique du bundle
+- **Dynamic Imports** : Chargement à la demande
+- **Bundle Analyzer** : Analyse des performances
 
-# Initialiser Supabase dans le projet
-npx supabase init
-```
+### React Optimizations
 
-### 2. Démarrer Supabase local
+- **React.memo()** : Mémorisation des composants
+- **useMemo/useCallback** : Optimisation des calculs
+- **Lazy Loading** : Chargement différé
+- **Virtual Scrolling** : Pour les grandes listes
 
-```bash
-# Démarrer les services Supabase (Docker requis)
-npx supabase start
-```
+## 🔒 Sécurité
 
-Cette commande va :
-- 📦 Télécharger les images Docker nécessaires
-- 🚀 Démarrer PostgreSQL, Auth, API, etc.
-- 📋 Afficher les URLs et clés d'accès
+### Authentification
 
-### 3. Récupérer les informations de connexion
+- **Supabase Auth** : Authentification sécurisée
+- **JWT Tokens** : Gestion des sessions
+- **Role-based Access** : Contrôle d'accès
+- **Session Management** : Gestion des sessions
 
-Après `npx supabase start`, notez les informations affichées :
+### Validation
 
-```bash
-API URL: http://localhost:54321
-GraphQL URL: http://localhost:54321/graphql/v1
-DB URL: postgresql://postgres:postgres@localhost:54322/postgres
-Studio URL: http://localhost:54323
-Inbucket URL: http://localhost:54324
-JWT secret: your-jwt-secret
-anon key: your-anon-key
-service_role key: your-service-role-key
-```
+- **Zod** : Validation des schémas
+- **TypeScript** : Vérification des types
+- **Input Sanitization** : Nettoyage des entrées
+- **CSRF Protection** : Protection CSRF
 
-## ⚙️ Configuration Environnement
+## 📊 Monitoring et Analytics
 
-### 1. Créer le fichier `.env.local`
+### Performance
 
-```bash
-# Copier le template d'environnement
-cp .env.example .env.local
-```
+- **Core Web Vitals** : Métriques de performance
+- **Bundle Size** : Taille du bundle
+- **Loading Times** : Temps de chargement
+- **Error Tracking** : Suivi des erreurs
 
-### 2. Configurer les variables Supabase
+### Analytics
 
-Éditez `.env.local` avec les valeurs de votre instance Supabase locale :
+- **User Behavior** : Comportement utilisateur
+- **Feature Usage** : Utilisation des fonctionnalités
+- **Error Rates** : Taux d'erreur
+- **Performance Metrics** : Métriques de performance
 
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+## 🚀 Déploiement
 
-# Optionnel : pour les opérations admin
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-```
+### Vercel (Recommandé)
 
-## 🏃‍♂️ Démarrage
+1. **Connecter le repository**
+2. **Configurer les variables d'environnement**
+3. **Déployer automatiquement**
 
-### 1. Lancer le serveur de développement
+### Autres plateformes
 
-```bash
-# Avec npm
-npm run dev
-
-# Avec yarn
-yarn dev
-
-# Avec pnpm
-pnpm dev
-```
-
-### 2. Accéder à l'application
-
-- 🌐 **Application** : [http://localhost:3000](http://localhost:3000)
-- 🗄️ **Supabase Studio** : [http://localhost:54323](http://localhost:54323)
-
-### 3. Connexion par défaut
-
-```
-Email: a.cazimira@gmail.com
-Mot de passe: U4d5s*pg7Gtr.YA
-```
-
-## 📁 Structure du Projet
-
-```
-mkb-pilot-dashboard/
-├── 📁 app/                          # App Router Next.js
-│   ├── 📁 dashboard/                # Pages du dashboard
-│   │   ├── 📁 pricing/              # Module Pricing
-│   │   │   └── 📁 angola/           # Sous-module Angola
-│   │   ├── 📁 commercial/           # Module Commercial
-│   │   ├── 📁 technique/            # Module Technique
-│   │   └── 📁 marketing/            # Module Marketing
-│   ├── 📁 login/                    # Page de connexion
-│   └── layout.tsx                   # Layout principal
-├── 📁 components/                   # Composants réutilisables
-│   ├── 📁 ui/                       # Composants ShadCN UI
-│   ├── 📁 forms/                    # Formulaires spécialisés
-│   ├── Sidebar.tsx                  # Navigation latérale
-│   └── Topbar.tsx                   # Barre de navigation
-├── 📁 lib/                          # Utilitaires et configuration
-│   ├── 📁 schemas/                  # Schémas Zod
-│   ├── supabase.ts                  # Client Supabase
-│   └── utils.ts                     # Fonctions utilitaires
-├── 📁 store/                        # Stores Zustand
-│   ├── useAuth.ts                   # Authentification
-│   └── useTabsStore.ts              # Gestion des onglets
-├── 📁 supabase/                     # Configuration Supabase
-│   ├── 📁 migrations/               # Migrations SQL
-│   └── config.toml                  # Configuration locale
-└── 📄 README.md                     # Documentation
-```
-
-## 🧪 Test du Module
-
-### Module Pricing Angola
-
-Pour tester le module d'ajout de véhicule :
-
-1. 🔐 **Connectez-vous** à l'application
-2. 🧭 **Naviguez** vers `Dashboard > Pricing > Angola`
-3. ➕ **Cliquez** sur "Ajouter un véhicule"
-4. 📝 **Remplissez** le formulaire avec :
-   - Informations du véhicule (marque, modèle, année...)
-   - Détails de l'annonce (titre, description, prix...)
-   - Photos (optionnel)
-5. 💾 **Sauvegardez** et vérifiez la création
-
-```bash
-# URL directe pour tester
-http://localhost:3000/dashboard/pricing/angola
-```
-
-## 📦 Dépendances Principales
-
-### 🎨 Interface & Design
-
-```bash
-npm install @radix-ui/react-* tailwindcss-animate class-variance-authority
-npm install framer-motion lucide-react
-```
-
-### 📝 Formulaires & Validation
-
-```bash
-npm install react-hook-form @hookform/resolvers zod
-```
-
-### 🗄️ Base de données & Auth
-
-```bash
-npm install @supabase/supabase-js
-```
-
-### 🔄 État Global
-
-```bash
-npm install zustand
-```
-
-### 🎯 Utilitaires
-
-```bash
-npm install clsx tailwind-merge date-fns
-npm install sonner  # Pour les notifications toast
-```
-
-### 🛠️ Développement
-
-```bash
-npm install -D @types/node @types/react @types/react-dom
-npm install -D eslint eslint-config-next
-npm install -D autoprefixer postcss tailwindcss
-```
-
-## 🧹 Nettoyage
-
-### Arrêter Supabase
-
-```bash
-# Arrêter tous les services Supabase
-npx supabase stop
-```
-
-### Reset complet de la base de données
-
-```bash
-# Arrêter et supprimer les données
-npx supabase stop --no-backup
-
-# Redémarrer avec une DB propre
-npx supabase start
-```
-
-### Nettoyage du projet
-
-```bash
-# Supprimer node_modules et reinstaller
-rm -rf node_modules package-lock.json
-npm install
-
-# Nettoyer le cache Next.js
-npm run build
-rm -rf .next
-```
+- **Netlify** : Support complet
+- **Railway** : Déploiement simple
+- **Docker** : Containerisation possible
 
 ## 🤝 Contribution
 
-### Workflow de développement
+### Guidelines
 
-1. 🌿 **Créer une branche** : `git checkout -b feature/nouvelle-fonctionnalite`
-2. 💻 **Développer** avec les standards du projet
-3. ✅ **Tester** : `npm run build` et `npm run lint`
-4. 📤 **Commit** : Messages clairs et descriptifs
-5. 🔄 **Pull Request** : Description détaillée des changements
+1. **Fork** le repository
+2. **Créer** une branche feature
+3. **Commit** vos changements
+4. **Push** vers la branche
+5. **Créer** une Pull Request
 
 ### Standards de code
 
-- 📏 **ESLint** : Respect des règles configurées
-- 🎨 **Prettier** : Formatage automatique
-- 📝 **TypeScript** : Typage strict
-- 🧪 **Tests** : Couverture des nouvelles fonctionnalités
+- **TypeScript** : Typage strict
+- **ESLint** : Linting automatique
+- **Prettier** : Formatage automatique
+- **Conventional Commits** : Messages de commit
+
+## 📝 Changelog
+
+### v1.0.0 (2024-01-XX)
+
+#### ✨ Nouvelles fonctionnalités
+- Refactorisation complète de l'architecture
+- Mise à jour vers Next.js 14
+- Système de types TypeScript centralisé
+- Hooks personnalisés pour la logique métier
+- Optimisations de performance majeures
+
+#### 🔧 Améliorations
+- Meilleure séparation des responsabilités
+- Code plus maintenable et lisible
+- Performance améliorée avec React.memo
+- Configuration centralisée
+- Documentation complète
+
+#### 🐛 Corrections
+- Correction des erreurs TypeScript
+- Amélioration de la gestion d'état
+- Optimisation du bundle
+- Correction des fuites mémoire
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## 🆘 Support
+
+Pour toute question ou problème :
+- **Issues** : Créer une issue sur GitHub
+- **Documentation** : Consulter la documentation
+- **Email** : contact@mkbpilot.com
 
 ---
 
-<div align="center">
-
-**MKB Pilot Dashboard** - Propulsé par [acdinnovservices](https://acdinnovservices.com)
-</div>
+**MKB Pilot Dashboard** - Propulsé par Next.js 14 et Supabase

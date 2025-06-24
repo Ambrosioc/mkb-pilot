@@ -1,32 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { supabase } from '@/lib/supabase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
 import {
-  Users,
-  Save,
   ArrowLeft,
   Building2,
+  FileText,
+  Loader2,
   Mail,
   Phone,
-  User,
-  FileText,
+  Save,
   Tag,
-  Loader2
+  User,
+  Users
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 
 import { contactSchema, type ContactFormData } from '@/lib/schemas/contact';
@@ -38,7 +38,6 @@ export default function AddContactPage() {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      type: undefined,
       name: '',
       email: '',
       phone: '',
@@ -75,10 +74,10 @@ export default function AddContactPage() {
       }
 
       toast.success('Contact créé avec succès !');
-      
+
       // Rediriger vers la liste des contacts
       router.push('/dashboard/contacts');
-      
+
     } catch (error) {
       console.error('Erreur:', error);
       toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
@@ -242,10 +241,10 @@ export default function AddContactPage() {
                       <FormControl>
                         <div className="relative">
                           <FileText className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
-                          <Textarea 
-                            placeholder="Informations complémentaires, préférences, historique..." 
-                            className="pl-10 min-h-[120px]" 
-                            {...field} 
+                          <Textarea
+                            placeholder="Informations complémentaires, préférences, historique..."
+                            className="pl-10 min-h-[120px]"
+                            {...field}
                           />
                         </div>
                       </FormControl>
@@ -283,9 +282,9 @@ export default function AddContactPage() {
                     <FormLabel className="text-mkb-black font-medium">Tags</FormLabel>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {['chaud', 'froid', 'vip', 'relance'].map((tag) => (
-                        <Badge 
+                        <Badge
                           key={tag}
-                          variant="outline" 
+                          variant="outline"
                           className="cursor-pointer hover:bg-mkb-blue/10"
                           onClick={() => {
                             const currentTags = form.getValues('tags') || [];
@@ -314,7 +313,7 @@ export default function AddContactPage() {
                   >
                     Annuler
                   </Button>
-                  
+
                   <Button
                     type="submit"
                     disabled={isSubmitting}

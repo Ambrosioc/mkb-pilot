@@ -1,7 +1,7 @@
 import '@/app/globals.css';
-import type { Metadata } from 'next';
-import { AuthProvider } from '@/store/useAuth';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 import { Toaster } from '@/components/ui/sonner';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'MKB Pilot - Dashboard',

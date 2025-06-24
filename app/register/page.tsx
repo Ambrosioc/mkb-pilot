@@ -1,21 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store/useAuth';
-import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { signUp, loading, user } = useAuthStore();
   const router = useRouter();
@@ -28,8 +29,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password || !fullName) {
+
+    if (!email || !password || !firstName || !lastName) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
@@ -39,8 +40,8 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error } = await signUp(email, password, fullName);
-    
+    const { error } = await signUp(email, password, firstName, lastName);
+
     if (error) {
       toast.error('Erreur lors de la création du compte: ' + error.message);
     } else {
@@ -77,24 +78,32 @@ export default function RegisterPage() {
               Rejoignez MKB Pilot dès aujourd'hui
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-mkb-black font-medium">
-                  Nom complet
+                <Label className="text-mkb-black font-medium">
+                  Nom et Prénom
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Votre nom complet"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue"
-                    disabled={loading}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Votre nom"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Votre prénom"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -115,7 +124,7 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-mkb-black font-medium">
                   Mot de passe
@@ -143,7 +152,7 @@ export default function RegisterPage() {
                   Minimum 6 caractères
                 </p>
               </div>
-              
+
               <Button
                 type="submit"
                 className="w-full bg-mkb-blue hover:bg-mkb-blue/90 text-white font-medium py-2"
@@ -152,19 +161,19 @@ export default function RegisterPage() {
                 {loading ? 'Création...' : 'Créer mon compte'}
               </Button>
             </form>
-            
+
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Déjà un compte ?{' '}
-                <Link 
-                  href="/login" 
+                <Link
+                  href="/login"
                   className="text-mkb-blue hover:text-mkb-blue/80 font-medium"
                 >
                   Se connecter
                 </Link>
               </p>
             </div>
-            
+
             <div className="mt-4 text-center">
               <p className="text-xs text-gray-500">
                 <span className="text-mkb-blue font-medium">#mkbpilot</span>

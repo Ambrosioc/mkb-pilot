@@ -54,7 +54,15 @@ interface Contact {
   updated_at: string;
 }
 
-const contactsMetrics = [
+interface ContactMetric {
+  title: string;
+  value: string;
+  change: string;
+  icon: typeof Users;
+  color: string;
+}
+
+const contactsMetrics: ContactMetric[] = [
   {
     title: 'Contacts Total',
     value: '1,247',
@@ -105,7 +113,7 @@ export default function ContactsPage() {
     message: ''
   });
   const [isSendingGroupEmail, setIsSendingGroupEmail] = useState(false);
-  const [metrics, setMetrics] = useState(contactsMetrics);
+  const [metrics, setMetrics] = useState<ContactMetric[]>(contactsMetrics);
 
   useEffect(() => {
     fetchContacts();
@@ -115,6 +123,9 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
+      // Destructurer les métriques pour éviter les erreurs TypeScript
+      const [totalMetric, particuliersMetric, professionnelsMetric, prospectsMetric] = contactsMetrics;
+
       // Fetch contacts from Supabase
       const { data, error } = await supabase
         .from('contacts')
@@ -149,10 +160,10 @@ export default function ContactsPage() {
       const prospects = contactsWithTags.filter(c => c.tags.includes('chaud')).length;
 
       setMetrics([
-        { ...metrics[0], value: total.toString() },
-        { ...metrics[1], value: particuliers.toString() },
-        { ...metrics[2], value: professionnels.toString() },
-        { ...metrics[3], value: prospects.toString() },
+        { ...totalMetric, value: total.toString() } as ContactMetric,
+        { ...particuliersMetric, value: particuliers.toString() } as ContactMetric,
+        { ...professionnelsMetric, value: professionnels.toString() } as ContactMetric,
+        { ...prospectsMetric, value: prospects.toString() } as ContactMetric,
       ]);
 
     } catch (error) {
@@ -776,7 +787,7 @@ export default function ContactsPage() {
       <ContactDetailDrawer
         open={isDetailDrawerOpen}
         onOpenChange={setIsDetailDrawerOpen}
-        contactId={selectedContact || undefined}
+        contactId={selectedContact || ''}
         onContactUpdated={handleContactUpdated}
       />
 

@@ -42,11 +42,11 @@ type Action =
     }
   | {
       type: ActionType['DISMISS_TOAST'];
-      toastId?: ToasterToast['id'];
+      toastId?: string;
     }
   | {
       type: ActionType['REMOVE_TOAST'];
-      toastId?: ToasterToast['id'];
+      toastId?: string;
     };
 
 interface State {
@@ -184,8 +184,14 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId }),
+    dismiss: (toastId?: string) => {
+      const action: Action = toastId 
+        ? { type: 'DISMISS_TOAST', toastId }
+        : { type: 'DISMISS_TOAST' };
+      dispatch(action);
+    },
   };
 }
 
-export { useToast, toast };
+export { toast, useToast };
+

@@ -1,11 +1,9 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/useAuth';
-import { Calendar, Mail, Phone, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface UserProfile {
@@ -22,8 +20,12 @@ interface UserProfile {
     } | null;
 }
 
-export function UserProfileCard() {
-    const { user } = useAuthStore();
+interface UserProfileCardProps {
+    className?: string;
+}
+
+export const UserProfileCard = ({ className }: UserProfileCardProps) => {
+    const { user, getFullName } = useAuth();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -107,50 +109,48 @@ export function UserProfileCard() {
         );
     }
 
+    const fullName = getFullName();
+    const initials = fullName
+        .split(' ')
+        .map(name => name.charAt(0))
+        .join('')
+        .toUpperCase();
+
     return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Mon Profil</CardTitle>
-                <CardDescription>Informations personnelles</CardDescription>
+        <Card className={className}>
+            <CardHeader className="text-center">
+                <CardTitle>Profil Utilisateur</CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
-                        <AvatarImage src={profile.photo_url || ''} alt={`${profile.prenom} ${profile.nom}`} />
-                        <AvatarFallback className="bg-mkb-blue text-white">
-                            {profile.prenom.charAt(0)}{profile.nom.charAt(0)}
+            <CardContent className="space-y-4">
+                <div className="flex justify-center">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src={profile.photo_url || ''} alt={fullName} />
+                        <AvatarFallback className="text-lg font-semibold">
+                            {initials || profile.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
-                    <div>
-                        <p className="font-medium text-mkb-black">{profile.prenom} {profile.nom}</p>
-                        <div className="flex items-center mt-1">
-                            {profile.role && (
-                                <Badge className="bg-mkb-blue text-white text-xs">
-                                    <Shield className="h-3 w-3 mr-1" />
-                                    {profile.role.nom}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex items-center text-gray-600">
-                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                        {profile.email}
+                <div className="space-y-2 text-center">
+                    <h3 className="text-lg font-semibold">{fullName}</h3>
+                    <p className="text-sm text-muted-foreground">{profile.email}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Prénom:</span>
+                        <span>{profile.prenom || 'Non renseigné'}</span>
                     </div>
-                    {profile.telephone && (
-                        <div className="flex items-center text-gray-600">
-                            <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                            {profile.telephone}
-                        </div>
-                    )}
-                    <div className="flex items-center text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        Membre depuis {new Date(profile.date_creation).toLocaleDateString()}
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Nom:</span>
+                        <span>{profile.nom || 'Non renseigné'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Membre depuis:</span>
+                        <span>{new Date(profile.date_creation).toLocaleDateString('fr-FR')}</span>
                     </div>
                 </div>
             </CardContent>
         </Card>
     );
-}
+};
