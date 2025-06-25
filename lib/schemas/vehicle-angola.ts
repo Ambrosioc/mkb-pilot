@@ -59,6 +59,11 @@ export const vehicleAngolaSchema = z.object({
     invalid_type_error: "Le prix doit être un nombre",
   }).min(0, "Le prix doit être positif").or(z.string().transform(val => parseInt(val, 10))),
   
+  purchase_price: z.number({
+    required_error: "Le prix d'achat est obligatoire",
+    invalid_type_error: "Le prix d'achat doit être un nombre",
+  }).min(0, "Le prix d'achat doit être positif").or(z.string().transform(val => parseInt(val, 10))),
+  
   description: z.string().optional(),
   
   location: z.string().min(1, "La localisation est obligatoire"),

@@ -69,8 +69,8 @@ export default function PricingPage() {
             const { data: vehiculesPostesMoisData, error: vehiculesPostesMoisError } = await supabase
                 .from('cars_v2')
                 .select('count')
-                .not('date_post', 'is', null)
-                .gte('date_post', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+                .not('created_at', 'is', null)
+                .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
                 .single();
 
             if (vehiculesPostesMoisError) throw vehiculesPostesMoisError;
@@ -82,9 +82,9 @@ export default function PricingPage() {
             const { data: vehiculesPostesJourData, error: vehiculesPostesJourError } = await supabase
                 .from('cars_v2')
                 .select('count')
-                .not('date_post', 'is', null)
-                .gte('date_post', today.toISOString())
-                .lt('date_post', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString())
+                .not('created_at', 'is', null)
+                .gte('created_at', today.toISOString())
+                .lt('created_at', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString())
                 .single();
 
             if (vehiculesPostesJourError) throw vehiculesPostesJourError;
