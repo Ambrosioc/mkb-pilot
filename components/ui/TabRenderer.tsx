@@ -17,6 +17,7 @@ const EntretienPage = dynamic(() => import('@/app/dashboard/entretien/page'), { 
 const CoordinationPage = dynamic(() => import('@/app/dashboard/coordination/page'), { ssr: false });
 const PricingPage = dynamic(() => import('@/app/dashboard/pricing/page'), { ssr: false });
 const PricingAngolaPage = dynamic(() => import('@/app/dashboard/pricing/angola/page'), { ssr: false });
+const PricingAngolaAddPage = dynamic(() => import('@/app/dashboard/pricing/angola/add/page'), { ssr: false });
 const DirectionGeneralePage = dynamic(() => import('@/app/dashboard/direction-generale/page'), { ssr: false });
 const DirectionPage = dynamic(() => import('@/app/dashboard/direction/page'), { ssr: false });
 const ProfilePage = dynamic(() => import('@/app/dashboard/profile/page'), { ssr: false });
@@ -63,6 +64,8 @@ export function TabRenderer() {
       return <PricingPage />;
     case '/dashboard/pricing/angola':
       return <PricingAngolaPage />;
+    case '/dashboard/pricing/angola/add':
+      return <PricingAngolaAddPage />;
     case '/dashboard/direction-generale':
       return <DirectionGeneralePage />;
     case '/dashboard/direction':

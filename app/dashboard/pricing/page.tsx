@@ -13,9 +13,13 @@ import {
     Car,
     Clock,
     Crown,
+    DollarSign,
+    Globe,
     ListChecks,
+    Plus,
     Users
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -150,16 +154,26 @@ export default function PricingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center gap-3"
+                className="flex items-center justify-between"
             >
-                <BarChart3 className="h-8 w-8 text-mkb-blue" />
-                <div>
-                    <h1 className="text-3xl font-bold text-mkb-black">
-                        Pricing Dashboard
-                    </h1>
-                    <p className="text-gray-600">
-                        Suivi des performances et des indicateurs clés du pricing
-                    </p>
+                <div className="flex items-center gap-3">
+                    <DollarSign className="h-8 w-8 text-mkb-blue" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-mkb-black">
+                            Pricing Dashboard
+                        </h1>
+                        <p className="text-gray-600">
+                            Suivi des performances et des indicateurs clés du pricing
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Link href="/dashboard/pricing/angola">
+                        <Button variant="outline" className="gap-2">
+                            <Globe className="h-4 w-4" />
+                            Pricing Angola
+                        </Button>
+                    </Link>
                 </div>
             </motion.div>
 
@@ -388,10 +402,12 @@ export default function PricingPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Button className="bg-mkb-blue hover:bg-mkb-blue/90 text-white">
-                                <Car className="mr-2 h-4 w-4" />
-                                Ajouter un véhicule
-                            </Button>
+                            <Link href="/dashboard/pricing/angola/add">
+                                <Button className="w-full bg-mkb-blue hover:bg-mkb-blue/90 text-white">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Ajouter un véhicule
+                                </Button>
+                            </Link>
                             <Button variant="outline" className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white">
                                 <ListChecks className="mr-2 h-4 w-4" />
                                 Voir les véhicules à poster

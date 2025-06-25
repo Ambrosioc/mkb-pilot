@@ -1,116 +1,69 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { VehicleForm } from '@/components/forms/VehicleForm';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  DollarSign, 
-  Users,
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  BarChart3,
   Calendar,
+  DollarSign,
   FileText,
-  Target,
   Globe,
+  ListChecks,
   Plus,
-  Car
+  Target,
+  TrendingUp,
+  Users
 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-const pricingMetrics = [
-  {
-    title: 'Prix moyen',
-    value: '€8,450',
-    change: '+15%',
-    icon: DollarSign,
-    color: 'text-green-600',
-  },
-  {
-    title: 'Clients Angola',
-    value: '23',
-    change: '+8%',
-    icon: Users,
-    color: 'text-mkb-blue',
-  },
-  {
-    title: 'Taux conversion',
-    value: '67%',
-    change: '+5%',
-    icon: Target,
-    color: 'text-purple-600',
-  },
-  {
-    title: 'Revenus totaux',
-    value: '€194,350',
-    change: '+22%',
-    icon: TrendingUp,
-    color: 'text-mkb-yellow',
-  },
-];
-
-const pricingTiers = [
-  {
-    name: 'Basique',
-    price: '€3,500',
-    description: 'Pour les petites entreprises',
-    features: [
-      'Immatriculation standard',
-      'Support par email',
-      'Documentation de base',
-      'Suivi simple'
-    ],
-    popular: false,
-  },
-  {
-    name: 'Professional',
-    price: '€8,500',
-    description: 'Pour les entreprises moyennes',
-    features: [
-      'Immatriculation complète',
-      'Support prioritaire',
-      'Documentation complète',
-      'Suivi avancé',
-      'Conseils personnalisés',
-      'Reporting mensuel'
-    ],
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '€15,000',
-    description: 'Pour les grandes entreprises',
-    features: [
-      'Service complet premium',
-      'Support 24/7',
-      'Documentation exhaustive',
-      'Suivi en temps réel',
-      'Conseils stratégiques',
-      'Reporting personnalisé',
-      'Gestionnaire dédié',
-      'Formation équipe'
-    ],
-    popular: false,
-  },
-];
+interface PricingStats {
+  prixMoyen: number;
+  clientsAngola: number;
+  tauxConversion: number;
+  revenusTotaux: number;
+  loading: boolean;
+}
 
 export default function PricingAngolaPage() {
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const router = useRouter();
+  const [stats, setStats] = useState<PricingStats>({
+    prixMoyen: 0,
+    clientsAngola: 0,
+    tauxConversion: 0,
+    revenusTotaux: 0,
+    loading: true
+  });
 
-  const handleOpenForm = () => {
-    setIsFormOpen(true);
-  };
+  useEffect(() => {
+    fetchPricingStats();
+  }, []);
 
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-  };
+  const fetchPricingStats = async () => {
+    try {
+      // Simuler le chargement des statistiques depuis Supabase
+      // Dans une implémentation réelle, ces requêtes seraient remplacées par des appels à l'API
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-  const handleFormSuccess = (vehicleId: string, advertisementId: string) => {
-    toast.success(`Véhicule créé avec succès ! ID: ${vehicleId}`);
-    setIsFormOpen(false);
+      setStats({
+        prixMoyen: 8450,
+        clientsAngola: 23,
+        tauxConversion: 67,
+        revenusTotaux: 194350,
+        loading: false
+      });
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques:', error);
+      toast.error('Erreur lors du chargement des données');
+      setStats(prev => ({ ...prev, loading: false }));
+    }
   };
 
   return (
@@ -134,13 +87,18 @@ export default function PricingAngolaPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
-            onClick={handleOpenForm}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un véhicule
-          </Button>
+          <Link href="/dashboard/pricing">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
+          <Link href="/dashboard/pricing/angola/add">
+            <Button className="bg-mkb-blue hover:bg-mkb-blue/90 gap-2">
+              <Plus className="h-4 w-4" />
+              Ajouter un véhicule
+            </Button>
+          </Link>
         </div>
       </motion.div>
 
@@ -151,58 +109,83 @@ export default function PricingAngolaPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        {pricingMetrics.map((metric) => {
-          const Icon = metric.icon;
-          return (
-            <Card key={metric.title} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {metric.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${metric.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-mkb-black">{metric.value}</div>
-                <p className="text-xs text-green-600">
-                  {metric.change} vs mois précédent
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </motion.div>
-
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
-      >
-        <Card className="border-mkb-blue/20 bg-mkb-blue/5">
-          <CardHeader>
-            <CardTitle className="text-mkb-black flex items-center gap-2">
-              <Car className="h-5 w-5 text-mkb-blue" />
-              Actions Rapides
+        {/* Prix moyen */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Prix moyen
             </CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button 
-                className="w-full bg-mkb-blue hover:bg-mkb-blue/90 text-white h-16 flex flex-col gap-1"
-                onClick={handleOpenForm}
-              >
-                <Plus className="h-5 w-5" />
-                <span className="text-sm">Nouveau véhicule</span>
-              </Button>
-              <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                <BarChart3 className="h-5 w-5" />
-                <span className="text-sm">Voir les statistiques</span>
-              </Button>
-              <Button variant="outline" className="w-full h-16 flex flex-col gap-1">
-                <FileText className="h-5 w-5" />
-                <span className="text-sm">Exporter données</span>
-              </Button>
-            </div>
+            {stats.loading ? (
+              <Skeleton className="h-8 w-24 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-mkb-black">€{stats.prixMoyen.toLocaleString()}</div>
+            )}
+            <p className="text-xs text-green-600">
+              +15% vs mois précédent
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Clients Angola */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Clients Angola
+            </CardTitle>
+            <Users className="h-4 w-4 text-mkb-blue" />
+          </CardHeader>
+          <CardContent>
+            {stats.loading ? (
+              <Skeleton className="h-8 w-24 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-mkb-black">{stats.clientsAngola}</div>
+            )}
+            <p className="text-xs text-green-600">
+              +8% vs mois précédent
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Taux conversion */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Taux conversion
+            </CardTitle>
+            <Target className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            {stats.loading ? (
+              <Skeleton className="h-8 w-24 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-mkb-black">{stats.tauxConversion}%</div>
+            )}
+            <p className="text-xs text-green-600">
+              +5% vs mois précédent
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Revenus totaux */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Revenus totaux
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-mkb-yellow" />
+          </CardHeader>
+          <CardContent>
+            {stats.loading ? (
+              <Skeleton className="h-8 w-24 mb-2" />
+            ) : (
+              <div className="text-2xl font-bold text-mkb-black">€{stats.revenusTotaux.toLocaleString()}</div>
+            )}
+            <p className="text-xs text-green-600">
+              +22% vs mois précédent
+            </p>
           </CardContent>
         </Card>
       </motion.div>
@@ -225,32 +208,74 @@ export default function PricingAngolaPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {pricingTiers.map((tier) => (
+              {[
+                {
+                  name: 'Basique',
+                  price: '€3,500',
+                  description: 'Pour les petites entreprises',
+                  features: [
+                    'Immatriculation standard',
+                    'Support par email',
+                    'Documentation de base',
+                    'Suivi simple'
+                  ],
+                  popular: false,
+                },
+                {
+                  name: 'Professional',
+                  price: '€8,500',
+                  description: 'Pour les entreprises moyennes',
+                  features: [
+                    'Immatriculation complète',
+                    'Support prioritaire',
+                    'Documentation complète',
+                    'Suivi avancé',
+                    'Conseils personnalisés',
+                    'Reporting mensuel'
+                  ],
+                  popular: true,
+                },
+                {
+                  name: 'Enterprise',
+                  price: '€15,000',
+                  description: 'Pour les grandes entreprises',
+                  features: [
+                    'Service complet premium',
+                    'Support 24/7',
+                    'Documentation exhaustive',
+                    'Suivi en temps réel',
+                    'Conseils stratégiques',
+                    'Reporting personnalisé',
+                    'Gestionnaire dédié',
+                    'Formation équipe'
+                  ],
+                  popular: false,
+                }
+              ].map((tier) => (
                 <motion.div
                   key={tier.name}
                   whileHover={{ scale: 1.02 }}
-                  className={`relative p-6 rounded-lg border-2 ${
-                    tier.popular 
-                      ? 'border-mkb-blue bg-mkb-blue/5' 
-                      : 'border-gray-200 bg-white'
-                  }`}
+                  className={`relative p-6 rounded-lg border-2 ${tier.popular
+                    ? 'border-mkb-blue bg-mkb-blue/5'
+                    : 'border-gray-200 bg-white'
+                    }`}
                 >
                   {tier.popular && (
                     <Badge className="absolute -top-3 left-6 bg-mkb-blue text-white">
                       Plus populaire
                     </Badge>
                   )}
-                  
+
                   <div className="text-center mb-4">
                     <h3 className="text-xl font-bold text-mkb-black">{tier.name}</h3>
                     <p className="text-gray-600 text-sm">{tier.description}</p>
                   </div>
-                  
+
                   <div className="text-center mb-6">
                     <span className="text-3xl font-bold text-mkb-black">{tier.price}</span>
                     <span className="text-gray-500">/dossier</span>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     {tier.features.map((feature, index) => (
                       <li key={index} className="flex items-center text-sm">
@@ -259,13 +284,12 @@ export default function PricingAngolaPage() {
                       </li>
                     ))}
                   </ul>
-                  
-                  <Button 
-                    className={`w-full ${
-                      tier.popular 
-                        ? 'bg-mkb-blue hover:bg-mkb-blue/90' 
-                        : 'bg-gray-900 hover:bg-gray-800'
-                    }`}
+
+                  <Button
+                    className={`w-full ${tier.popular
+                      ? 'bg-mkb-blue hover:bg-mkb-blue/90'
+                      : 'bg-gray-900 hover:bg-gray-800'
+                      }`}
                   >
                     Sélectionner ce plan
                   </Button>
@@ -298,14 +322,14 @@ export default function PricingAngolaPage() {
                   Augmentation de 22% des revenus ce trimestre
                 </p>
               </div>
-              
+
               <div className="p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm font-medium text-blue-800">Plan Professional</p>
                 <p className="text-xs text-blue-600">
                   70% des clients choisissent ce plan
                 </p>
               </div>
-              
+
               <div className="p-4 bg-yellow-50 rounded-lg">
                 <p className="text-sm font-medium text-yellow-800">Opportunité</p>
                 <p className="text-xs text-yellow-600">
@@ -352,11 +376,10 @@ export default function PricingAngolaPage() {
                     <p className="text-sm font-medium text-mkb-black">{item.task}</p>
                     <p className="text-xs text-gray-500">{item.date}</p>
                   </div>
-                  <div className={`h-3 w-3 rounded-full ${
-                    item.priority === 'high' ? 'bg-red-500' :
+                  <div className={`h-3 w-3 rounded-full ${item.priority === 'high' ? 'bg-red-500' :
                     item.priority === 'medium' ? 'bg-mkb-yellow' :
-                    'bg-green-500'
-                  }`}></div>
+                      'bg-green-500'
+                    }`}></div>
                 </div>
               ))}
             </div>
@@ -364,32 +387,43 @@ export default function PricingAngolaPage() {
         </Card>
       </motion.div>
 
-      {/* Dialog pour le formulaire d'ajout de véhicule */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-mkb-black flex items-center gap-2">
-              <Plus className="h-5 w-5 text-mkb-blue" />
-              Ajouter un véhicule
-            </DialogTitle>
-            <DialogDescription>
-              Créez une nouvelle fiche véhicule avec son annonce associée
-            </DialogDescription>
-          </DialogHeader>
-          
-          <VehicleForm
-            onSuccess={handleFormSuccess}
-            onCancel={handleCloseForm}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-mkb-black">Actions Rapides</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link href="/dashboard/pricing/angola/add">
+                <Button className="w-full bg-mkb-blue hover:bg-mkb-blue/90 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un véhicule
+                </Button>
+              </Link>
+              <Button variant="outline" className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white">
+                <ListChecks className="mr-2 h-4 w-4" />
+                Voir les véhicules à poster
+              </Button>
+              <Button variant="outline" className="border-gray-300">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Rapport mensuel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Footer */}
       <motion.div
         className="text-center py-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
       >
         <p className="text-sm text-gray-500">
           Pricing Angola - <span className="text-mkb-blue font-semibold">#mkbpilot</span>
