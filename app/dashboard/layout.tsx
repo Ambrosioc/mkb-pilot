@@ -49,6 +49,7 @@ const DashboardLayout = memo(({ children }: { children: React.ReactNode }) => {
         '/dashboard/transport': 'Transport',
         '/dashboard/stock': 'Stock',
         '/dashboard/contacts': 'Contacts',
+        '/dashboard/pricing': 'Pricing',
       };
 
       pageLabel = labelMappings[pathname] || pageLabel;

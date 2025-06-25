@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
 import { useTabsStore } from '@/store/useTabsStore';
-import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 
 // Import dynamique des pages
 const DashboardPage = dynamic(() => import('@/app/dashboard/page'), { ssr: false });
@@ -16,6 +15,7 @@ const TechniquePage = dynamic(() => import('@/app/dashboard/technique/page'), { 
 const ITPage = dynamic(() => import('@/app/dashboard/it/page'), { ssr: false });
 const EntretienPage = dynamic(() => import('@/app/dashboard/entretien/page'), { ssr: false });
 const CoordinationPage = dynamic(() => import('@/app/dashboard/coordination/page'), { ssr: false });
+const PricingPage = dynamic(() => import('@/app/dashboard/pricing/page'), { ssr: false });
 const PricingAngolaPage = dynamic(() => import('@/app/dashboard/pricing/angola/page'), { ssr: false });
 const DirectionGeneralePage = dynamic(() => import('@/app/dashboard/direction-generale/page'), { ssr: false });
 const DirectionPage = dynamic(() => import('@/app/dashboard/direction/page'), { ssr: false });
@@ -32,7 +32,7 @@ export function TabRenderer() {
 
   // Trouver l'onglet actif
   const activeTab = openTabs.find(tab => tab.id === activeTabId);
-  
+
   if (!activeTab) {
     return <DashboardPage />;
   }
@@ -59,6 +59,8 @@ export function TabRenderer() {
       return <EntretienPage />;
     case '/dashboard/coordination':
       return <CoordinationPage />;
+    case '/dashboard/pricing':
+      return <PricingPage />;
     case '/dashboard/pricing/angola':
       return <PricingAngolaPage />;
     case '/dashboard/direction-generale':

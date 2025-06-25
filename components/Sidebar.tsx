@@ -96,7 +96,7 @@ const MenuItemComponent = memo<MenuItemComponentProps>(({ item, level, collapsed
 
 MenuItemComponent.displayName = 'MenuItemComponent';
 
-export const Sidebar = memo<SidebarProps>(({ collapsed, onToggle }) => {
+const Sidebar = memo<SidebarProps>(({ collapsed, onToggle }) => {
   const pathname = usePathname();
 
   return (
@@ -172,3 +172,5 @@ export const Sidebar = memo<SidebarProps>(({ collapsed, onToggle }) => {
 });
 
 Sidebar.displayName = 'Sidebar';
+
+export { Sidebar };

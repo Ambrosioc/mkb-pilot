@@ -1,28 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { supabase } from '@/lib/supabase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
 import {
   Car,
   FileText,
-  Upload,
-  Save,
   Loader2,
-  Image as ImageIcon,
+  Save,
+  Upload,
   X
 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
 
 import { vehicleFormSchema, type VehicleFormData } from '@/lib/schemas/vehicle';
 
@@ -153,11 +152,11 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
       console.log('✅ Annonce créée avec succès:', advertisementData);
 
       toast.success('Véhicule et annonce créés avec succès !');
-      
+
       // Reset du formulaire
       form.reset();
       setUploadedPhotos([]);
-      
+
       // Callback de succès
       onSuccess?.(vehicleData.id, advertisementData.id);
 
@@ -207,7 +206,7 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Référence *</FormLabel>
                         <FormControl>
-                          <Input placeholder="REF-2024-001" {...field} />
+                          <Input placeholder="AB 12345" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -268,9 +267,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Année *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="2024" 
+                          <Input
+                            type="number"
+                            placeholder="2024"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -301,9 +300,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Kilométrage *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="50000" 
+                          <Input
+                            type="number"
+                            placeholder="50000"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -417,9 +416,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Puissance DIN (ch)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="150" 
+                          <Input
+                            type="number"
+                            placeholder="150"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -436,9 +435,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Puissance fiscale (CV)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="7" 
+                          <Input
+                            type="number"
+                            placeholder="7"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -455,9 +454,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nb places</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="5" 
+                          <Input
+                            type="number"
+                            placeholder="5"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -474,9 +473,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nb portes</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="4" 
+                          <Input
+                            type="number"
+                            placeholder="4"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -496,10 +495,10 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Conso. moyenne (L/100km)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="0.1"
-                            placeholder="6.5" 
+                            placeholder="6.5"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
@@ -516,10 +515,10 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Conso. route (L/100km)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="0.1"
-                            placeholder="5.8" 
+                            placeholder="5.8"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
@@ -536,10 +535,10 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Conso. ville (L/100km)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="0.1"
-                            placeholder="7.2" 
+                            placeholder="7.2"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
@@ -556,9 +555,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Émissions CO2 (g/km)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="120" 
+                          <Input
+                            type="number"
+                            placeholder="120"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -627,9 +626,9 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Prix (€) *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="15000" 
+                          <Input
+                            type="number"
+                            placeholder="15000"
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -648,7 +647,7 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                     <FormItem>
                       <FormLabel className="text-mkb-black font-medium">Description *</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Décrivez le véhicule, son état, ses équipements..."
                           className="min-h-[120px]"
                           {...field}
@@ -662,7 +661,7 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
                 {/* Photos */}
                 <div className="space-y-4">
                   <Label className="text-mkb-black font-medium">Photos du véhicule</Label>
-                  
+
                   {/* Upload zone */}
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-mkb-blue transition-colors">
                     <input
@@ -721,7 +720,7 @@ export function VehicleForm({ onSuccess, onCancel, className }: VehicleFormProps
             >
               Annuler
             </Button>
-            
+
             <Button
               type="submit"
               disabled={isSubmitting}
