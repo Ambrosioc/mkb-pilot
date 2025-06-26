@@ -1,36 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuth';
-import { toast } from 'sonner';
-import { 
-  User, 
-  Lock, 
-  Upload, 
-  Mail, 
-  Building2, 
-  Shield, 
+import { motion } from 'framer-motion';
+import {
+  Building2,
   Calendar,
+  Edit,
   Eye,
   EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  MessageSquare,
   Save,
-  Edit,
-  MessageSquare
+  Shield,
+  User
 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+interface UserProfileData {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string | null;
+  date_creation: string;
+  role: {
+    nom: string;
+    niveau: number;
+  } | null;
+}
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const [profileImage, setProfileImage] = useState('https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2');
-  
+  const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+
   // États pour le changement de mot de passe
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -49,21 +65,68 @@ export default function ProfilePage() {
   const [requestReason, setRequestReason] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
-  // Données utilisateur simulées (en lecture seule)
-  const userProfile = {
-    firstName: 'Alexandre',
-    lastName: 'Dubois',
-    email: user?.email || 'alexandre.dubois@mkb.com',
-    role: 'CEO',
-    department: 'Direction Générale',
-    joinDate: '15 janvier 2024',
-    lastLogin: '15 mars 2024 à 14:30',
-    permissions: ['G4', 'Admin', 'All Access']
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      // Fetch user profile with role information
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          prenom,
+          nom,
+          email,
+          telephone,
+          date_creation,
+          photo_url,
+          user_roles (
+            roles (
+              nom,
+              niveau
+            )
+          )
+        `)
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Set profile image if available
+      if (data.photo_url) {
+        setProfileImage(data.photo_url);
+      }
+
+      // Extract role information
+      const role = data.user_roles?.[0]?.roles?.[0] || null;
+
+      setUserProfile({
+        id: data.id,
+        prenom: data.prenom,
+        nom: data.nom,
+        email: data.email,
+        telephone: data.telephone,
+        date_creation: data.date_creation,
+        role: role as { nom: string; niveau: number } | null
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      toast.error('Erreur lors du chargement du profil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
       toast.error('Veuillez remplir tous les champs');
       return;
@@ -81,17 +144,22 @@ export default function ProfilePage() {
 
     setIsChangingPassword(true);
 
-    // Simulation de l'appel API
-    setTimeout(() => {
-      console.log('Changement de mot de passe:', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
       });
-      
+
+      if (error) throw error;
+
       toast.success('Mot de passe mis à jour avec succès !');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast.error('Erreur lors de la mise à jour du mot de passe');
+    } finally {
       setIsChangingPassword(false);
-    }, 2000);
+    }
   };
 
   const handleProfileRequest = async () => {
@@ -102,19 +170,20 @@ export default function ProfilePage() {
 
     setIsSubmittingRequest(true);
 
-    // Simulation de l'envoi de la demande
-    setTimeout(() => {
-      console.log('Demande de modification de profil:', {
-        user: userProfile.email,
-        reason: requestReason,
-        timestamp: new Date().toISOString()
-      });
-      
+    try {
+      // In a real app, here we would call an API endpoint to send the request
+      // For this demo, we'll simulate sending with a timeout
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       toast.success('Demande envoyée avec succès ! Vous recevrez une réponse sous 48h.');
       setRequestReason('');
       setIsRequestDialogOpen(false);
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast.error('Erreur lors de l\'envoi de la demande');
+    } finally {
       setIsSubmittingRequest(false);
-    }, 1500);
+    }
   };
 
   const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
@@ -123,6 +192,14 @@ export default function ProfilePage() {
       [field]: !prev[field]
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 text-mkb-blue animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -144,12 +221,14 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge className="bg-red-100 text-red-800 border-red-200">
-            <Shield className="h-3 w-3 mr-1" />
-            {userProfile.role}
-          </Badge>
-        </div>
+        {userProfile?.role && (
+          <div className="flex items-center gap-3">
+            <Badge className="bg-red-100 text-red-800 border-red-200">
+              <Shield className="h-3 w-3 mr-1" />
+              {userProfile.role.nom}
+            </Badge>
+          </div>
+        )}
       </motion.div>
 
       {/* Profile Information */}
@@ -174,7 +253,7 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center">
                 <UserAvatar
                   currentImage={profileImage}
-                  userName={`${userProfile.firstName} ${userProfile.lastName}`}
+                  userName={`${userProfile?.prenom || ''} ${userProfile?.nom || ''}`}
                   onImageChange={setProfileImage}
                   size="lg"
                 />
@@ -187,17 +266,17 @@ export default function ProfilePage() {
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-gray-700 font-medium">Prénom</Label>
-                  <Input 
-                    value={userProfile.firstName} 
-                    readOnly 
+                  <Input
+                    value={userProfile?.prenom || ''}
+                    readOnly
                     className="bg-gray-50 cursor-not-allowed"
                   />
                 </div>
                 <div>
                   <Label className="text-gray-700 font-medium">Nom</Label>
-                  <Input 
-                    value={userProfile.lastName} 
-                    readOnly 
+                  <Input
+                    value={userProfile?.nom || ''}
+                    readOnly
                     className="bg-gray-50 cursor-not-allowed"
                   />
                 </div>
@@ -205,39 +284,39 @@ export default function ProfilePage() {
                   <Label className="text-gray-700 font-medium">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input 
-                      value={userProfile.email} 
-                      readOnly 
+                    <Input
+                      value={userProfile?.email || ''}
+                      readOnly
                       className="pl-10 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                 </div>
                 <div>
                   <Label className="text-gray-700 font-medium">Rôle</Label>
-                  <Input 
-                    value={userProfile.role} 
-                    readOnly 
+                  <Input
+                    value={userProfile?.role?.nom || 'Non défini'}
+                    readOnly
                     className="bg-gray-50 cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-700 font-medium">Département</Label>
+                  <Label className="text-gray-700 font-medium">Téléphone</Label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input 
-                      value={userProfile.department} 
-                      readOnly 
+                    <Input
+                      value={userProfile?.telephone || 'Non renseigné'}
+                      readOnly
                       className="pl-10 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-700 font-medium">Date d'arrivée</Label>
+                  <Label className="text-gray-700 font-medium">Date d'inscription</Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input 
-                      value={userProfile.joinDate} 
-                      readOnly 
+                    <Input
+                      value={userProfile?.date_creation ? new Date(userProfile.date_creation).toLocaleDateString('fr-FR') : ''}
+                      readOnly
                       className="pl-10 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
@@ -246,21 +325,21 @@ export default function ProfilePage() {
             </div>
 
             {/* Permissions */}
-            <div className="mt-6">
-              <Label className="text-gray-700 font-medium mb-3 block">Permissions</Label>
-              <div className="flex flex-wrap gap-2">
-                {userProfile.permissions.map((permission, index) => (
-                  <Badge key={index} className="bg-mkb-blue/10 text-mkb-blue">
-                    {permission}
+            {userProfile?.role && (
+              <div className="mt-6">
+                <Label className="text-gray-700 font-medium mb-3 block">Niveau d'accès</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className="bg-mkb-blue/10 text-mkb-blue">
+                    Niveau {userProfile.role.niveau}
                   </Badge>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Dernière connexion */}
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>Dernière connexion :</strong> {userProfile.lastLogin}
+                <strong>Dernière connexion :</strong> {new Date().toLocaleString('fr-FR')}
               </p>
             </div>
 
@@ -291,21 +370,21 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => setIsRequestDialogOpen(false)}
                         disabled={isSubmittingRequest}
                       >
                         Annuler
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleProfileRequest}
                         disabled={isSubmittingRequest}
                         className="bg-mkb-blue hover:bg-mkb-blue/90"
                       >
                         {isSubmittingRequest ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Envoi...
                           </>
                         ) : (
@@ -412,14 +491,14 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex justify-end">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isChangingPassword}
                   className="bg-mkb-blue hover:bg-mkb-blue/90"
                 >
                   {isChangingPassword ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Mise à jour...
                     </>
                   ) : (

@@ -112,7 +112,7 @@ export default function StockPage() {
           mileage,
           color,
           location,
-          price_sale,
+          price,
           created_at,
           updated_at,
           status
@@ -128,7 +128,7 @@ export default function StockPage() {
         brand: car.brand,
         model: car.model,
         year: car.year,
-        price: car.price_sale || 0,
+        price: car.price || 0,
         status: car.status || 'disponible',
         location: car.location || 'Non spécifié',
         assignedTo: 'Non assigné', // This would come from a join in a real app

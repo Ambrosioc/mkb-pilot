@@ -53,7 +53,7 @@ interface VehicleData {
   type: string;
   location: string;
   price_purchase?: number;
-  price_sale?: number;
+  price?: number;
   status: string;
   first_registration?: string;
   fuel_type?: string;
@@ -494,10 +494,10 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                               <p className="font-medium">{formatPrice(vehicle.price_purchase)}</p>
                             </div>
                           )}
-                          {vehicle?.price_sale && (
+                          {vehicle?.price && (
                             <div>
                               <Label className="text-gray-500">Prix de vente</Label>
-                              <p className="font-medium">{formatPrice(vehicle.price_sale)}</p>
+                              <p className="font-medium">{formatPrice(vehicle.price)}</p>
                             </div>
                           )}
                           {advertisement?.price && (

@@ -1,32 +1,32 @@
 import type { MenuItem } from '@/types';
 import {
-    BarChart3,
-    Chrome as Broom,
-    Building2,
-    Calendar,
-    Clock,
-    Code,
-    Crown,
-    DollarSign,
-    FileText,
-    Globe,
-    Handshake,
-    Home,
-    Link2,
-    MapPin,
-    Megaphone,
-    MessageSquare,
-    Package,
-    Phone,
-    Server,
-    Settings,
-    Shield,
-    ShoppingCart, Tag,
-    Target,
-    TrendingUp,
-    Truck,
-    UserCheck,
-    Users
+  BarChart3,
+  Chrome as Broom,
+  Building2,
+  Calendar,
+  Clock,
+  Code,
+  Crown,
+  DollarSign,
+  FileText,
+  Globe,
+  Handshake,
+  Home,
+  Link2,
+  MapPin,
+  Megaphone,
+  MessageSquare,
+  Package,
+  Phone,
+  Server,
+  Settings,
+  Shield,
+  ShoppingCart,
+  Target,
+  TrendingUp,
+  Truck,
+  UserCheck,
+  Users
 } from 'lucide-react';
 
 export const navigationItems: MenuItem[] = [
@@ -228,9 +228,14 @@ export const navigationItems: MenuItem[] = [
   },
   {
     title: 'Pôle Pricing',
-    icon: Tag,
-    href: '/dashboard/pricing/angola',
+    icon: DollarSign,
+    href: '/dashboard/pricing',
     children: [
+      {
+        title: 'Dashboard',
+        icon: BarChart3,
+        href: '/dashboard/pricing',
+      },
       {
         title: 'Angola',
         icon: Globe,
@@ -360,4 +365,4 @@ export const navigationItems: MenuItem[] = [
       },
     ],
   },
-]; 
+];

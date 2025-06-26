@@ -1,31 +1,23 @@
 'use client';
 
+import { supabase } from '@/lib/supabase';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Calendar,
+  Car,
+  DollarSign,
+  FileText,
+  Loader2,
+  MapPin,
+  Save,
+  Upload,
+  X
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import {
-  Car,
-  Save,
-  Loader2,
-  X,
-  Tag,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Image as ImageIcon,
-  Upload,
-  FileText
-} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Badge } from '@/components/ui/badge';
 import {
   Drawer,
   DrawerClose,
@@ -35,6 +27,10 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 import { z } from 'zod';
 
@@ -48,7 +44,7 @@ const vehicleSchema = z.object({
   couleur: z.string().min(1, 'La couleur est obligatoire'),
   type: z.string().min(1, 'Le type de véhicule est obligatoire'),
   emplacement: z.string().min(1, 'L\'emplacement est obligatoire'),
-  prix_achat: z.coerce.number().min(0, 'Le prix d\'achat doit être positif'),
+  purchase_price: z.coerce.number().min(0, 'Le prix d\'achat doit être positif'),
   prix_vente: z.coerce.number().min(0, 'Le prix de vente doit être positif'),
   stock_status: z.enum(['disponible', 'vendu', 'réservé']),
   description: z.string().optional(),
@@ -78,7 +74,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
       couleur: '',
       type: '',
       emplacement: '',
-      prix_achat: 0,
+      purchase_price: 0,
       prix_vente: 0,
       stock_status: 'disponible',
       description: '',
@@ -132,19 +128,19 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
       }
 
       toast.success('Véhicule ajouté avec succès !');
-      
+
       // Réinitialiser le formulaire
       form.reset();
       setUploadedPhotos([]);
-      
+
       // Fermer le drawer
       onOpenChange(false);
-      
+
       // Callback de succès
       if (onSuccess) {
         onSuccess();
       }
-      
+
     } catch (error) {
       console.error('Erreur:', error);
       toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
@@ -166,7 +162,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
               Créer une nouvelle fiche véhicule dans le stock central
             </DrawerDescription>
           </DrawerHeader>
-          
+
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -242,9 +238,9 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                         <FormControl>
                           <div className="relative">
                             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <Input 
-                              type="number" 
-                              placeholder="2024" 
+                            <Input
+                              type="number"
+                              placeholder="2024"
                               className="pl-10"
                               {...field}
                             />
@@ -262,9 +258,9 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Kilométrage *</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="50000" 
+                          <Input
+                            type="number"
+                            placeholder="50000"
                             {...field}
                           />
                         </FormControl>
@@ -363,16 +359,16 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="prix_achat"
+                    name="purchase_price"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Prix d'achat (€) *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <Input 
-                              type="number" 
-                              placeholder="15000" 
+                            <Input
+                              type="number"
+                              placeholder="15000"
                               className="pl-10"
                               {...field}
                             />
@@ -392,9 +388,9 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <Input 
-                              type="number" 
-                              placeholder="18000" 
+                            <Input
+                              type="number"
+                              placeholder="18000"
                               className="pl-10"
                               {...field}
                             />
@@ -416,10 +412,10 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                       <FormControl>
                         <div className="relative">
                           <FileText className="absolute left-3 top-3 text-gray-400 h-4 w-4" />
-                          <Textarea 
-                            placeholder="Description du véhicule, équipements, état général..." 
-                            className="pl-10 min-h-[120px]" 
-                            {...field} 
+                          <Textarea
+                            placeholder="Description du véhicule, équipements, état général..."
+                            className="pl-10 min-h-[120px]"
+                            {...field}
                           />
                         </div>
                       </FormControl>
@@ -431,7 +427,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                 {/* Photos */}
                 <div className="space-y-4">
                   <FormLabel className="text-mkb-black font-medium">Photos du véhicule</FormLabel>
-                  
+
                   {/* Upload zone */}
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-mkb-blue transition-colors">
                     <input
@@ -474,7 +470,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
               </form>
             </Form>
           </div>
-          
+
           <DrawerFooter className="border-t pt-4 px-4 mt-auto">
             <div className="flex justify-end gap-4">
               <DrawerClose asChild>
@@ -483,7 +479,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                   Annuler
                 </Button>
               </DrawerClose>
-              
+
               <Button
                 onClick={form.handleSubmit(onSubmit)}
                 disabled={isSubmitting}
