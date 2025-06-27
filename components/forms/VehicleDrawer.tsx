@@ -164,7 +164,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
           </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-4 py-6">
-            <Form {...form}>
+            <Form form={form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Référence, Marque, Modèle */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -362,7 +362,7 @@ export function VehicleDrawer({ open, onOpenChange, onSuccess }: VehicleDrawerPr
                     name="purchase_price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-mkb-black font-medium">Prix d'achat (€) *</FormLabel>
+                        <FormLabel className="text-mkb-black font-medium">Prix d&apos;achat (€) *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

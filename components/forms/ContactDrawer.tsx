@@ -143,12 +143,12 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
               Ajouter un Contact
             </DrawerTitle>
             <DrawerDescription>
-              Créer une nouvelle fiche contact dans le carnet d'adresses central
+              Créer une nouvelle fiche contact dans le carnet d&apos;adresses central
             </DrawerDescription>
           </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-4 py-6">
-            <Form {...form}>
+            <Form form={form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Type de contact */}
                 <FormField

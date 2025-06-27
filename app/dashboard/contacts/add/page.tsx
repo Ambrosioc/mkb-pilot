@@ -102,7 +102,7 @@ export default function AddContactPage() {
               Ajouter un Contact
             </h1>
             <p className="text-gray-600">
-              Créer une nouvelle fiche contact dans le carnet d'adresses central
+              Créer une nouvelle fiche contact dans le carnet d&apos;adresses central
             </p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function AddContactPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
+            <Form form={form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Type de contact */}
                 <FormField
