@@ -9,7 +9,7 @@ import { useVehicleFormData } from '@/hooks/useVehicleFormData';
 import { advertisementSchema, vehicleAngolaSchema, type AdvertisementFormValues, type VehicleAngolaFormValues } from '@/lib/schemas/vehicle-angola';
 import { useVehicleFormStore } from '@/lib/store/vehicleFormStore';
 import { supabase } from '@/lib/supabase';
-import { uploadImageToServer } from '@/lib/uploadImage';
+import { uploadMultipleImages } from '@/lib/uploadImage';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -303,75 +303,94 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
         console.log('Starting upload process...', { vehicleRef, vehicleId, imagesCount: images.length });
 
         try {
-            // Upload each image
-            const uploadedUrls: string[] = [];
+            // Prepare files for upload (rename them to match order)
+            const filesToUpload: File[] = [];
+            const imageIds: string[] = [];
 
             for (let i = 0; i < images.length; i++) {
                 const image = images[i];
-                console.log(`Processing image ${i + 1}/${images.length}:`, image.file.name);
 
                 // Skip already uploaded images
                 if (image.uploaded) {
-                    if (image.url) {
-                        uploadedUrls.push(image.url);
-                    }
                     continue;
                 }
 
                 // Set image as uploading
                 setImageUploading(image.id, true);
+                imageIds.push(image.id);
 
                 // Rename file to match order
                 const fileExtension = image.file.name.split('.').pop();
-                const newFileName = `image-${i + 1}.${fileExtension}`;
+                const newFileName = `photo-${i + 1}.${fileExtension}`;
                 const renamedFile = new File([image.file], newFileName, { type: image.file.type });
 
-                console.log(`Uploading ${newFileName}...`);
-
-                // Upload image using the corrected function
-                const result = await uploadImageToServer(renamedFile, vehicleRef, Number(vehicleId));
-
-                console.log(`Upload result for ${newFileName}:`, result);
-
-                if (result.success && result.filePath) {
-                    setImageUploaded(image.id, true, result.filePath);
-                    uploadedUrls.push(result.filePath);
-                    console.log(`Successfully uploaded ${newFileName} to ${result.filePath}`);
-                } else {
-                    setImageError(image.id, result.error || 'Failed to upload');
-                    console.error(`Failed to upload ${newFileName}:`, result.error);
-                }
+                filesToUpload.push(renamedFile);
+                console.log(`Prepared ${newFileName} for upload`);
             }
 
-            // Update advertisement with image URLs if we have any
-            if (advertisementId && uploadedUrls.length > 0) {
-                console.log('Updating advertisement with photos:', uploadedUrls);
-                const { error: updateError } = await supabase
-                    .from('advertisements')
-                    .update({ photos: uploadedUrls })
-                    .eq('id', advertisementId);
-
-                if (updateError) {
-                    console.error('Error updating advertisement with photos:', updateError);
-                    toast.error('Erreur lors de la mise à jour des photos');
-                } else {
-                    console.log('Successfully updated advertisement with photos');
-                }
+            if (filesToUpload.length === 0) {
+                toast.info('Toutes les images sont déjà uploadées');
+                return;
             }
 
-            // Check if all images were uploaded successfully
-            const allUploaded = images.every(img => img.uploaded);
+            console.log(`Uploading ${filesToUpload.length} images...`);
 
-            if (allUploaded) {
+            // Upload all images in parallel using uploadMultipleImages
+            const result = await uploadMultipleImages(filesToUpload, vehicleRef, Number(vehicleId));
+
+            console.log('Upload result:', result);
+
+            if (result.success) {
+                // All images uploaded successfully
+                result.filePaths.forEach((filePath, index) => {
+                    const imageId = imageIds[index];
+                    setImageUploaded(imageId, true, filePath);
+                    console.log(`Successfully uploaded image ${index + 1} to ${filePath}`);
+                });
+
+                // Update advertisement with image URLs
+                if (advertisementId && result.filePaths.length > 0) {
+                    console.log('Updating advertisement with photos:', result.filePaths);
+                    const { error: updateError } = await supabase
+                        .from('advertisements')
+                        .update({ photos: result.filePaths })
+                        .eq('id', advertisementId);
+
+                    if (updateError) {
+                        console.error('Error updating advertisement with photos:', updateError);
+                        toast.error('Erreur lors de la mise à jour des photos');
+                    } else {
+                        console.log('Successfully updated advertisement with photos');
+                    }
+                }
+
                 toast.success('Toutes les images ont été téléchargées avec succès !');
                 console.log('All images uploaded successfully');
+
+                // Réinitialiser automatiquement le formulaire pour un nouveau véhicule
+                resetForm();
 
                 // Call onSuccess callback if provided
                 if (onSuccess) {
                     onSuccess();
                 }
             } else {
-                toast.warning('Certaines images n\'ont pas pu être téléchargées');
+                // Some images failed
+                console.error('Upload errors:', result.errors);
+
+                // Mark failed images with errors
+                result.errors.forEach((error, index) => {
+                    const imageId = imageIds[index];
+                    setImageError(imageId, error);
+                });
+
+                // Mark successful images
+                result.filePaths.forEach((filePath, index) => {
+                    const imageId = imageIds[index];
+                    setImageUploaded(imageId, true, filePath);
+                });
+
+                toast.warning(`${result.errors.length} image(s) n'ont pas pu être téléchargées`);
                 console.warn('Some images failed to upload');
             }
         } catch (error) {
@@ -440,6 +459,47 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             reset();
         };
     }, [reset]);
+
+    // Function to completely reset the form
+    const resetForm = () => {
+        // Reset Zustand store
+        reset();
+
+        // Reset React Hook Form forms
+        vehicleForm.reset({
+            brand_id: undefined,
+            model_id: undefined,
+            year: new Date().getFullYear(),
+            first_registration: '',
+            mileage: 0,
+            color: '',
+            vehicle_type_id: undefined,
+            fuel_type_id: undefined,
+            doors: 5,
+            seats: 5,
+            dealer_id: undefined,
+            dossier_type_id: undefined,
+            gearbox: '',
+            din_power: undefined,
+            fiscal_power: undefined,
+            price: 0,
+            purchase_price: 0,
+            description: '',
+            location: ''
+        });
+
+        advertisementForm.reset({
+            title: '',
+            description: '',
+            price: 0
+        });
+
+        // Reset selected brand
+        setSelectedBrandId(undefined);
+
+        // Show success message
+        toast.success('Véhicule ajouté avec succès ! Formulaire réinitialisé pour un nouveau véhicule.');
+    };
 
     // Loading state
     if (loading) {
