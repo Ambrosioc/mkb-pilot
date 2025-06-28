@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import Client from 'ssh2-sftp-client';
 
 // Configuration pour forcer le mode dynamique
 export const dynamic = 'force-dynamic';
@@ -8,10 +9,9 @@ export const dynamic = 'force-dynamic';
 interface UploadRequest {
   file: File;
   ref_auto: string;
-  car_id: number;
 }
 
-interface InfomaniakUploadResponse {
+interface SftpUploadResponse {
   success: boolean;
   filePath?: string;
   message: string;
@@ -87,72 +87,157 @@ async function authenticateUser(authHeader: string | null): Promise<{ user: any;
   }
 }
 
-// Fonction d'upload vers Infomaniak
-async function uploadToInfomaniak(
+// Fonction de test de connexion SFTP
+async function testSftpConnection(host: string, username: string, password: string): Promise<{ port: number; success: boolean; error?: string }> {
+  const testPorts = [22, 2222, 222, 21]; // Ports SFTP courants
+  const sftp = new Client();
+  
+  for (const port of testPorts) {
+    try {
+      console.log(`🧪 Test de connexion SFTP sur le port ${port}...`);
+      
+      await sftp.connect({
+        host,
+        port,
+        username,
+        password,
+        readyTimeout: 10000, // 10 secondes pour les tests
+        retries: 1
+      });
+      
+      console.log(`✅ Connexion SFTP réussie sur le port ${port}`);
+      await sftp.end();
+      return { port, success: true };
+      
+    } catch (error: any) {
+      console.log(`❌ Échec sur le port ${port}: ${error.message}`);
+      try {
+        await sftp.end();
+      } catch {}
+    }
+  }
+  
+  return { 
+    port: 22, 
+    success: false, 
+    error: 'Aucun port SFTP fonctionnel trouvé. Ports testés: ' + testPorts.join(', ')
+  };
+}
+
+// Fonction d'upload via SFTP
+async function uploadViaSftp(
   file: File, 
   ref_auto: string, 
   fileName: string
-): Promise<InfomaniakUploadResponse> {
+): Promise<SftpUploadResponse> {
+  const sftp = new Client();
+  
   try {
-    const token = process.env.INFOMANIAK_TOKEN;
-    if (!token) {
+    // Vérifier les variables d'environnement SFTP
+    const host = process.env.SFTP_HOST || 'sw7sw.ftp.infomaniak.com';
+    const port = parseInt(process.env.SFTP_PORT || '22');
+    const username = process.env.SFTP_USER || 'sw7sw_mkb';
+    const password = process.env.SFTP_PASSWORD;
+
+    if (!host || !username || !password) {
       return { 
         success: false, 
-        error: 'Token Infomaniak non configuré',
-        message: 'Token Infomaniak non configuré'
+        error: 'Configuration SFTP manquante',
+        message: 'Variables d\'environnement SFTP non configurées'
       };
     }
+
+    console.log(`Configuration SFTP:`, {
+      host,
+      port,
+      username,
+      passwordLength: password?.length || 0
+    });
+
+    // Connexion SFTP directe (on sait que le port 22 fonctionne)
+    const connectionConfig = {
+      host,
+      port,
+      username,
+      password,
+      readyTimeout: 30000, // 30 secondes
+      retries: 3,
+      retry_factor: 2,
+      retry_minTimeout: 5000,
+      keepaliveInterval: 10000, // 10 secondes
+      keepaliveCountMax: 3
+    };
+
+    console.log('Configuration de connexion:', JSON.stringify(connectionConfig, null, 2));
+
+    await sftp.connect(connectionConfig);
+    console.log('✅ Connexion SFTP établie avec succès');
 
     // Convertir le fichier en Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log(`Taille du fichier: ${buffer.length} bytes`);
 
-    // Créer le FormData pour Infomaniak
-    const formData = new FormData();
-    formData.append('file', new Blob([buffer], { type: file.type }), fileName);
-    
-    // Ajouter les métadonnées si nécessaire
-    formData.append('path', `/var/www/mkbautomobile/uploads/${ref_auto}`);
-    formData.append('overwrite', 'true');
+    // Chemin distant - Utiliser le chemin absolu correct pour Infomaniak
+    const remoteDir = `/home/clients/579d9810fe84939753a28b4360138c3f/var/www/mkbautomobile/uploads/${ref_auto}`;
+    const remotePath = `${remoteDir}/${fileName}`;
+    console.log(`Tentative d'upload vers: ${remotePath}`);
 
-    // Appel à l'API Infomaniak
-    const response = await fetch('https://api.infomaniak.com/1/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        // Ne pas définir Content-Type, laissez le navigateur le faire pour FormData
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Erreur Infomaniak:', response.status, errorText);
-      return { 
-        success: false, 
-        error: `Erreur lors de l'upload vers Infomaniak: ${response.status}`,
-        message: errorText
-      };
+    // Vérifier si le dossier existe
+    try {
+      const dirExists = await sftp.exists(remoteDir);
+      console.log(`Le dossier ${remoteDir} existe: ${dirExists}`);
+      
+      if (!dirExists) {
+        console.log(`Tentative de création du dossier: ${remoteDir}`);
+        await sftp.mkdir(remoteDir, true); // true = créer les parents si nécessaire
+        console.log(`✅ Dossier créé: ${remoteDir}`);
+      }
+    } catch (dirError: any) {
+      console.error(`Erreur lors de la vérification/création du dossier:`, dirError);
+      // Continuer même si on ne peut pas créer le dossier
     }
 
-    const result = await response.json();
-    
-    // Construire l'URL publique
-    const publicUrl = `https://www.mkbautomobile.com/uploads/${ref_auto}/${fileName}`;
+    // Upload du fichier
+    try {
+      await sftp.put(buffer, remotePath);
+      console.log(`✅ Fichier uploadé avec succès: ${remotePath}`);
+    } catch (uploadError: any) {
+      console.error(`❌ Erreur upload:`, uploadError);
+      
+      // Si le dossier n'existe pas, donner des instructions
+      if (uploadError.message && uploadError.message.includes('No such file')) {
+        throw new Error(`Le dossier ${remoteDir} n'existe pas. Veuillez le créer manuellement ou contacter l'administrateur Infomaniak pour activer les permissions.`);
+      }
+      
+      throw uploadError;
+    }
+
+    // Construire l'URL publique correcte
+    const publicUrl = `https://mkbautomobile.com/photos/${ref_auto}/${fileName}`;
+    console.log(`URL publique générée: ${publicUrl}`);
     
     return {
       success: true,
       filePath: publicUrl,
-      message: 'Image uploadée avec succès'
+      message: 'Image uploadée avec succès via SFTP'
     };
 
   } catch (error) {
-    console.error('Erreur upload Infomaniak:', error);
+    console.error('❌ Erreur upload SFTP:', error);
     return { 
       success: false, 
-      error: 'Erreur lors de l\'upload vers Infomaniak',
-      message: error instanceof Error ? error.message : 'Erreur lors de l\'upload vers Infomaniak'
+      error: 'Erreur lors de l\'upload via SFTP',
+      message: error instanceof Error ? error.message : 'Erreur lors de l\'upload via SFTP'
     };
+  } finally {
+    // Fermer la connexion SFTP
+    try {
+      await sftp.end();
+      console.log('🔌 Connexion SFTP fermée');
+    } catch (closeError) {
+      console.error('❌ Erreur fermeture SFTP:', closeError);
+    }
   }
 }
 
@@ -181,11 +266,7 @@ async function updateSupabasePhotos(
       .from('advertisements')
       .select('id, photos')
       .eq('car_id', car_id)
-      .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      return { success: false, error: `Erreur lors de la récupération de l'annonce: ${fetchError.message}` };
-    }
+      .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter l'erreur
 
     let photos: string[] = [];
     let adId: number | null = null;
@@ -203,6 +284,7 @@ async function updateSupabasePhotos(
         .single();
 
       if (createError) {
+        console.error('Erreur création annonce:', createError);
         return { success: false, error: `Erreur lors de la création de l'annonce: ${createError.message}` };
       }
       adId = newAd.id;
@@ -219,6 +301,7 @@ async function updateSupabasePhotos(
         .eq('id', adId);
 
       if (updateError) {
+        console.error('Erreur mise à jour photos:', updateError);
         return { success: false, error: `Erreur lors de la mise à jour des photos: ${updateError.message}` };
       }
     }
@@ -252,11 +335,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const car_id = parseInt(formData.get('car_id') as string);
 
     // 3. Validation des données
-    if (!file || !ref_auto || !car_id) {
+    if (!file || !ref_auto) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Données manquantes: file, ref_auto et car_id sont requis' 
+          error: 'Données manquantes: file et ref_auto sont requis' 
         },
         { status: 400 }
       );
@@ -291,14 +374,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('advertisements')
       .select('photos')
       .eq('car_id', car_id)
-      .single();
+      .maybeSingle();
 
     const existingPhotos = existingAd?.photos || [];
     const photoNumber = existingPhotos.length + 1;
-    const fileName = `image-${photoNumber}.${fileExtension}`;
+    const fileName = `photo-${photoNumber}.${fileExtension}`;
 
-    // 6. Upload vers Infomaniak
-    const uploadResult = await uploadToInfomaniak(file, ref_auto, fileName);
+    console.log(`Début upload: ${fileName} pour ref_auto: ${ref_auto}`);
+
+    // 6. Upload via SFTP
+    const uploadResult = await uploadViaSftp(file, ref_auto, fileName);
     
     if (!uploadResult.success) {
       return NextResponse.json(
@@ -307,14 +392,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 7. Mise à jour Supabase
-    const updateResult = await updateSupabasePhotos(car_id, uploadResult.filePath!);
-    
-    if (!updateResult.success) {
-      return NextResponse.json(
-        { success: false, error: updateResult.error },
-        { status: 500 }
-      );
+    // 7. Mise à jour Supabase (si car_id est fourni)
+    if (car_id) {
+      const updateResult = await updateSupabasePhotos(car_id, uploadResult.filePath!);
+      
+      if (!updateResult.success) {
+        console.warn('Erreur mise à jour Supabase:', updateResult.error);
+        // Ne pas échouer complètement si Supabase échoue
+      }
     }
 
     // 8. Réponse de succès
@@ -322,7 +407,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: true,
       filePath: uploadResult.filePath,
       message: uploadResult.message,
-      photoNumber
+      photoNumber: photoNumber
     });
 
   } catch (error) {

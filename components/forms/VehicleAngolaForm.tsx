@@ -1207,7 +1207,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                                                         <X className="h-4 w-4" />
                                                                                     </button>
                                                                                     <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                                                                                        image-{index + 1}
+                                                                                        photo-{index + 1}
                                                                                     </div>
                                                                                 </div>
                                                                             </motion.div>
@@ -1230,7 +1230,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                     <ul className="list-disc pl-5 space-y-1 text-gray-600">
                                         <li>Glissez-déposez pour réorganiser les images</li>
                                         <li>La première image sera l&apos;image principale</li>
-                                        <li>Les images seront renommées automatiquement (image-1.jpg, image-2.jpg, etc.)</li>
+                                        <li>Les images seront renommées automatiquement (photo-1.jpg, photo-2.jpg, etc.)</li>
                                         <li>Formats acceptés: JPG, PNG, WEBP</li>
                                     </ul>
                                 </div>

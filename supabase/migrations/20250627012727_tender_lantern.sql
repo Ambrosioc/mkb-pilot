@@ -26,28 +26,50 @@ DECLARE
     suffix INT;
     first_letter CHAR;
     second_letter CHAR;
+    max_attempts INT := 10;
+    attempt INT := 0;
+    ref_exists BOOLEAN;
 BEGIN
-    -- Get next value from sequence
-    SELECT nextval('vehicle_ref_sequence') INTO seq_val;
+    -- Try up to max_attempts times to generate a unique reference
+    WHILE attempt < max_attempts LOOP
+        attempt := attempt + 1;
+        
+        -- Get next value from sequence
+        SELECT nextval('vehicle_ref_sequence') INTO seq_val;
+        
+        -- Calculate which prefix we're on (each prefix handles 100,000 values)
+        -- AB = 0-99999, AC = 100000-199999, etc.
+        prefix_num := FLOOR(seq_val / 100000);
+        
+        -- Calculate the numeric part (modulo 100000, then add 1 to start from 00001)
+        suffix := (seq_val % 100000) + 1;
+        
+        -- Calculate the two letters for the prefix
+        -- First letter: A (fixed for AB series)
+        -- Second letter: B + (prefix_num % 26) to start with AB
+        first_letter := 'A';
+        second_letter := CHR(66 + (prefix_num % 26)); -- 66 = 'B' in ASCII
+        
+        -- Combine to form the prefix
+        prefix := first_letter || second_letter;
+        
+        -- Check if this reference already exists
+        SELECT EXISTS(
+            SELECT 1 FROM cars_v2 
+            WHERE ref_auto = prefix || LPAD(suffix::TEXT, 5, '0')
+        ) INTO ref_exists;
+        
+        -- If reference doesn't exist, return it
+        IF NOT ref_exists THEN
+            RETURN prefix || LPAD(suffix::TEXT, 5, '0');
+        END IF;
+        
+        -- If we get here, the reference exists, so we'll try again
+        -- The sequence will automatically increment for the next attempt
+    END LOOP;
     
-    -- Calculate which prefix we're on (each prefix handles 100,000 values)
-    -- AB = 0-99999, AC = 100000-199999, etc.
-    prefix_num := FLOOR(seq_val / 100000);
-    
-    -- Calculate the numeric part (modulo 100000, then add 1 to start from 00001)
-    suffix := (seq_val % 100000) + 1;
-    
-    -- Calculate the two letters for the prefix
-    -- First letter: A + (prefix_num / 26)
-    -- Second letter: A + (prefix_num % 26)
-    first_letter := CHR(65 + (prefix_num / 26)::INT);
-    second_letter := CHR(65 + (prefix_num % 26)::INT);
-    
-    -- Combine to form the prefix
-    prefix := first_letter || second_letter;
-    
-    -- Return the formatted reference (prefix + 5-digit number with leading zeros)
-    RETURN prefix || LPAD(suffix::TEXT, 5, '0');
+    -- If we've exhausted all attempts, raise an error
+    RAISE EXCEPTION 'Unable to generate unique vehicle reference after % attempts', max_attempts;
 END;
 $$ LANGUAGE plpgsql;
 
