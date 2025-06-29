@@ -60,17 +60,7 @@ export default function RegisterPage() {
       >
         <Card className="shadow-2xl border-0">
           <CardHeader className="text-center pb-2">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="flex items-center justify-center gap-2 mb-4"
-            >
-              <div className="bg-mkb-blue text-white px-3 py-2 rounded-lg text-lg font-bold">
-                MKB
-              </div>
-              <span className="text-mkb-blue text-lg font-semibold">Pilot</span>
-            </motion.div>
+            <img src="/logo.png" alt="Logo MKB" className="mx-auto mb-6 w-40 h-28 object-contain" />
             <CardTitle className="text-2xl font-bold text-mkb-black">
               Créer un compte
             </CardTitle>

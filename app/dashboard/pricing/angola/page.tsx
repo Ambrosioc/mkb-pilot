@@ -17,6 +17,7 @@ import {
   Filter,
   Flag,
   Globe,
+  MapPinned,
   Plus,
   Search,
   Target,
@@ -53,7 +54,7 @@ interface Vehicle {
   model: string;
   price: number;
   purchase_price: number;
-  country: 'FR' | 'ALL';
+  location: 'FR' | 'ALL';
   created_at: string;
   user: {
     prenom: string;
@@ -89,13 +90,13 @@ export default function PricingAngolaPage() {
   }, []);
 
   useEffect(() => {
-    // Filter vehicles based on search term and country filter
+    // Filter vehicles based on search term and location filter
     const filtered = vehicles.filter(vehicle => {
       const matchesSearch =
         vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCountry = countryFilter === 'all' || vehicle.country === countryFilter;
+      const matchesCountry = countryFilter === 'all' || vehicle.location === countryFilter;
 
       return matchesSearch && matchesCountry;
     });
@@ -266,7 +267,7 @@ export default function PricingAngolaPage() {
         model: item.model || 'N/A',
         price: item.price || 0,
         purchase_price: item.purchase_price || 0,
-        country: item.location || 'FR',
+        location: item.location || 'FR',
         created_at: item.created_at,
         user: {
           prenom: item.users?.[0]?.prenom || 'Utilisateur',
@@ -602,7 +603,7 @@ export default function PricingAngolaPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Pays</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700"><MapPinned /></th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix de vente</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix d'achat</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Marge</th>
@@ -612,6 +613,7 @@ export default function PricingAngolaPage() {
                   </thead>
                   <tbody>
                     {filteredVehicles.map((vehicle, index) => {
+                      console.log(vehicle);
                       const margin = vehicle.price - vehicle.purchase_price;
                       const marginPercent = vehicle.purchase_price > 0
                         ? ((margin / vehicle.purchase_price) * 100).toFixed(1)
@@ -626,16 +628,16 @@ export default function PricingAngolaPage() {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                            <div className="font-medium text-mkb-black">
+                            <div className="text-mkb-black">
                               {vehicle.brand} {vehicle.model}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <Badge className={vehicle.country === 'FR'
+                            <Badge className={vehicle.location === 'FR'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-yellow-100 text-yellow-800'
                             }>
-                              {vehicle.country === 'FR' ? '🇫🇷 FR' : '🇩🇪 ALL'}
+                              {vehicle.location}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 text-right font-medium">

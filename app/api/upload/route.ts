@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 // Types pour la sécurité
 interface UploadRequest {
   file: File;
-  ref_auto: string;
+  reference: string;
+  car_id: number;
 }
 
 interface SftpUploadResponse {
@@ -126,8 +127,8 @@ async function testSftpConnection(host: string, username: string, password: stri
 
 // Fonction d'upload via SFTP
 async function uploadViaSftp(
-  file: File, 
-  ref_auto: string, 
+  file: File,
+  reference: string,
   fileName: string
 ): Promise<SftpUploadResponse> {
   const sftp = new Client();
@@ -179,7 +180,7 @@ async function uploadViaSftp(
     console.log(`Taille du fichier: ${buffer.length} bytes`);
 
     // Chemin distant - Utiliser le chemin absolu correct pour Infomaniak
-    const remoteDir = `/home/clients/579d9810fe84939753a28b4360138c3f/var/www/mkbautomobile/uploads/${ref_auto}`;
+    const remoteDir = `/home/clients/579d9810fe84939753a28b4360138c3f/var/www/mkbautomobile/uploads/${reference}`;
     const remotePath = `${remoteDir}/${fileName}`;
     console.log(`Tentative d'upload vers: ${remotePath}`);
 
@@ -214,7 +215,7 @@ async function uploadViaSftp(
     }
 
     // Construire l'URL publique correcte
-    const publicUrl = `https://mkbautomobile.com/photos/${ref_auto}/${fileName}`;
+    const publicUrl = `https://mkbautomobile.com/photos/${reference}/${fileName}`;
     console.log(`URL publique générée: ${publicUrl}`);
     
     return {
@@ -331,15 +332,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 2. Récupération des données du formulaire
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const ref_auto = formData.get('ref_auto') as string;
+    const reference = formData.get('reference') as string;
     const car_id = parseInt(formData.get('car_id') as string);
 
     // 3. Validation des données
-    if (!file || !ref_auto) {
+    if (!file || !reference) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Données manquantes: file et ref_auto sont requis' 
+          error: 'Données manquantes: file et reference sont requis' 
         },
         { status: 400 }
       );
@@ -380,10 +381,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const photoNumber = existingPhotos.length + 1;
     const fileName = `photo-${photoNumber}.${fileExtension}`;
 
-    console.log(`Début upload: ${fileName} pour ref_auto: ${ref_auto}`);
+    console.log(`Début upload: ${fileName} pour reference: ${reference}`);
 
     // 6. Upload via SFTP
-    const uploadResult = await uploadViaSftp(file, ref_auto, fileName);
+    const uploadResult = await uploadViaSftp(file, reference, fileName);
     
     if (!uploadResult.success) {
       return NextResponse.json(

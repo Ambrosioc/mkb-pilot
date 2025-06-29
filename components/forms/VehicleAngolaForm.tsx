@@ -177,7 +177,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                     .from('cars_v2')
                     .update(vehicleData)
                     .eq('id', vehicleId)
-                    .select('id, ref_auto')
+                    .select('id, reference')
                     .single();
 
                 if (updateError) throw updateError;
@@ -189,7 +189,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 const { data: newVehicle, error: insertError } = await supabase
                     .from('cars_v2')
                     .insert([vehicleData])
-                    .select('id, ref_auto')
+                    .select('id, reference')
                     .single();
 
                 if (insertError) throw insertError;
@@ -202,7 +202,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             }
 
             // Store the vehicle reference
-            setVehicleRef(result.ref_auto);
+            setVehicleRef(result.reference);
 
             // Pre-fill advertisement form with vehicle data
             advertisementForm.setValue('title', `${brands.find(b => b.id === Number(data.brand_id))?.name || ''} ${filteredModels.find(m => m.id === Number(data.model_id))?.name || ''} ${data.year}`);

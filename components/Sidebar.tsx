@@ -51,6 +51,7 @@ const MenuItemComponent = memo<MenuItemComponentProps>(({ item, level, collapsed
               collapsed && "justify-center px-2"
             )}
             style={{ paddingLeft: collapsed ? 8 : paddingLeft }}
+            hideChevron={true}
           >
             <item.icon className="h-4 w-4 flex-shrink-0" />
             {!collapsed && (
@@ -117,13 +118,8 @@ const Sidebar = memo<SidebarProps>(({ collapsed, onToggle }) => {
             exit={{ opacity: 0 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 bg-mkb-blue rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">MKB</span>
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-900">MKB Pilot</h1>
-              <p className="text-xs text-gray-500">Dashboard</p>
-            </div>
+            {/* Logo MKB */}
+            <img src="/logo.png" alt="Logo MKB" className="w-28 h-10 object-contain" />
           </motion.div>
         )}
 
