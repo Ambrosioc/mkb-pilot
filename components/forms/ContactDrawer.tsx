@@ -51,12 +51,12 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: '',
+      nom: '',
       email: '',
-      phone: '',
-      company: '',
+      telephone: '',
+      societe: '',
       notes: '',
-      status: 'actif',
+      statut: 'actif',
       tags: [],
     },
   });
@@ -179,7 +179,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="nom"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nom complet *</FormLabel>
@@ -197,7 +197,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                   {watchType && isCompanyRequired && (
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="societe"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-mkb-black font-medium">Société *</FormLabel>
@@ -232,7 +232,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
 
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="telephone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Téléphone</FormLabel>
@@ -274,7 +274,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="statut"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Statut</FormLabel>

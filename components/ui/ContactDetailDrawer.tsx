@@ -51,12 +51,12 @@ interface ContactDetailDrawerProps {
 
 interface Contact {
     id: string;
-    name: string;
+    nom: string;
     email: string | null;
-    phone: string | null;
-    company: string | null;
+    telephone: string | null;
+    societe: string | null;
     type: string;
-    status: string;
+    statut: string;
     notes: string | null;
     created_at: string;
     updated_at: string;
@@ -261,7 +261,7 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
             // Update contact status to 'archivé'
             const { error } = await supabase
                 .from('contacts')
-                .update({ status: 'archivé' })
+                .update({ statut: 'archivé' })
                 .eq('id', contact.id);
 
             if (error) throw error;
@@ -280,6 +280,39 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
         } catch (error) {
             console.error('Error archiving contact:', error);
             toast.error('Erreur lors de l\'archivage du contact');
+        } finally {
+            setIsArchiving(false);
+        }
+    };
+
+    const handleUnarchiveContact = async () => {
+        if (!contact) return;
+
+        setIsArchiving(true);
+
+        try {
+            // Update contact status to 'actif'
+            const { error } = await supabase
+                .from('contacts')
+                .update({ statut: 'actif' })
+                .eq('id', contact.id);
+
+            if (error) throw error;
+
+            toast.success('Contact désarchivé avec succès');
+
+            // Close dialogs and drawer
+            setIsArchiveDialogOpen(false);
+            onOpenChange(false);
+
+            // Notify parent component
+            if (onContactUpdated) {
+                onContactUpdated();
+            }
+
+        } catch (error) {
+            console.error('Error unarchiving contact:', error);
+            toast.error('Erreur lors de la désarchivage du contact');
         } finally {
             setIsArchiving(false);
         }
@@ -309,7 +342,7 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
             case 'actif': return 'bg-green-100 text-green-800';
             case 'prospect': return 'bg-orange-100 text-orange-800';
             case 'inactif': return 'bg-gray-100 text-gray-800';
-            case 'archivé': return 'bg-red-100 text-red-800';
+            case 'archivé': return 'bg-gray-100 text-gray-600';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -351,11 +384,11 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                         <DrawerHeader className="border-b pb-4 px-4">
                             <DrawerTitle className="text-xl font-bold text-mkb-black flex items-center gap-2">
                                 <User className="h-5 w-5 text-mkb-blue" />
-                                {loading ? 'Chargement...' : contact?.name}
+                                {loading ? 'Chargement...' : contact?.nom}
                             </DrawerTitle>
                             <DrawerDescription>
                                 {loading ? 'Récupération des informations...' : (
-                                    contact?.company ? `${contact.company} • ${contact.type}` : contact?.type
+                                    contact?.societe ? `${contact.societe} • ${contact.type}` : contact?.type
                                 )}
                             </DrawerDescription>
                         </DrawerHeader>
@@ -379,19 +412,19 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <Label htmlFor="name">Nom complet</Label>
+                                                        <Label htmlFor="nom">Nom complet</Label>
                                                         <Input
-                                                            id="name"
-                                                            value={editedContact.name || ''}
-                                                            onChange={(e) => setEditedContact({ ...editedContact, name: e.target.value })}
+                                                            id="nom"
+                                                            value={editedContact.nom || ''}
+                                                            onChange={(e) => setEditedContact({ ...editedContact, nom: e.target.value })}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <Label htmlFor="company">Société</Label>
+                                                        <Label htmlFor="societe">Société</Label>
                                                         <Input
-                                                            id="company"
-                                                            value={editedContact.company || ''}
-                                                            onChange={(e) => setEditedContact({ ...editedContact, company: e.target.value })}
+                                                            id="societe"
+                                                            value={editedContact.societe || ''}
+                                                            onChange={(e) => setEditedContact({ ...editedContact, societe: e.target.value })}
                                                         />
                                                     </div>
                                                     <div>
@@ -404,11 +437,11 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                         />
                                                     </div>
                                                     <div>
-                                                        <Label htmlFor="phone">Téléphone</Label>
+                                                        <Label htmlFor="telephone">Téléphone</Label>
                                                         <Input
-                                                            id="phone"
-                                                            value={editedContact.phone || ''}
-                                                            onChange={(e) => setEditedContact({ ...editedContact, phone: e.target.value })}
+                                                            id="telephone"
+                                                            value={editedContact.telephone || ''}
+                                                            onChange={(e) => setEditedContact({ ...editedContact, telephone: e.target.value })}
                                                         />
                                                     </div>
                                                     <div>
@@ -426,12 +459,12 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <Label htmlFor="status">Statut</Label>
+                                                        <Label htmlFor="statut">Statut</Label>
                                                         <select
-                                                            id="status"
+                                                            id="statut"
                                                             className="w-full rounded-md border border-input bg-background px-3 py-2"
-                                                            value={editedContact.status || ''}
-                                                            onChange={(e) => setEditedContact({ ...editedContact, status: e.target.value })}
+                                                            value={editedContact.statut || ''}
+                                                            onChange={(e) => setEditedContact({ ...editedContact, statut: e.target.value })}
                                                         >
                                                             <option value="actif">Actif</option>
                                                             <option value="prospect">Prospect</option>
@@ -497,13 +530,13 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                     <div className="space-y-4">
                                                         <div>
                                                             <Label className="text-gray-500">Nom complet</Label>
-                                                            <p className="font-medium">{contact?.name}</p>
+                                                            <p className="font-medium">{contact?.nom}</p>
                                                         </div>
 
-                                                        {contact?.company && (
+                                                        {contact?.societe && (
                                                             <div>
                                                                 <Label className="text-gray-500">Société</Label>
-                                                                <p className="font-medium">{contact.company}</p>
+                                                                <p className="font-medium">{contact.societe}</p>
                                                             </div>
                                                         )}
 
@@ -516,8 +549,8 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
 
                                                         <div>
                                                             <Label className="text-gray-500">Statut</Label>
-                                                            <Badge className={getStatusColor(contact?.status || '')}>
-                                                                {contact?.status ? contact.status.charAt(0).toUpperCase() + contact.status.slice(1) : ''}
+                                                            <Badge className={getStatusColor(contact?.statut || '')}>
+                                                                {contact?.statut ? contact.statut.charAt(0).toUpperCase() + contact.statut.slice(1) : ''}
                                                             </Badge>
                                                         </div>
                                                     </div>
@@ -538,16 +571,16 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                             </div>
                                                         )}
 
-                                                        {contact?.phone && (
+                                                        {contact?.telephone && (
                                                             <div>
                                                                 <Label className="text-gray-500">Téléphone</Label>
                                                                 <div className="flex items-center gap-2">
                                                                     <Phone className="h-4 w-4 text-gray-400" />
                                                                     <a
-                                                                        href={`tel:${contact.phone}`}
+                                                                        href={`tel:${contact.telephone}`}
                                                                         className="font-medium text-mkb-blue hover:underline"
                                                                     >
-                                                                        {contact.phone}
+                                                                        {contact.telephone}
                                                                     </a>
                                                                 </div>
                                                             </div>
@@ -602,13 +635,13 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                             </Button>
                                                         )}
 
-                                                        {contact?.phone && (
+                                                        {contact?.telephone && (
                                                             <Button
                                                                 variant="outline"
                                                                 className="justify-start"
                                                                 asChild
                                                             >
-                                                                <a href={`tel:${contact.phone}`}>
+                                                                <a href={`tel:${contact.telephone}`}>
                                                                     <Phone className="mr-2 h-4 w-4" />
                                                                     Appeler
                                                                 </a>
@@ -624,14 +657,25 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                             Ajouter une note
                                                         </Button>
 
-                                                        <Button
-                                                            variant="outline"
-                                                            className="justify-start border-red-200 text-red-600 hover:bg-red-50"
-                                                            onClick={() => setIsArchiveDialogOpen(true)}
-                                                        >
-                                                            <Archive className="mr-2 h-4 w-4" />
-                                                            Archiver le contact
-                                                        </Button>
+                                                        {contact?.statut === 'archivé' ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                className="justify-start border-green-200 text-green-600 hover:bg-green-50"
+                                                                onClick={() => setIsArchiveDialogOpen(true)}
+                                                            >
+                                                                <Archive className="mr-2 h-4 w-4" />
+                                                                Désarchiver le contact
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="outline"
+                                                                className="justify-start border-red-200 text-red-600 hover:bg-red-50"
+                                                                onClick={() => setIsArchiveDialogOpen(true)}
+                                                            >
+                                                                <Archive className="mr-2 h-4 w-4" />
+                                                                Archiver le contact
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -759,7 +803,7 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                     <div className="text-center py-8 bg-gray-50 rounded-lg">
                                                         <Car className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                                                         <h3 className="text-lg font-medium text-gray-700">Aucun véhicule lié</h3>
-                                                        <p className="text-gray-500 mt-2">Ce contact n'a pas de véhicule associé.</p>
+                                                        <p className="text-gray-500 mt-2">Ce contact n&apos;a pas de véhicule associé.</p>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-3">
@@ -792,7 +836,7 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                     <div className="text-center py-8 bg-gray-50 rounded-lg">
                                                         <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                                                         <h3 className="text-lg font-medium text-gray-700">Aucun document</h3>
-                                                        <p className="text-gray-500 mt-2">Ce contact n'a pas de document associé.</p>
+                                                        <p className="text-gray-500 mt-2">Ce contact n&apos;a pas de document associé.</p>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-3">
@@ -865,9 +909,14 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
             <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Archiver le contact</DialogTitle>
+                        <DialogTitle>
+                            {contact?.statut === 'archivé' ? 'Désarchiver le contact' : 'Archiver le contact'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Êtes-vous sûr de vouloir archiver ce contact ? Il ne sera plus visible dans la liste principale.
+                            {contact?.statut === 'archivé'
+                                ? 'Êtes-vous sûr de vouloir désarchiver ce contact ? Il sera à nouveau visible dans la liste principale.'
+                                : 'Êtes-vous sûr de vouloir archiver ce contact ? Il ne sera plus visible dans la liste principale.'
+                            }
                         </DialogDescription>
                     </DialogHeader>
 
@@ -876,19 +925,22 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                             Annuler
                         </Button>
                         <Button
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                            onClick={handleArchiveContact}
+                            className={contact?.statut === 'archivé'
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-red-600 hover:bg-red-700 text-white'
+                            }
+                            onClick={contact?.statut === 'archivé' ? handleUnarchiveContact : handleArchiveContact}
                             disabled={isArchiving}
                         >
                             {isArchiving ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Archivage...
+                                    {contact?.statut === 'archivé' ? 'Désarchivage...' : 'Archivage...'}
                                 </>
                             ) : (
                                 <>
                                     <Archive className="mr-2 h-4 w-4" />
-                                    Archiver
+                                    {contact?.statut === 'archivé' ? 'Désarchiver' : 'Archiver'}
                                 </>
                             )}
                         </Button>

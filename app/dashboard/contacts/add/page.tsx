@@ -38,12 +38,12 @@ export default function AddContactPage() {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: '',
+      nom: '',
       email: '',
-      phone: '',
-      company: '',
+      telephone: '',
+      societe: '',
       notes: '',
-      status: 'actif',
+      statut: 'actif',
       tags: [],
     },
   });
@@ -162,7 +162,7 @@ export default function AddContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="nom"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nom complet *</FormLabel>
@@ -180,7 +180,7 @@ export default function AddContactPage() {
                   {watchType && isCompanyRequired && (
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="societe"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-mkb-black font-medium">Société *</FormLabel>
@@ -215,7 +215,7 @@ export default function AddContactPage() {
 
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="telephone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Téléphone</FormLabel>
@@ -257,7 +257,7 @@ export default function AddContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="statut"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Statut</FormLabel>
