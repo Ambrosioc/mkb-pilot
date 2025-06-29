@@ -25,7 +25,6 @@ Lors de l'inscription, le `full_name` était stocké dans les deux champs `preno
 ### 4. Composants mis à jour
 
 - **Topbar** : Utilise la nouvelle fonction `getFullName`
-- **UserProfileCard** : Affiche correctement les données séparées
 
 ## Structure de données
 
