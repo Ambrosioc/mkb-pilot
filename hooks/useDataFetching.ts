@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface PaginationConfig {
   itemsPerPage: number;
@@ -9,7 +8,7 @@ export interface PaginationConfig {
 
 export interface FetchOptions {
   page?: number;
-  forceRefresh?: boolean;
+  limit?: number;
   filters?: Record<string, any>;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -41,229 +40,176 @@ export interface CacheEntry<T> {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface FetchResult<T> {
+  data: T[];
+  loading: boolean;
+  error: string | null;
+  totalItems: number;
+  refetch: () => Promise<void>;
+}
+
 export function useDataFetching<T>(
   fetchFunction: (options: FetchOptions) => Promise<{ data: T[]; totalItems: number }>,
-  config: PaginationConfig,
-  initialFilters: Record<string, any> = {}
-) {
-  const [state, setState] = useState<DataFetchingState<T>>({
-    data: [],
-    loading: true,
-    error: null,
-    pagination: {
-      currentPage: 1,
-      totalItems: 0,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPrevPage: false,
-    },
-    filters: initialFilters,
-  });
+  options: FetchOptions = {},
+  dependencies: any[] = []
+): FetchResult<T> {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastFetchRef = useRef<number>(0);
 
-  // Mémoisation de la clé de cache basée sur les filtres
-  const cacheKey = useMemo(() => {
-    const filtersString = JSON.stringify(state.filters);
-    return `${config.cacheKey}_${filtersString}`;
-  }, [config.cacheKey, state.filters]);
+  const fetchData = useCallback(async (fetchOptions: FetchOptions = {}) => {
+    // Annuler la requête précédente si elle existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-  // Fonction pour vérifier si le cache est valide
-  const isCacheValid = useCallback((cache: CacheEntry<T> | null): boolean => {
-    if (!cache) return false;
+    // Créer un nouveau contrôleur d'annulation
+    abortControllerRef.current = new AbortController();
+    const fetchId = Date.now();
+    lastFetchRef.current = fetchId;
 
-    const now = new Date();
-    const lastFetched = new Date(cache.lastFetched);
-    const expiryMinutes = config.cacheExpiryMinutes || 5; // 5 minutes par défaut
-    const expiryTime = new Date(lastFetched.getTime() + expiryMinutes * 60 * 1000);
-
-    return now < expiryTime;
-  }, [config.cacheExpiryMinutes]);
-
-  // Fonction pour récupérer les données du cache
-  const getCachedData = useCallback((key: string): CacheEntry<T> | null => {
-    if (typeof window === 'undefined') return null;
+    setLoading(true);
+    setError(null);
 
     try {
-      const cached = localStorage.getItem(key);
-      if (!cached) return null;
+      const result = await fetchFunction({ ...options, ...fetchOptions });
+      
+      // Vérifier si c'est toujours la requête la plus récente
+      if (lastFetchRef.current === fetchId) {
+        setData(result.data);
+        setTotalItems(result.totalItems);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      // Ignorer les erreurs d'annulation
+      if (err.name === 'AbortError') {
+        return;
+      }
+      
+      if (lastFetchRef.current === fetchId) {
+        setError(err.message || 'Une erreur est survenue');
+        setLoading(false);
+      }
+    }
+  }, [fetchFunction, options]);
 
-      const parsed: CacheEntry<T> = JSON.parse(cached);
-      return isCacheValid(parsed) ? parsed : null;
+  const refetch = useCallback(async () => {
+    await fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    fetchData();
+    
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, dependencies);
+
+  return {
+    data,
+    loading,
+    error,
+    totalItems,
+    refetch
+  };
+}
+
+// Hook pour optimiser les appels API avec cache
+export function useCachedDataFetching<T>(
+  fetchFunction: (options: FetchOptions) => Promise<{ data: T[]; totalItems: number }>,
+  cacheKey: string,
+  options: FetchOptions = {},
+  cacheDuration: number = 5 * 60 * 1000 // 5 minutes par défaut
+): FetchResult<T> {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const getCachedData = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return null;
+      
+      const { data: cachedData, timestamp, total } = JSON.parse(cached);
+      const isExpired = Date.now() - timestamp > cacheDuration;
+      
+      if (isExpired) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      
+      return { data: cachedData, total };
     } catch {
       return null;
     }
-  }, [isCacheValid]);
+  }, [cacheKey, cacheDuration]);
 
-  // Fonction pour sauvegarder dans le cache
-  const saveToCache = useCallback((key: string, data: T[], totalItems: number, page: number) => {
+  const setCachedData = useCallback((data: T[], total: number) => {
     if (typeof window === 'undefined') return;
-
-    const cacheEntry: CacheEntry<T> = {
-      data,
-      totalItems,
-      lastFetched: new Date().toISOString(),
-      page,
-      filters: state.filters,
-      sortBy: state.filters.sortBy,
-      sortOrder: state.filters.sortOrder,
-    };
-
+    
     try {
-      localStorage.setItem(key, JSON.stringify(cacheEntry));
-    } catch (error) {
-      console.warn('Erreur lors de la sauvegarde du cache:', error);
-    }
-  }, [state.filters]);
-
-  // Fonction principale de récupération des données
-  const fetchData = useCallback(async (options: FetchOptions = {}) => {
-    const {
-      page = 1,
-      forceRefresh = false,
-      filters = state.filters,
-      sortBy,
-      sortOrder,
-    } = options;
-
-    setState(prev => ({ ...prev, loading: true, error: null }));
-
-    try {
-      // Vérifier le cache si pas de forceRefresh
-      if (!forceRefresh) {
-        const cached = getCachedData(cacheKey);
-        if (cached && cached.page === page) {
-          const totalPages = Math.ceil(cached.totalItems / config.itemsPerPage);
-          setState(prev => ({
-            ...prev,
-            data: cached.data,
-            loading: false,
-            pagination: {
-              currentPage: page,
-              totalItems: cached.totalItems,
-              totalPages,
-              hasNextPage: page < totalPages,
-              hasPrevPage: page > 1,
-            },
-            filters,
-          }));
-          return;
-        }
-      }
-
-      // Récupérer les données depuis l'API
-      const { data, totalItems } = await fetchFunction({
-        page,
-        filters,
-        sortBy,
-        sortOrder,
-      });
-
-      const totalPages = Math.ceil(totalItems / config.itemsPerPage);
-
-      // Sauvegarder dans le cache
-      saveToCache(cacheKey, data, totalItems, page);
-
-      setState(prev => ({
-        ...prev,
+      localStorage.setItem(cacheKey, JSON.stringify({
         data,
-        loading: false,
-        pagination: {
-          currentPage: page,
-          totalItems,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-        },
-        filters,
+        total,
+        timestamp: Date.now()
       }));
-
     } catch (error) {
-      console.error('Erreur lors de la récupération des données:', error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-      }));
-      toast.error('Erreur lors du chargement des données');
+      console.warn('Erreur lors de la mise en cache:', error);
     }
-  }, [fetchFunction, config.itemsPerPage, cacheKey, getCachedData, saveToCache, state.filters]);
+  }, [cacheKey]);
 
-  // Fonction pour changer de page
-  const goToPage = useCallback((page: number) => {
-    if (page >= 1 && page <= state.pagination.totalPages) {
-      fetchData({ page });
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    // Vérifier le cache d'abord
+    const cached = getCachedData();
+    if (cached) {
+      setData(cached.data);
+      setTotalItems(cached.total);
+      setLoading(false);
+      return;
     }
-  }, [fetchData, state.pagination.totalPages]);
 
-  // Fonction pour aller à la page suivante
-  const nextPage = useCallback(() => {
-    if (state.pagination.hasNextPage) {
-      goToPage(state.pagination.currentPage + 1);
+    try {
+      const result = await fetchFunction(options);
+      setData(result.data);
+      setTotalItems(result.totalItems);
+      setCachedData(result.data, result.totalItems);
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
     }
-  }, [goToPage, state.pagination.hasNextPage, state.pagination.currentPage]);
+  }, [fetchFunction, options, getCachedData, setCachedData]);
 
-  // Fonction pour aller à la page précédente
-  const prevPage = useCallback(() => {
-    if (state.pagination.hasPrevPage) {
-      goToPage(state.pagination.currentPage - 1);
+  const refetch = useCallback(async () => {
+    // Supprimer le cache pour forcer un nouveau fetch
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(cacheKey);
     }
-  }, [goToPage, state.pagination.hasPrevPage, state.pagination.currentPage]);
+    await fetchData();
+  }, [fetchData, cacheKey]);
 
-  // Fonction pour appliquer des filtres
-  const applyFilters = useCallback((newFilters: Record<string, any>) => {
-    const updatedFilters = { ...state.filters, ...newFilters };
-    setState(prev => ({ ...prev, filters: updatedFilters }));
-    fetchData({ page: 1, filters: updatedFilters, forceRefresh: true });
-  }, [state.filters, fetchData]);
-
-  // Fonction pour rafraîchir les données
-  const refresh = useCallback(() => {
-    fetchData({ forceRefresh: true });
+  useEffect(() => {
+    fetchData();
   }, [fetchData]);
 
-  // Fonction pour vider le cache
-  const clearCache = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      // Supprimer toutes les entrées de cache qui commencent par la clé de base
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(config.cacheKey)) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-    } catch (error) {
-      console.warn('Erreur lors de la suppression du cache:', error);
-    }
-  }, [config.cacheKey]);
-
-  // Chargement initial
-  useEffect(() => {
-    fetchData({ page: 1 });
-  }, []); // Seulement au montage
-
   return {
-    // État
-    data: state.data,
-    loading: state.loading,
-    error: state.error,
-    pagination: state.pagination,
-    filters: state.filters,
-
-    // Actions
-    fetchData,
-    goToPage,
-    nextPage,
-    prevPage,
-    applyFilters,
-    refresh,
-    clearCache,
-
-    // Utilitaires
-    isEmpty: state.data.length === 0 && !state.loading,
-    hasData: state.data.length > 0,
+    data,
+    loading,
+    error,
+    totalItems,
+    refetch
   };
 }
 
@@ -275,6 +221,7 @@ export function useSearchableDataFetching<T>(
 ) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
 
   // Debounce pour la recherche
   useEffect(() => {
@@ -285,24 +232,39 @@ export function useSearchableDataFetching<T>(
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Mettre à jour les filtres quand le terme de recherche change
-  useEffect(() => {
-    const updatedFilters = {
-      ...initialFilters,
-      search: debouncedSearchTerm,
-    };
-    dataFetching.applyFilters(updatedFilters);
-  }, [debouncedSearchTerm]);
+  // Fonction pour mettre à jour les filtres
+  const updateFilters = useCallback((key: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
 
-  const dataFetching = useDataFetching(fetchFunction, config, {
-    ...initialFilters,
-    search: debouncedSearchTerm,
-  });
+  // Fonction pour effacer tous les filtres
+  const clearFilters = useCallback(() => {
+    setFilters(initialFilters);
+    setSearchTerm('');
+  }, [initialFilters]);
+
+  const dataFetching = useDataFetching(
+    fetchFunction, 
+    {
+      ...config,
+      filters: {
+        ...filters,
+        search: debouncedSearchTerm,
+      }
+    }, 
+    [debouncedSearchTerm, filters] // Dépendances mises à jour
+  );
 
   return {
     ...dataFetching,
     searchTerm,
     setSearchTerm,
     debouncedSearchTerm,
+    filters,
+    updateFilters,
+    clearFilters,
   };
 } 

@@ -1215,7 +1215,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                         ref={provided.innerRef}
                                                         className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
                                                     >
-                                                        <AnimatePresence>
+                                                        <AnimatePresence mode="sync">
                                                             {images.map((image, index) => (
                                                                 <Draggable
                                                                     key={image.id}
@@ -1382,7 +1382,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
     return (
         <div className="space-y-6">
             {renderStepIndicator()}
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
                 <motion.div
                     key={currentStep}
                     initial={{ opacity: 0, x: 20 }}

@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ProfilePhotoUploader } from '@/components/ui/ProfilePhotoUploader';
 import { Textarea } from '@/components/ui/textarea';
-import { UserAvatar } from '@/components/ui/UserAvatar';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
@@ -72,6 +72,11 @@ export default function ProfilePage() {
       fetchUserProfile();
     }
   }, [user]);
+
+  const handlePhotoUploaded = (photoUrl: string) => {
+    setProfileImage(photoUrl);
+    setUserProfile(prev => prev ? { ...prev, photo_url: photoUrl } : null);
+  };
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -275,22 +280,15 @@ export default function ProfilePage() {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Photo de profil avec initiales par défaut */}
               <div className="flex flex-col items-center">
-                <div className="relative">
-                  {userProfile?.photo_url ? (
-                    <UserAvatar
-                      currentImage={profileImage}
-                      userName={`${userProfile?.prenom || ''} ${userProfile?.nom || ''}`}
-                      onImageChange={setProfileImage}
-                      size="lg"
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-full bg-mkb-blue text-white flex items-center justify-center text-lg font-semibold">
-                      {userProfile?.prenom?.charAt(0)?.toUpperCase() || ''}{userProfile?.nom?.charAt(0)?.toUpperCase() || ''}
-                    </div>
-                  )}
-                </div>
+                <ProfilePhotoUploader
+                  userId={userProfile?.id || ''}
+                  currentPhotoUrl={userProfile?.photo_url}
+                  onPhotoUploaded={handlePhotoUploaded}
+                  size="lg"
+                />
+
                 <p className="text-sm text-gray-500 mt-2 text-center">
-                  JPG, PNG ou GIF (max. 5MB)
+                  JPG, PNG ou WEBP (max. 5MB)
                 </p>
 
                 {/* Affichage du rôle avec badge coloré */}

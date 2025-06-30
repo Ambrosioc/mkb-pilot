@@ -62,13 +62,13 @@ const DashboardLayout = memo(({ children }: { children: React.ReactNode }) => {
     }
   }, [pathname, openTab, isTabOpen]);
 
-  if (!initialized) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mkb-blue"></div>
-      </div>
-    );
-  }
+  // if (!initialized) {
+  //   return (
+  //     <div className="min-h-screen bg-white flex items-center justify-center">
+  //       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mkb-blue"></div>
+  //     </div>
+  //   );
+  // }
 
   if (!user) {
     return null;

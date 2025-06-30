@@ -10,11 +10,14 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   initialized: boolean;
+  authListenerSet: boolean;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<{ error: AuthError | null }>;
+  updateProfilePhoto: (photoUrl: string) => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       loading: false,
       initialized: false,
+      authListenerSet: false,
 
       signUp: async (email: string, password: string, firstName: string, lastName: string) => {
         set({ loading: true });
@@ -63,7 +67,7 @@ export const useAuthStore = create<AuthState>()(
               email: data.user.email!,
               first_name: firstName,
               last_name: lastName,
-              avatar_url: data.user.user_metadata?.avatar_url,
+              photo_url: data.user.user_metadata?.avatar_url,
               created_at: data.user.created_at,
               updated_at: data.user.updated_at || data.user.created_at,
             };
@@ -127,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
               email: data.user.email!,
               first_name: userData?.prenom || '',
               last_name: userData?.nom || '',
-              avatar_url: (userData as any)?.photo_url || data.user.user_metadata?.avatar_url,
+              photo_url: (userData as any)?.photo_url || data.user.user_metadata?.avatar_url,
               created_at: data.user.created_at,
               updated_at: data.user.updated_at || data.user.created_at,
             };
@@ -184,7 +188,43 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      initialize: async () => {
+      updateProfilePhoto: async (photoUrl: string) => {
+        const { user } = get();
+        if (!user) return;
+
+        set({ loading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: {
+              photo_url: photoUrl
+            }
+          });
+
+          if (error) {
+            set({ loading: false });
+            return;
+          }
+
+          if (data.user) {
+            const updatedUser: User = {
+              ...user,
+              photo_url: photoUrl,
+              updated_at: new Date().toISOString(),
+            };
+            set({ user: updatedUser, loading: false });
+          }
+        } catch (error) {
+          set({ loading: false });
+        }
+      },
+
+      refreshUserData: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        set({ loading: true });
+        
         try {
           const { data: { session } } = await supabase.auth.getSession();
           
@@ -224,7 +264,70 @@ export const useAuthStore = create<AuthState>()(
               email: session.user.email!,
               first_name: userData?.prenom || '',
               last_name: userData?.nom || '',
-              avatar_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+              photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at || session.user.created_at,
+            };
+            set({ user });
+          } else {
+            set({ user: null });
+          }
+        } catch (error) {
+          console.error('Erreur lors de la mise à jour des données utilisateur:', error);
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      initialize: async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            // Vérifier si on a déjà les données utilisateur
+            const currentUser = get().user;
+            if (currentUser && currentUser.id === session.user.id) {
+              // Les données sont déjà présentes, pas besoin de refetch
+              set({ initialized: true });
+              return;
+            }
+
+            // Try to get user profile data, handle missing columns gracefully
+            let userData = null;
+            try {
+              const { data: userDataResult, error: userError } = await supabase
+                .from('users')
+                .select('prenom, nom, email, photo_url')
+                .eq('auth_user_id', session.user.id)
+                .single();
+
+              if (userError) {
+                console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+                // If the error is about missing column, try without photo_url
+                if (userError.message?.includes('photo_url') || userError.code === '42703') {
+                  const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('users')
+                    .select('prenom, nom, email')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+                  
+                  if (!fallbackError) {
+                    userData = fallbackData;
+                  }
+                }
+              } else {
+                userData = userDataResult;
+              }
+            } catch (err) {
+              console.error('Erreur lors de la récupération du profil utilisateur:', err);
+            }
+
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email!,
+              first_name: userData?.prenom || '',
+              last_name: userData?.nom || '',
+              photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
               created_at: session.user.created_at,
               updated_at: session.user.updated_at || session.user.created_at,
             };
@@ -233,52 +336,68 @@ export const useAuthStore = create<AuthState>()(
             set({ user: null, initialized: true });
           }
 
-          supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-              // Try to get user profile data, handle missing columns gracefully
-              let userData = null;
-              try {
-                const { data: userDataResult, error: userError } = await supabase
-                  .from('users')
-                  .select('prenom, nom, email, photo_url')
-                  .eq('auth_user_id', session.user.id)
-                  .single();
-
-                if (userError) {
-                  console.error('Erreur lors de la récupération du profil utilisateur:', userError);
-                  // If the error is about missing column, try without photo_url
-                  if (userError.message?.includes('photo_url') || userError.code === '42703') {
-                    const { data: fallbackData, error: fallbackError } = await supabase
-                      .from('users')
-                      .select('prenom, nom, email')
-                      .eq('auth_user_id', session.user.id)
-                      .single();
-                    
-                    if (!fallbackError) {
-                      userData = fallbackData;
-                    }
-                  }
-                } else {
-                  userData = userDataResult;
+          // Configurer l'écouteur d'événements d'authentification une seule fois
+          const { authListenerSet } = get();
+          if (!authListenerSet) {
+            console.log('Setting up auth listener...');
+            set({ authListenerSet: true });
+            
+            supabase.auth.onAuthStateChange(async (event, session) => {
+              console.log('Auth state change:', event, session?.user?.id);
+              
+              if (session?.user) {
+                // Vérifier si on a déjà les données utilisateur pour éviter les refetch inutiles
+                const currentUser = get().user;
+                if (currentUser && currentUser.id === session.user.id) {
+                  console.log('User data already present, skipping fetch');
+                  return;
                 }
-              } catch (err) {
-                console.error('Erreur lors de la récupération du profil utilisateur:', err);
-              }
 
-              const user: User = {
-                id: session.user.id,
-                email: session.user.email!,
-                first_name: userData?.prenom || '',
-                last_name: userData?.nom || '',
-                avatar_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
-                created_at: session.user.created_at,
-                updated_at: session.user.updated_at || session.user.created_at,
-              };
-              set({ user });
-            } else {
-              set({ user: null });
-            }
-          });
+                // Try to get user profile data, handle missing columns gracefully
+                let userData = null;
+                try {
+                  const { data: userDataResult, error: userError } = await supabase
+                    .from('users')
+                    .select('prenom, nom, email, photo_url')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+
+                  if (userError) {
+                    console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+                    // If the error is about missing column, try without photo_url
+                    if (userError.message?.includes('photo_url') || userError.code === '42703') {
+                      const { data: fallbackData, error: fallbackError } = await supabase
+                        .from('users')
+                        .select('prenom, nom, email')
+                        .eq('auth_user_id', session.user.id)
+                        .single();
+                      
+                      if (!fallbackError) {
+                        userData = fallbackData;
+                      }
+                    }
+                  } else {
+                    userData = userDataResult;
+                  }
+                } catch (err) {
+                  console.error('Erreur lors de la récupération du profil utilisateur:', err);
+                }
+
+                const user: User = {
+                  id: session.user.id,
+                  email: session.user.email!,
+                  first_name: userData?.prenom || '',
+                  last_name: userData?.nom || '',
+                  photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+                  created_at: session.user.created_at,
+                  updated_at: session.user.updated_at || session.user.created_at,
+                };
+                set({ user });
+              } else {
+                set({ user: null });
+              }
+            });
+          }
         } catch (error) {
           console.error('Erreur lors de l\'initialisation:', error);
           set({ user: null, initialized: true });

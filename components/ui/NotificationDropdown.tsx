@@ -1,27 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Bell, 
-  Check, 
-  Trash2, 
-  User, 
-  AlertTriangle, 
-  CheckCircle, 
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AlertTriangle,
+  Bell,
+  Calendar,
+  Check,
+  CheckCircle,
+  DollarSign,
   Info,
   Settings,
-  Calendar,
-  DollarSign
+  Trash2,
+  User
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Notification {
   id: string;
@@ -117,15 +117,15 @@ export function useNotifications() {
   }, [notifications]);
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
+    setNotifications(prev =>
+      prev.map(notif =>
         notif.id === id ? { ...notif, read: true } : notif
       )
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(notif => ({ ...notif, read: true }))
     );
   };
@@ -150,7 +150,7 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-  
+
   if (diffInHours < 1) {
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
     return `Il y a ${diffInMinutes}min`;
@@ -223,10 +223,10 @@ export function NotificationDropdown() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent 
-        className="w-80 max-h-96 overflow-hidden p-0" 
-        align="end" 
+
+      <DropdownMenuContent
+        className="w-80 max-h-96 overflow-hidden p-0"
+        align="end"
         sideOffset={8}
       >
         {/* Header */}
@@ -258,11 +258,11 @@ export function NotificationDropdown() {
               <p className="text-sm">Aucune notification</p>
             </div>
           ) : (
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
               {notifications.map((notification, index) => {
                 const NotificationIcon = getNotificationIcon(notification.type);
                 const CategoryIcon = getCategoryIcon(notification.category);
-                
+
                 return (
                   <motion.div
                     key={notification.id}
@@ -270,28 +270,25 @@ export function NotificationDropdown() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2, delay: index * 0.05 }}
-                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-                      !notification.read ? 'bg-mkb-blue/5 border-l-4 border-l-mkb-blue' : ''
-                    }`}
+                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!notification.read ? 'bg-mkb-blue/5 border-l-4 border-l-mkb-blue' : ''
+                      }`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <div className={`p-1.5 rounded-full ${
-                        notification.type === 'success' ? 'bg-green-100' :
-                        notification.type === 'warning' ? 'bg-orange-100' :
-                        notification.type === 'error' ? 'bg-red-100' :
-                        'bg-blue-100'
-                      }`}>
+                      <div className={`p-1.5 rounded-full ${notification.type === 'success' ? 'bg-green-100' :
+                          notification.type === 'warning' ? 'bg-orange-100' :
+                            notification.type === 'error' ? 'bg-red-100' :
+                              'bg-blue-100'
+                        }`}>
                         <NotificationIcon className={`h-3 w-3 ${getNotificationColor(notification.type)}`} />
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
-                          <h4 className={`text-sm font-medium ${
-                            !notification.read ? 'text-mkb-black' : 'text-gray-700'
-                          }`}>
+                          <h4 className={`text-sm font-medium ${!notification.read ? 'text-mkb-black' : 'text-gray-700'
+                            }`}>
                             {notification.title}
                           </h4>
                           <div className="flex items-center gap-1 ml-2">

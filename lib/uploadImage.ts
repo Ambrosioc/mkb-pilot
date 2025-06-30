@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Uploads a single image to the server
@@ -72,4 +73,80 @@ export async function uploadMultipleImages(
     filePaths,
     errors
   };
+}
+
+/**
+ * Uploads a profile photo to Supabase Storage
+ * @param file The image file to upload
+ * @param userId The user ID
+ * @returns Promise with the upload result
+ */
+export async function uploadProfilePhoto(
+  file: File,
+  userId: string
+): Promise<{ success: boolean; filePath?: string; error?: string }> {
+  try {
+    console.log('Starting profile photo upload...', { userId, fileName: file.name, fileSize: file.size });
+    
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    console.log('Supabase client created with URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+    // Generate a unique filename
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
+    const filePath = fileName; // Store directly in the profile bucket root
+
+    console.log('Generated file path:', filePath);
+
+    // Upload to Supabase Storage using the profile bucket
+    console.log('Attempting to upload to bucket "profile"...');
+    const { data, error } = await supabase.storage
+      .from('profile')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase Storage upload error:', error);
+      
+      // Check if it's an RLS error
+      if (error.message.includes('row-level security policy') || error.message.includes('Unauthorized')) {
+        return {
+          success: false,
+          error: 'Erreur de permissions. Le bucket "profile" nécessite une configuration des politiques de sécurité dans Supabase.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    console.log('Upload successful, data:', data);
+
+    // Get the public URL
+    console.log('Getting public URL...');
+    const { data: urlData } = supabase.storage
+      .from('profile')
+      .getPublicUrl(filePath);
+
+    console.log('Public URL data:', urlData);
+
+    return {
+      success: true,
+      filePath: urlData.publicUrl
+    };
+  } catch (error) {
+    console.error('Error in uploadProfilePhoto:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Upload failed'
+    };
+  }
 }

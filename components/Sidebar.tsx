@@ -136,7 +136,7 @@ const Sidebar = memo<SidebarProps>(({ collapsed, onToggle }) => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {navigationItems.map((item) => (
             <MenuItemComponent
               key={item.title}

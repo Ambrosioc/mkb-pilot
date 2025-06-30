@@ -7,7 +7,6 @@ const nextConfig = {
   // Next.js 15 specific configurations
   experimental: {
     // Enable new features if needed
-    serverExternalPackages: ['ssh2-sftp-client', 'ssh2'],
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',

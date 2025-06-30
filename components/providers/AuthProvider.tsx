@@ -8,8 +8,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initialized = useAuthStore((state) => state.initialized);
 
     useEffect(() => {
-        initialize();
-    }, [initialize]);
+        if (!initialized) {
+            initialize();
+        }
+    }, [initialized]);
 
     if (!initialized) {
         return (

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface PricingStats {
@@ -88,13 +88,23 @@ export default function PricingAngolaPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
+  const fetchedStatsRef = useRef(false);
 
   useEffect(() => {
-    fetchPricingStats();
+    console.log('useEffect[]: fetchPricingStats');
+    if (!fetchedStatsRef.current) {
+      fetchPricingStats();
+      fetchedStatsRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log('useEffect[currentPage]: fetchVehicles', currentPage);
     fetchVehicles(currentPage);
   }, [currentPage]);
 
   useEffect(() => {
+    console.log('useEffect[vehicles, searchTerm, countryFilter]: filter vehicles');
     // Filter vehicles based on search term and location filter
     const filtered = vehicles.filter(vehicle => {
       const matchesSearch =
@@ -242,36 +252,36 @@ export default function PricingAngolaPage() {
       firstDayOfMonth.setDate(1);
       firstDayOfMonth.setHours(0, 0, 0, 0);
 
-      // Vérifier le cache
-      const cacheRaw = typeof window !== 'undefined' ? localStorage.getItem(VEHICLE_CACHE_KEY) : null;
-      let cache = null;
-      if (cacheRaw) {
-        try { cache = JSON.parse(cacheRaw); } catch { }
-      }
+      // Vérifier le cache seulement si pas de forceRefresh
+      if (!forceRefresh) {
+        const cacheRaw = typeof window !== 'undefined' ? localStorage.getItem(VEHICLE_CACHE_KEY) : null;
+        if (cacheRaw) {
+          try {
+            const cache = JSON.parse(cacheRaw);
+            const { vehicles: cachedVehicles, total, lastFetched, page: cachedPage } = cache;
 
-      // Si cache valide et pas de forceRefresh, l'utiliser
-      if (cache && !forceRefresh) {
-        // Vérifier si le cache est encore valide (par date ou nombre)
-        const { vehicles: cachedVehicles, total, lastFetched } = cache;
-        // On vérifie si le nombre total a changé
-        const { data: countData, error: countError } = await supabase
-          .from('cars_v2')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', firstDayOfMonth.toISOString());
-        const currentTotal = countData?.length || 0;
-        if (!countError && total === currentTotal) {
-          // Utiliser le cache pour la page courante
-          setTotalVehicles(total);
-          setVehicles(cachedVehicles);
-          setFilteredVehicles(cachedVehicles);
-          setLoading(false);
-          return;
+            // Vérifier si le cache est récent (moins de 5 minutes) et pour la même page
+            const cacheAge = new Date().getTime() - new Date(lastFetched).getTime();
+            const isRecent = cacheAge < 5 * 60 * 1000; // 5 minutes
+            const isSamePage = cachedPage === page;
+
+            if (isRecent && isSamePage && cachedVehicles && total) {
+              setTotalVehicles(total);
+              setVehicles(cachedVehicles);
+              setFilteredVehicles(cachedVehicles);
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.warn('Erreur lors de la lecture du cache:', error);
+          }
         }
       }
 
-      // Sinon, fetch paginé
+      // Fetch paginé depuis l'API
       const from = (page - 1) * VEHICLES_PER_PAGE;
       const to = from + VEHICLES_PER_PAGE - 1;
+
       const { data, error, count } = await supabase
         .from('cars_v2')
         .select(`
@@ -312,7 +322,7 @@ export default function PricingAngolaPage() {
       setFilteredVehicles(transformedData);
       setTotalVehicles(count || 0);
 
-      // Mettre à jour le cache (on ne stocke que la page courante)
+      // Mettre à jour le cache
       if (typeof window !== 'undefined') {
         localStorage.setItem(
           VEHICLE_CACHE_KEY,
@@ -351,6 +361,14 @@ export default function PricingAngolaPage() {
   const totalPages = Math.ceil(totalVehicles / VEHICLES_PER_PAGE);
   const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+
+  // Fonction pour rafraîchir les données
+  const refreshData = async () => {
+    await Promise.all([
+      fetchPricingStats(),
+      fetchVehicles(currentPage, true) // forceRefresh = true
+    ]);
+  };
 
   return (
     <div className="space-y-6">
@@ -665,7 +683,6 @@ export default function PricingAngolaPage() {
                   </thead>
                   <tbody>
                     {filteredVehicles.map((vehicle, index) => {
-                      console.log(vehicle);
                       const margin = vehicle.price - vehicle.purchase_price;
                       const marginPercent = vehicle.purchase_price > 0
                         ? ((margin / vehicle.purchase_price) * 100).toFixed(1)
