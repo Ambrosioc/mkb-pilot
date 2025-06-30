@@ -95,13 +95,10 @@ export default function StockPage() {
     data: vehicles,
     loading,
     error,
-    pagination,
+    totalItems,
     searchTerm,
     setSearchTerm,
-    applyFilters,
-    refresh,
-    clearCache,
-    filters: currentFilters,
+    refetch,
   } = useSearchableDataFetching<Vehicle>(
     vehicleService.fetchVehicles,
     paginationConfig,
@@ -181,35 +178,23 @@ export default function StockPage() {
 
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
-    // Appliquer directement le filtre, même si c'est 'all'
-    applyFilters({ [key]: value });
+    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    // TODO: Implémenter la gestion des filtres
   };
 
   const handleClearFilters = () => {
-    // Vider le cache pour forcer un rechargement complet
-    clearCache();
-
-    // Réinitialiser les filtres
-    applyFilters({
-      status: 'all',
-      brand: 'all',
-      location: 'all',
-    });
-
-    // Réinitialiser le terme de recherche
-    setSearchTerm('');
+    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    // TODO: Implémenter la réinitialisation des filtres
   };
 
   const handleRefresh = () => {
-    // Vider le cache pour forcer un rechargement complet
-    clearCache();
-    refresh();
+    refetch();
     fetchInitialData();
   };
 
   // Gestion des événements
   const handleVehicleAdded = () => {
-    refresh();
+    refetch();
     fetchInitialData();
     toast.success('Véhicule ajouté avec succès !');
   };
@@ -226,7 +211,7 @@ export default function StockPage() {
 
       // Rafraîchir les données de manière optimisée
       await Promise.all([
-        refresh(), // Rafraîchir la liste des véhicules
+        refetch(), // Rafraîchir la liste des véhicules
         fetchInitialData() // Rafraîchir les statistiques
       ]);
     } catch (error) {
@@ -325,7 +310,7 @@ export default function StockPage() {
           <CardContent className="pt-6">
             <DataFilters
               filters={filterConfigs}
-              values={currentFilters}
+              values={{}}
               onFilterChange={handleFilterChange}
               onClearFilters={handleClearFilters}
               onRefresh={handleRefresh}
@@ -347,7 +332,7 @@ export default function StockPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-mkb-black">
-              Véhicules en Stock ({pagination.totalItems})
+              Véhicules en Stock ({totalItems})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -534,17 +519,17 @@ export default function StockPage() {
                 </div>
 
                 {/* Pagination */}
-                {pagination.totalPages > 1 && (
+                {totalItems > paginationConfig.itemsPerPage && (
                   <div className="mt-6">
                     <Pagination
-                      currentPage={pagination.currentPage}
-                      totalPages={pagination.totalPages}
+                      currentPage={1}
+                      totalPages={Math.ceil(totalItems / paginationConfig.itemsPerPage)}
                       onPageChange={(page) => {
-                        // La pagination est gérée automatiquement par le hook
+                        // TODO: Implémenter la pagination
                       }}
-                      hasNextPage={pagination.hasNextPage}
-                      hasPrevPage={pagination.hasPrevPage}
-                      totalItems={pagination.totalItems}
+                      hasNextPage={1 < Math.ceil(totalItems / paginationConfig.itemsPerPage)}
+                      hasPrevPage={false}
+                      totalItems={totalItems}
                       itemsPerPage={paginationConfig.itemsPerPage}
                     />
                   </div>

@@ -1,4 +1,3 @@
-import { FetchOptions } from '@/hooks/useDataFetching';
 import { supabase } from '@/lib/supabase';
 
 export interface PricingVehicle {
@@ -42,7 +41,12 @@ export interface PricingFilters {
 }
 
 export const pricingService = {
-  async fetchPricingVehicles(options: FetchOptions): Promise<{ data: PricingVehicle[]; totalItems: number }> {
+  async fetchPricingVehicles(options: {
+    page?: number;
+    filters?: PricingFilters;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ data: PricingVehicle[]; totalItems: number }> {
     const { page = 1, filters = {}, sortBy = 'created_at', sortOrder = 'desc' } = options;
     const itemsPerPage = 10;
     const from = (page - 1) * itemsPerPage;

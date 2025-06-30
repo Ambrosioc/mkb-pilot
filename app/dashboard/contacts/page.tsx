@@ -112,12 +112,10 @@ export default function ContactsPage() {
     data: contacts,
     loading,
     error,
-    pagination,
+    totalItems,
     searchTerm,
     setSearchTerm,
-    applyFilters,
-    refresh,
-    clearCache,
+    refetch,
   } = useSearchableDataFetching<Contact>(
     contactService.fetchContacts,
     paginationConfig,
@@ -206,7 +204,7 @@ export default function ContactsPage() {
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
     setActiveFilters(prev => ({ ...prev, [key]: value }));
-    applyFilters({ ...activeFilters, [key]: value });
+    // Les filtres sont gérés automatiquement par le hook via les dépendances
   };
 
   const handleClearFilters = () => {
@@ -217,23 +215,23 @@ export default function ContactsPage() {
       societe: 'all',
     };
     setActiveFilters(defaultFilters);
-    applyFilters(defaultFilters);
+    // Les filtres sont gérés automatiquement par le hook via les dépendances
   };
 
   const handleRefresh = () => {
-    refresh();
+    refetch();
     fetchInitialData();
   };
 
   // Gestion des événements
   const handleContactAdded = () => {
-    refresh();
+    refetch();
     fetchInitialData();
     toast.success('Contact ajouté avec succès !');
   };
 
   const handleContactUpdated = () => {
-    refresh();
+    refetch();
     fetchInitialData();
     toast.success('Contact mis à jour avec succès !');
   };
@@ -422,7 +420,7 @@ export default function ContactsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-mkb-black">
-                Contacts ({pagination.totalItems})
+                Contacts ({totalItems})
               </CardTitle>
               {selectedContacts.length > 0 && (
                 <Button
@@ -576,17 +574,18 @@ export default function ContactsPage() {
                 </div>
 
                 {/* Pagination */}
-                {pagination.totalPages > 1 && (
+                {totalItems > paginationConfig.itemsPerPage && (
                   <div className="mt-6">
                     <Pagination
-                      currentPage={pagination.currentPage}
-                      totalPages={pagination.totalPages}
+                      currentPage={1}
+                      totalPages={Math.ceil(totalItems / paginationConfig.itemsPerPage)}
                       onPageChange={(page) => {
-                        // La pagination est gérée automatiquement par le hook
+                        // Pour l'instant, on utilise une pagination simple
+                        // TODO: Implémenter la pagination avec le hook
                       }}
-                      hasNextPage={pagination.hasNextPage}
-                      hasPrevPage={pagination.hasPrevPage}
-                      totalItems={pagination.totalItems}
+                      hasNextPage={1 < Math.ceil(totalItems / paginationConfig.itemsPerPage)}
+                      hasPrevPage={false}
+                      totalItems={totalItems}
                       itemsPerPage={paginationConfig.itemsPerPage}
                     />
                   </div>

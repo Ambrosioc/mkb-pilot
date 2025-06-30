@@ -17,21 +17,14 @@ import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
 import { LogOut, Search, User } from 'lucide-react';
 import Link from 'next/link';
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
 export const Topbar = memo(() => {
-  const { user, signOut, refreshUserData } = useAuthStore();
+  const { user, signOut } = useAuthStore();
 
   const handleSignOut = async () => {
     await signOut();
   };
-
-  // Rafraîchir les données utilisateur au montage du composant
-  useEffect(() => {
-    if (user) {
-      refreshUserData();
-    }
-  }, [user, refreshUserData]);
 
   // Fonction pour générer les initiales à partir du prénom et nom
   const getUserInitials = () => {
