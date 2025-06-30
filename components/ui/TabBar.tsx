@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
-import { useTabsStore } from '@/store/useTabsStore';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTabsStore } from '@/store/useTabsStore';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
 
 export function TabBar() {
   const { openTabs, activeTabId, setActiveTab, closeTab } = useTabsStore();
@@ -17,10 +16,10 @@ export function TabBar() {
   return (
     <div className="bg-white border-b border-gray-200 px-6">
       <div className="flex items-center gap-1 overflow-x-auto">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="sync">
           {openTabs.map((tab) => {
             const isActive = tab.id === activeTabId;
-            
+
             return (
               <motion.div
                 key={tab.id}
@@ -42,7 +41,7 @@ export function TabBar() {
                 >
                   {tab.label}
                 </button>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"

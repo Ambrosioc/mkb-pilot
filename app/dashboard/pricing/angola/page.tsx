@@ -683,7 +683,6 @@ export default function PricingAngolaPage() {
                   </thead>
                   <tbody>
                     {filteredVehicles.map((vehicle, index) => {
-                      console.log(vehicle);
                       const margin = vehicle.price - vehicle.purchase_price;
                       const marginPercent = vehicle.purchase_price > 0
                         ? ((margin / vehicle.purchase_price) * 100).toFixed(1)
