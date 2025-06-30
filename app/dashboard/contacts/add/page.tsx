@@ -38,12 +38,12 @@ export default function AddContactPage() {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: '',
+      nom: '',
       email: '',
-      phone: '',
-      company: '',
+      telephone: '',
+      societe: '',
       notes: '',
-      status: 'actif',
+      statut: 'actif',
       tags: [],
     },
   });
@@ -102,7 +102,7 @@ export default function AddContactPage() {
               Ajouter un Contact
             </h1>
             <p className="text-gray-600">
-              Créer une nouvelle fiche contact dans le carnet d'adresses central
+              Créer une nouvelle fiche contact dans le carnet d&apos;adresses central
             </p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function AddContactPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
+            <Form form={form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Type de contact */}
                 <FormField
@@ -162,7 +162,7 @@ export default function AddContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="nom"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nom complet *</FormLabel>
@@ -180,7 +180,7 @@ export default function AddContactPage() {
                   {watchType && isCompanyRequired && (
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="societe"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-mkb-black font-medium">Société *</FormLabel>
@@ -215,7 +215,7 @@ export default function AddContactPage() {
 
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="telephone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Téléphone</FormLabel>
@@ -257,7 +257,7 @@ export default function AddContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="statut"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Statut</FormLabel>

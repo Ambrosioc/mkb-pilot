@@ -17,6 +17,7 @@ import {
   Filter,
   Flag,
   Globe,
+  MapPinned,
   Plus,
   Search,
   Target,
@@ -53,13 +54,16 @@ interface Vehicle {
   model: string;
   price: number;
   purchase_price: number;
-  country: 'FR' | 'ALL';
+  location: 'FR' | 'ALL';
   created_at: string;
   user: {
     prenom: string;
     nom: string;
   };
 }
+
+const VEHICLES_PER_PAGE = 10;
+const VEHICLE_CACHE_KEY = 'priced_vehicles_month_cache';
 
 export default function PricingAngolaPage() {
   const router = useRouter();
@@ -82,20 +86,22 @@ export default function PricingAngolaPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [countryFilter, setCountryFilter] = useState<'all' | 'FR' | 'ALL'>('all');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalVehicles, setTotalVehicles] = useState(0);
 
   useEffect(() => {
     fetchPricingStats();
-    fetchVehicles();
-  }, []);
+    fetchVehicles(currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
-    // Filter vehicles based on search term and country filter
+    // Filter vehicles based on search term and location filter
     const filtered = vehicles.filter(vehicle => {
       const matchesSearch =
         vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCountry = countryFilter === 'all' || vehicle.country === countryFilter;
+      const matchesCountry = countryFilter === 'all' || vehicle.location === countryFilter;
 
       return matchesSearch && matchesCountry;
     });
@@ -229,17 +235,44 @@ export default function PricingAngolaPage() {
     }
   };
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = async (page = 1, forceRefresh = false) => {
     try {
       setLoading(true);
-
-      // Get first day of current month
       const firstDayOfMonth = new Date();
       firstDayOfMonth.setDate(1);
       firstDayOfMonth.setHours(0, 0, 0, 0);
 
-      // Fetch vehicles posted this month with user info
-      const { data, error } = await supabase
+      // Vérifier le cache
+      const cacheRaw = typeof window !== 'undefined' ? localStorage.getItem(VEHICLE_CACHE_KEY) : null;
+      let cache = null;
+      if (cacheRaw) {
+        try { cache = JSON.parse(cacheRaw); } catch { }
+      }
+
+      // Si cache valide et pas de forceRefresh, l'utiliser
+      if (cache && !forceRefresh) {
+        // Vérifier si le cache est encore valide (par date ou nombre)
+        const { vehicles: cachedVehicles, total, lastFetched } = cache;
+        // On vérifie si le nombre total a changé
+        const { data: countData, error: countError } = await supabase
+          .from('cars_v2')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', firstDayOfMonth.toISOString());
+        const currentTotal = countData?.length || 0;
+        if (!countError && total === currentTotal) {
+          // Utiliser le cache pour la page courante
+          setTotalVehicles(total);
+          setVehicles(cachedVehicles);
+          setFilteredVehicles(cachedVehicles);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Sinon, fetch paginé
+      const from = (page - 1) * VEHICLES_PER_PAGE;
+      const to = from + VEHICLES_PER_PAGE - 1;
+      const { data, error, count } = await supabase
         .from('cars_v2')
         .select(`
           id,
@@ -253,20 +286,21 @@ export default function PricingAngolaPage() {
             prenom,
             nom
           )
-        `)
+        `, { count: 'exact' })
         .gte('created_at', firstDayOfMonth.toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
-      // Transform data to match our interface
-      const transformedData: Vehicle[] = (data || []).map(item => ({
+      // Transform data
+      const transformedData = (data || []).map(item => ({
         id: item.id,
         brand: item.brand || 'N/A',
         model: item.model || 'N/A',
         price: item.price || 0,
         purchase_price: item.purchase_price || 0,
-        country: item.location || 'FR',
+        location: item.location || 'FR',
         created_at: item.created_at,
         user: {
           prenom: item.users?.[0]?.prenom || 'Utilisateur',
@@ -276,6 +310,20 @@ export default function PricingAngolaPage() {
 
       setVehicles(transformedData);
       setFilteredVehicles(transformedData);
+      setTotalVehicles(count || 0);
+
+      // Mettre à jour le cache (on ne stocke que la page courante)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          VEHICLE_CACHE_KEY,
+          JSON.stringify({
+            vehicles: transformedData,
+            total: count || 0,
+            lastFetched: new Date().toISOString(),
+            page
+          })
+        );
+      }
     } catch (error) {
       console.error('Erreur lors de la récupération des véhicules:', error);
       toast.error('Erreur lors du chargement des véhicules');
@@ -298,6 +346,11 @@ export default function PricingAngolaPage() {
       minute: '2-digit'
     }).format(date);
   };
+
+  // Pagination controls
+  const totalPages = Math.ceil(totalVehicles / VEHICLES_PER_PAGE);
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
   return (
     <div className="space-y-6">
@@ -602,7 +655,7 @@ export default function PricingAngolaPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Pays</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700"><MapPinned /></th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix de vente</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix d'achat</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Marge</th>
@@ -612,6 +665,7 @@ export default function PricingAngolaPage() {
                   </thead>
                   <tbody>
                     {filteredVehicles.map((vehicle, index) => {
+                      console.log(vehicle);
                       const margin = vehicle.price - vehicle.purchase_price;
                       const marginPercent = vehicle.purchase_price > 0
                         ? ((margin / vehicle.purchase_price) * 100).toFixed(1)
@@ -626,16 +680,16 @@ export default function PricingAngolaPage() {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                            <div className="font-medium text-mkb-black">
+                            <div className="text-mkb-black">
                               {vehicle.brand} {vehicle.model}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <Badge className={vehicle.country === 'FR'
+                            <Badge className={vehicle.location === 'FR'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-yellow-100 text-yellow-800'
                             }>
-                              {vehicle.country === 'FR' ? '🇫🇷 FR' : '🇩🇪 ALL'}
+                              {vehicle.location}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 text-right font-medium">
@@ -665,6 +719,20 @@ export default function PricingAngolaPage() {
                     })}
                   </tbody>
                 </table>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={currentPage === 1}>
+                      Précédent
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} sur {totalPages}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={handleNextPage} disabled={currentPage === totalPages}>
+                      Suivant
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

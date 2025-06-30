@@ -35,9 +35,11 @@ interface UserProfileData {
   email: string;
   telephone: string | null;
   date_creation: string;
+  photo_url: string | null;
   role: {
     nom: string;
     niveau: number;
+    description: string;
   } | null;
 }
 
@@ -76,45 +78,55 @@ export default function ProfilePage() {
 
     setLoading(true);
     try {
-      // Fetch user profile with role information
-      const { data, error } = await supabase
+      // First, fetch basic user data
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select(`
-          id,
-          prenom,
-          nom,
-          email,
-          telephone,
-          date_creation,
-          photo_url,
-          user_roles (
-            roles (
-              nom,
-              niveau
-            )
-          )
-        `)
+        .select('id, prenom, nom, email, telephone, date_creation, photo_url')
         .eq('auth_user_id', user.id)
         .single();
 
-      if (error) throw error;
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        throw userError;
+      }
+
+      // Then, fetch role data separately
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select(`
+          role_id,
+          roles (
+            id,
+            nom,
+            niveau,
+            description
+          )
+        `)
+        .eq('user_id', userData.id)
+        .single();
+
+      if (roleError) {
+        console.error('Error fetching role data:', roleError);
+        // Continue without role data
+      }
 
       // Set profile image if available
-      if (data.photo_url) {
-        setProfileImage(data.photo_url);
+      if (userData.photo_url) {
+        setProfileImage(userData.photo_url);
       }
 
       // Extract role information
-      const role = data.user_roles?.[0]?.roles?.[0] || null;
+      const role = roleData?.roles || null;
 
       setUserProfile({
-        id: data.id,
-        prenom: data.prenom,
-        nom: data.nom,
-        email: data.email,
-        telephone: data.telephone,
-        date_creation: data.date_creation,
-        role: role as { nom: string; niveau: number } | null
+        id: userData.id,
+        prenom: userData.prenom,
+        nom: userData.nom,
+        email: userData.email,
+        telephone: userData.telephone,
+        date_creation: userData.date_creation,
+        photo_url: userData.photo_url,
+        role: role as { nom: string; niveau: number; description: string } | null
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -193,6 +205,18 @@ export default function ProfilePage() {
     }));
   };
 
+  // Fonction pour obtenir la couleur du badge selon le niveau du rôle
+  const getRoleColor = (niveau: number) => {
+    switch (niveau) {
+      case 1: return 'bg-red-100 text-red-800 border-red-200'; // CEO
+      case 2: return 'bg-purple-100 text-purple-800 border-purple-200'; // G4
+      case 3: return 'bg-blue-100 text-blue-800 border-blue-200'; // Responsable de Pôle
+      case 4: return 'bg-green-100 text-green-800 border-green-200'; // Collaborateur confirmé
+      case 5: return 'bg-gray-100 text-gray-800 border-gray-200'; // Collaborateur simple
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -223,7 +247,7 @@ export default function ProfilePage() {
         </div>
         {userProfile?.role && (
           <div className="flex items-center gap-3">
-            <Badge className="bg-red-100 text-red-800 border-red-200">
+            <Badge className={`${getRoleColor(userProfile.role.niveau)}`}>
               <Shield className="h-3 w-3 mr-1" />
               {userProfile.role.nom}
             </Badge>
@@ -249,17 +273,40 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Photo de profil */}
+              {/* Photo de profil avec initiales par défaut */}
               <div className="flex flex-col items-center">
-                <UserAvatar
-                  currentImage={profileImage}
-                  userName={`${userProfile?.prenom || ''} ${userProfile?.nom || ''}`}
-                  onImageChange={setProfileImage}
-                  size="lg"
-                />
+                <div className="relative">
+                  {userProfile?.photo_url ? (
+                    <UserAvatar
+                      currentImage={profileImage}
+                      userName={`${userProfile?.prenom || ''} ${userProfile?.nom || ''}`}
+                      onImageChange={setProfileImage}
+                      size="lg"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-full bg-mkb-blue text-white flex items-center justify-center text-lg font-semibold">
+                      {userProfile?.prenom?.charAt(0)?.toUpperCase() || ''}{userProfile?.nom?.charAt(0)?.toUpperCase() || ''}
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mt-2 text-center">
                   JPG, PNG ou GIF (max. 5MB)
                 </p>
+
+                {/* Affichage du rôle avec badge coloré */}
+                {userProfile?.role && (
+                  <div className="mt-3 flex flex-col items-center">
+                    <Badge
+                      variant="outline"
+                      className={`${getRoleColor(userProfile.role.niveau)} text-xs font-medium`}
+                    >
+                      {userProfile.role.nom}
+                    </Badge>
+                    <p className="text-xs text-gray-500 mt-1 text-center max-w-[200px]">
+                      {userProfile.role.description}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Informations */}
@@ -293,11 +340,14 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <Label className="text-gray-700 font-medium">Rôle</Label>
-                  <Input
-                    value={userProfile?.role?.nom || 'Non défini'}
-                    readOnly
-                    className="bg-gray-50 cursor-not-allowed"
-                  />
+                  <div className="relative">
+                    <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      value={userProfile?.role?.nom || 'Non défini'}
+                      readOnly
+                      className="pl-10 bg-gray-50 cursor-not-allowed"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-gray-700 font-medium">Téléphone</Label>
@@ -311,7 +361,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-700 font-medium">Date d'inscription</Label>
+                  <Label className="text-gray-700 font-medium">Date d&apos;inscription</Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
@@ -327,10 +377,13 @@ export default function ProfilePage() {
             {/* Permissions */}
             {userProfile?.role && (
               <div className="mt-6">
-                <Label className="text-gray-700 font-medium mb-3 block">Niveau d'accès</Label>
+                <Label className="text-gray-700 font-medium mb-3 block">Niveau d&apos;accès</Label>
                 <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-mkb-blue/10 text-mkb-blue">
+                  <Badge className={`${getRoleColor(userProfile.role.niveau)}`}>
                     Niveau {userProfile.role.niveau}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {userProfile.role.description}
                   </Badge>
                 </div>
               </div>

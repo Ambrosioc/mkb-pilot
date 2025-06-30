@@ -51,12 +51,12 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: '',
+      nom: '',
       email: '',
-      phone: '',
-      company: '',
+      telephone: '',
+      societe: '',
       notes: '',
-      status: 'actif',
+      statut: 'actif',
       tags: [],
     },
   });
@@ -143,12 +143,12 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
               Ajouter un Contact
             </DrawerTitle>
             <DrawerDescription>
-              Créer une nouvelle fiche contact dans le carnet d'adresses central
+              Créer une nouvelle fiche contact dans le carnet d&apos;adresses central
             </DrawerDescription>
           </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-4 py-6">
-            <Form {...form}>
+            <Form form={form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Type de contact */}
                 <FormField
@@ -179,7 +179,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="nom"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Nom complet *</FormLabel>
@@ -197,7 +197,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                   {watchType && isCompanyRequired && (
                     <FormField
                       control={form.control}
-                      name="company"
+                      name="societe"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-mkb-black font-medium">Société *</FormLabel>
@@ -232,7 +232,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
 
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="telephone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Téléphone</FormLabel>
@@ -274,7 +274,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="statut"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-mkb-black font-medium">Statut</FormLabel>

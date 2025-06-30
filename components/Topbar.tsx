@@ -26,8 +26,17 @@ export const Topbar = memo(() => {
     await logout();
   };
 
-  const getUserInitials = (email: string) => {
-    return email.charAt(0).toUpperCase();
+  // Fonction pour générer les initiales à partir du prénom et nom
+  const getUserInitials = () => {
+    if (!user) return 'U';
+
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+
+    const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+
+    return `${firstInitial}${lastInitial}` || user.email?.charAt(0).toUpperCase() || 'U';
   };
 
   const getUserDisplayName = () => {
@@ -75,11 +84,11 @@ export const Topbar = memo(() => {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-gray-100">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={user?.avatar_url || "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2"}
+                    src={user?.photo_url || ""}
                     alt="Profile"
                   />
-                  <AvatarFallback className="bg-mkb-blue text-white text-sm">
-                    {user?.email ? getUserInitials(user.email) : 'U'}
+                  <AvatarFallback className="bg-mkb-blue text-white text-sm font-semibold">
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </Button>

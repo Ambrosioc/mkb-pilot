@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store/useAuth';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('demo@minimals.cc');
@@ -27,14 +27,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       toast.error('Erreur de connexion: ' + error.message);
     } else {
@@ -53,15 +53,22 @@ export default function LoginPage() {
           transition={{ duration: 0.8 }}
           className="max-w-md"
         >
+          {/* Logo MKB */}
+          <img src="/logo.png" alt="Logo MKB" className="mx-auto mb-8 w-40 h-28 object-contain" />
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Hi, Welcome back
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Bienvenue sur le portail MKB Automobile
             </h1>
-            <p className="text-gray-600 text-lg">
-              More effectively with optimized workflows.
-            </p>
+            <ul className="text-gray-600 text-lg list-disc pl-5 space-y-2">
+              <li>Gestion et suivi du parc automobile</li>
+              <li>Consultation des statistiques et rapports</li>
+              <li>Ajout et modification de véhicules</li>
+              <li>Gestion des utilisateurs et des accès</li>
+              <li>Suivi des entretiens et documents</li>
+              <li>Tableaux de bord personnalisés</li>
+            </ul>
           </div>
-          
+
           {/* Illustration */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -76,7 +83,7 @@ export default function LoginPage() {
                 <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <div className="bg-mkb-blue rounded-lg p-4 flex-1">
@@ -90,7 +97,7 @@ export default function LoginPage() {
                     <div className="h-2 bg-white/20 rounded w-2/3"></div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-lg p-4">
                   <div className="flex justify-center mb-4">
                     <div className="w-16 h-16 border-4 border-mkb-blue border-t-transparent rounded-full relative">
@@ -104,7 +111,7 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Floating elements */}
             <motion.div
               animate={{ y: [0, -10, 0] }}
@@ -113,14 +120,14 @@ export default function LoginPage() {
             >
               <div className="w-6 h-6 bg-white rounded"></div>
             </motion.div>
-            
+
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ duration: 2.5, repeat: Infinity }}
               className="absolute -bottom-4 -left-4 w-10 h-10 bg-mkb-yellow rounded-full shadow-lg"
             ></motion.div>
           </motion.div>
-          
+
           {/* Bottom icons */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -159,46 +166,46 @@ export default function LoginPage() {
           <Card className="border-0 shadow-none">
             <CardHeader className="text-left pb-6">
               <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
-                Sign in to your account
+                Connexion à votre compte
               </CardTitle>
               <CardDescription className="text-gray-600">
-                Don't have an account?{' '}
-                <Link 
-                  href="/register" 
+                Pas encore de compte ?{' '}
+                <Link
+                  href="/register"
                   className="text-mkb-blue hover:text-mkb-blue/80 font-medium"
                 >
-                  Get started
+                  Créer un compte
                 </Link>
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pt-0">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700 font-medium">
-                    Email address
+                    Adresse e-mail
                   </Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Votre adresse mail"
+                    placeholder="Votre adresse e-mail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-12 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue"
                     disabled={loading}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password" className="text-gray-700 font-medium">
-                      Password
+                      Mot de passe
                     </Label>
-                    <Link 
-                      href="/forgot-password" 
+                    <Link
+                      href="/forgot-password"
                       className="text-sm text-gray-600 hover:text-mkb-blue"
                     >
-                      Forgot password?
+                      Mot de passe oublié ?
                     </Link>
                   </div>
                   <div className="relative">
@@ -220,24 +227,24 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                
+
                 <Button
                   type="submit"
                   className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium"
                   disabled={loading}
                 >
-                  {loading ? 'Signing in...' : 'Sign in'}
+                  {loading ? 'Connexion...' : 'Se connecter'}
                 </Button>
               </form>
             </CardContent>
           </Card>
-          
+
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-500">
               Propulsé par{' '}
-              <a 
-                href="https://acdinnovservices.com" 
-                target="_blank" 
+              <a
+                href="https://acdinnovservices.com"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-mkb-blue font-semibold hover:text-mkb-blue/80 transition-colors"
               >

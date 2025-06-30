@@ -83,10 +83,10 @@ interface AdvertisementData {
 
 interface ContactData {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  company?: string;
+  nom: string;
+  email: string | null;
+  telephone: string | null;
+  societe: string | null;
   type: string;
 }
 
@@ -156,23 +156,29 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
 
       // Fetch advertisement data
       const { data: adData, error: adError } = await supabase
-        .from('advertisements_v4')
+        .from('advertisements')
         .select('*')
         .eq('car_id', id)
         .single();
 
-      if (!adError) {
+      if (!adError && adData) {
         setAdvertisement(adData);
+      } else {
+        console.log('Aucune annonce trouvée pour ce véhicule:', adError?.message);
+        setAdvertisement(null);
       }
 
       // Fetch contacts for document creation
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
-        .select('id, name, email, phone, company, type')
-        .order('name');
+        .select('id, nom, email, telephone, societe, type')
+        .order('nom');
 
       if (!contactsError && contactsData) {
         setContacts(contactsData);
+      } else {
+        console.error('Erreur lors de la récupération des contacts:', contactsError);
+        setContacts([]);
       }
 
     } catch (error) {
@@ -490,7 +496,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                         <div className="grid grid-cols-2 gap-4">
                           {vehicle?.price_purchase && (
                             <div>
-                              <Label className="text-gray-500">Prix d'achat</Label>
+                              <Label className="text-gray-500">Prix d&apos;achat</Label>
                               <p className="font-medium">{formatPrice(vehicle.price_purchase)}</p>
                             </div>
                           )}
@@ -508,7 +514,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                           )}
                           {vehicle?.created_at && (
                             <div>
-                              <Label className="text-gray-500">Date d'ajout</Label>
+                              <Label className="text-gray-500">Date d&apos;ajout</Label>
                               <p className="font-medium">{new Date(vehicle.created_at).toLocaleDateString()}</p>
                             </div>
                           )}
@@ -565,7 +571,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                       <div className="text-center py-12">
                         <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-700">Aucune annonce associée</h3>
-                        <p className="text-gray-500 mt-2">Ce véhicule n'a pas d'annonce publiée.</p>
+                        <p className="text-gray-500 mt-2">Ce véhicule n&apos;a pas d&apos;annonce publiée.</p>
                         <Button className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90">
                           Créer une annonce
                         </Button>
@@ -630,7 +636,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                             onClick={() => setSendEmailOpen(true)}
                           >
                             <Mail className="mr-2 h-4 w-4" />
-                            Envoyer par email au client
+                            Envoyer l&apos;email au client
                           </Button>
                         </div>
                       </div>
@@ -686,7 +692,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                     className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
                     onClick={() => setActiveTab('advertisement')}
                   >
-                    Voir l'annonce
+                    Voir l&apos;annonce
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
@@ -732,20 +738,20 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                   <SelectContent>
                     {contacts.map(contact => (
                       <SelectItem key={contact.id} value={contact.id}>
-                        {contact.name} {contact.company ? `(${contact.company})` : ''}
+                        {contact.nom} {contact.societe ? `(${contact.societe})` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {documentForm.contactId && (
                   <div className="mt-2 text-xs text-gray-500">
-                    {contacts.find(c => c.id === documentForm.contactId)?.email || 'Pas d\'email'}
+                    {contacts.find(c => c.id === documentForm.contactId)?.email || 'Pas d&apos;email'}
                   </div>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="date">Date d'émission *</Label>
+                <Label htmlFor="date">Date d&apos;émission *</Label>
                 <Input
                   type="date"
                   value={documentForm.date}
@@ -887,19 +893,13 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
 
           <div className="space-y-4 py-4">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-800 mb-2">Informations d'envoi</h3>
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Informations d&apos;envoi</h3>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">Document</span>
-                  <span className="font-medium">{documentForm.type === 'devis' ? 'Devis' : 'Facture'} #{documentId}</span>
+                  <span className="text-blue-700">Client</span>
+                  <span className="font-medium">{contacts.find(c => c.id === documentForm.contactId)?.nom}</span>
                 </div>
-
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">Destinataire</span>
-                  <span className="font-medium">{contacts.find(c => c.id === documentForm.contactId)?.name}</span>
-                </div>
-
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-700">Email</span>
                   <span className="font-medium">{contacts.find(c => c.id === documentForm.contactId)?.email}</span>
@@ -909,7 +909,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
 
             <div className="flex items-center space-x-2">
               <Switch id="send-copy" />
-              <Label htmlFor="send-copy">M'envoyer une copie</Label>
+              <Label htmlFor="send-copy">M&apos;envoyer une copie</Label>
             </div>
           </div>
 
@@ -930,7 +930,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
               ) : (
                 <>
                   <Mail className="mr-2 h-4 w-4" />
-                  Envoyer l'email
+                  Envoyer l&apos;email
                 </>
               )}
             </Button>

@@ -186,7 +186,7 @@ export function useVehicleFormData(selectedBrandId?: number) {
   const addVehicleType = async (name: string): Promise<VehicleType | null> => {
     try {
       const { data: newType, error } = await supabase
-        .from('vehicle_types')
+        .from('car_types')
         .insert([{ name: name.trim() }])
         .select()
         .single();

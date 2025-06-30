@@ -1,8 +1,8 @@
 'use client';
 
-import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
+import * as React from 'react';
 import {
   Controller,
   ControllerProps,
@@ -10,12 +10,39 @@ import {
   FieldValues,
   FormProvider,
   useFormContext,
+  UseFormReturn,
 } from 'react-hook-form';
 
-import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
-const Form = FormProvider;
+// Updated Form component that accepts a form prop
+type FormProps<TFieldValues extends FieldValues = FieldValues> = {
+  form: UseFormReturn<TFieldValues>;
+  children: React.ReactNode;
+  className?: string;
+  onSubmit?: React.FormEventHandler<HTMLFormElement>;
+};
+
+const Form = <TFieldValues extends FieldValues = FieldValues>({
+  form,
+  children,
+  className,
+  onSubmit,
+  ...props
+}: FormProps<TFieldValues> & React.HTMLAttributes<HTMLFormElement>) => {
+  return (
+    <FormProvider {...form}>
+      <form
+        onSubmit={onSubmit || form.handleSubmit(() => { })}
+        className={className}
+        {...props}
+      >
+        {children}
+      </form>
+    </FormProvider>
+  );
+};
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -168,12 +195,7 @@ const FormMessage = React.forwardRef<
 FormMessage.displayName = 'FormMessage';
 
 export {
-  useFormField,
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
+  Form, FormControl,
+  FormDescription, FormField, FormItem,
+  FormLabel, FormMessage, useFormField
 };

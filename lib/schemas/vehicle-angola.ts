@@ -17,6 +17,8 @@ export const vehicleAngolaSchema = z.object({
     invalid_type_error: "L'année doit être un nombre",
   }).min(1900, "L'année doit être supérieure à 1900").max(new Date().getFullYear() + 1, "L'année ne peut pas être dans le futur").or(z.string().transform(val => parseInt(val, 10))),
   
+  first_registration: z.string().optional(),
+  
   mileage: z.number({
     required_error: "Le kilométrage est obligatoire",
     invalid_type_error: "Le kilométrage doit être un nombre",
@@ -54,15 +56,21 @@ export const vehicleAngolaSchema = z.object({
     invalid_type_error: "Le type de dossier doit être un nombre",
   }).or(z.string().transform(val => parseInt(val, 10))),
   
+  gearbox: z.string().optional(),
+  
+  din_power: z.number().optional().or(z.string().transform(val => val === '' ? undefined : parseInt(val, 10))),
+  
+  fiscal_power: z.number().optional().or(z.string().transform(val => val === '' ? undefined : parseInt(val, 10))),
+  
   price: z.number({
     required_error: "Le prix est obligatoire",
     invalid_type_error: "Le prix doit être un nombre",
-  }).min(0, "Le prix doit être positif").or(z.string().transform(val => parseInt(val, 10))),
+  }).min(0, "Le prix doit être positif").or(z.string().transform(val => val === '' ? 0 : parseInt(val, 10))),
   
   purchase_price: z.number({
     required_error: "Le prix d'achat est obligatoire",
     invalid_type_error: "Le prix d'achat doit être un nombre",
-  }).min(0, "Le prix d'achat doit être positif").or(z.string().transform(val => parseInt(val, 10))),
+  }).min(0, "Le prix d'achat doit être positif").or(z.string().transform(val => val === '' ? 0 : parseInt(val, 10))),
   
   description: z.string().optional(),
   
@@ -70,6 +78,15 @@ export const vehicleAngolaSchema = z.object({
 });
 
 export type VehicleAngolaFormValues = z.infer<typeof vehicleAngolaSchema>;
+
+// Schéma pour l'annonce
+export const advertisementSchema = z.object({
+  title: z.string().min(1, "Le titre est obligatoire"),
+  description: z.string().min(1, "La description est obligatoire"),
+  price: z.number().min(0, "Le prix doit être positif").or(z.string().transform(val => val === '' ? 0 : parseInt(val, 10))),
+});
+
+export type AdvertisementFormValues = z.infer<typeof advertisementSchema>;
 
 // Types pour les données de référence
 export interface Brand {

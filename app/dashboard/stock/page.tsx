@@ -5,9 +5,11 @@ import { VehicleDrawer } from '@/components/forms/VehicleDrawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DataFilters, FilterConfig } from '@/components/ui/DataFilters';
+import { Pagination } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/lib/supabase';
+import { useSearchableDataFetching } from '@/hooks/useDataFetching';
+import { Vehicle, vehicleService } from '@/lib/services/vehicleService';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -15,14 +17,12 @@ import {
   Car,
   CheckCircle,
   Clock,
+  Edit3,
   Eye,
   FileText,
-  Filter,
-  MoreHorizontal,
   Package,
   Plus,
   Receipt,
-  Search,
   User
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -39,139 +39,178 @@ interface StockMetric {
 const stockMetrics: StockMetric[] = [
   {
     title: 'Véhicules Total',
-    value: '247',
-    change: '+12',
+    value: '0',
+    change: '+0',
     icon: Package,
     color: 'text-green-600',
   },
   {
     title: 'Disponibles',
-    value: '156',
-    change: '+8',
+    value: '0',
+    change: '+0',
     icon: CheckCircle,
     color: 'text-mkb-blue',
   },
   {
     title: 'Réservés',
-    value: '34',
-    change: '+5',
+    value: '0',
+    change: '+0',
     icon: Clock,
     color: 'text-orange-600',
   },
   {
+    title: 'Vendus',
+    value: '0',
+    change: '+0',
+    icon: Receipt,
+    color: 'text-blue-600',
+  },
+  {
     title: 'À Vérifier',
-    value: '12',
-    change: '-3',
+    value: '0',
+    change: '+0',
     icon: AlertTriangle,
     color: 'text-red-600',
   },
 ];
 
-interface Vehicle {
-  id: string;
-  reference: string;
-  brand: string;
-  model: string;
-  year: number;
-  price: number;
-  status: string;
-  location: string;
-  assignedTo: string;
-  contact: string;
-  lastUpdate: string;
-  mileage: number;
-  color: string;
-}
-
 export default function StockPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [isVehicleDrawerOpen, setIsVehicleDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
-  const [vehiclesData, setVehiclesData] = useState<Vehicle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<StockMetric[]>(stockMetrics);
+  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [availableLocations, setAvailableLocations] = useState<string[]>([]);
 
+  // Configuration de la pagination et du cache
+  const paginationConfig = {
+    itemsPerPage: 10,
+    cacheKey: 'stock_vehicles',
+    cacheExpiryMinutes: 5,
+  };
+
+  // Hook de récupération des données avec recherche
+  const {
+    data: vehicles,
+    loading,
+    error,
+    pagination,
+    searchTerm,
+    setSearchTerm,
+    applyFilters,
+    refresh,
+    clearCache,
+    filters: currentFilters,
+  } = useSearchableDataFetching<Vehicle>(
+    vehicleService.fetchVehicles,
+    paginationConfig,
+    { status: 'all', brand: 'all', location: 'all' } // Filtres par défaut
+  );
+
+  // Charger les données initiales
   useEffect(() => {
-    fetchVehicles();
+    fetchInitialData();
   }, []);
 
-  const fetchVehicles = async () => {
-    setIsLoading(true);
+  // Suppression de l'effet problématique qui causait une boucle infinie
+  // Les filtres par défaut sont maintenant gérés par le hook useSearchableDataFetching
+
+  const fetchInitialData = async () => {
     try {
-      // Fetch vehicles from Supabase
-      const { data, error } = await supabase
-        .from('cars_v2')
-        .select(`
-          id,
-          reference,
-          brand,
-          model,
-          year,
-          mileage,
-          color,
-          location,
-          price,
-          created_at,
-          updated_at,
-          status
-        `)
-        .order('created_at', { ascending: false });
+      // Charger les statistiques
+      const stats = await vehicleService.fetchVehicleStats();
+      updateMetrics(stats);
 
-      if (error) throw error;
-
-      // Transform data to match our interface
-      const transformedData: Vehicle[] = data.map(car => ({
-        id: car.id,
-        reference: car.reference || `REF-${car.id.substring(0, 6)}`,
-        brand: car.brand,
-        model: car.model,
-        year: car.year,
-        price: car.price || 0,
-        status: car.status || 'disponible',
-        location: car.location || 'Non spécifié',
-        assignedTo: 'Non assigné', // This would come from a join in a real app
-        contact: 'Non spécifié', // This would come from a join in a real app
-        lastUpdate: car.updated_at ? new Date(car.updated_at).toLocaleDateString() : new Date(car.created_at).toLocaleDateString(),
-        mileage: car.mileage,
-        color: car.color
-      }));
-
-      setVehiclesData(transformedData);
-
-      // Update metrics
-      const total = transformedData.length;
-      const disponibles = transformedData.filter(v => v.status === 'disponible').length;
-      const reserves = transformedData.filter(v => v.status === 'reserve' || v.status === 'réservé').length;
-      const aVerifier = transformedData.filter(v => v.status === 'a-verifier').length;
-
-      const [totalMetric, disponiblesMetric, reservesMetric, aVerifierMetric] = stockMetrics;
-      setMetrics([
-        { ...totalMetric, value: total.toString() } as StockMetric,
-        { ...disponiblesMetric, value: disponibles.toString() } as StockMetric,
-        { ...reservesMetric, value: reserves.toString() } as StockMetric,
-        { ...aVerifierMetric, value: aVerifier.toString() } as StockMetric,
+      // Charger les options de filtres
+      const [brands, locations] = await Promise.all([
+        vehicleService.getAvailableBrands(),
+        vehicleService.getAvailableLocations(),
       ]);
 
+      setAvailableBrands(brands);
+      setAvailableLocations(locations);
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
-      toast.error('Erreur lors du chargement des véhicules');
-    } finally {
-      setIsLoading(false);
+      console.error('Erreur lors du chargement des données initiales:', error);
     }
   };
 
-  const filteredVehicles = vehiclesData.filter(vehicle => {
-    const matchesSearch = vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.reference.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || vehicle.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const updateMetrics = (stats: any) => {
+    const [totalMetric, disponiblesMetric, reservesMetric, vendusMetric, aVerifierMetric] = stockMetrics;
+    setMetrics([
+      { ...totalMetric, value: stats.total.toString() } as StockMetric,
+      { ...disponiblesMetric, value: stats.disponibles.toString() } as StockMetric,
+      { ...reservesMetric, value: stats.reserves.toString() } as StockMetric,
+      { ...vendusMetric, value: stats.vendus.toString() } as StockMetric,
+      { ...aVerifierMetric, value: stats.aVerifier.toString() } as StockMetric,
+    ]);
+  };
 
+  // Configuration des filtres
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: 'status',
+      type: 'select',
+      label: 'Statut',
+      placeholder: 'Filtrer par statut',
+      options: [
+        { value: 'disponible', label: 'Disponible' },
+        { value: 'reserve', label: 'Réservé' },
+        { value: 'vendu', label: 'Vendu' },
+        { value: 'a-verifier', label: 'À Vérifier' },
+      ],
+      defaultValue: 'all',
+    },
+    {
+      key: 'brand',
+      type: 'select',
+      label: 'Marque',
+      placeholder: 'Filtrer par marque',
+      options: availableBrands.map(brand => ({ value: brand, label: brand })),
+      defaultValue: 'all',
+    },
+    {
+      key: 'location',
+      type: 'select',
+      label: 'Localisation',
+      placeholder: 'Filtrer par localisation',
+      options: availableLocations.map(location => ({ value: location, label: location })),
+      defaultValue: 'all',
+    },
+  ];
+
+  // Gestion des filtres
+  const handleFilterChange = (key: string, value: any) => {
+    // Appliquer directement le filtre, même si c'est 'all'
+    applyFilters({ [key]: value });
+  };
+
+  const handleClearFilters = () => {
+    // Vider le cache pour forcer un rechargement complet
+    clearCache();
+
+    // Réinitialiser les filtres
+    applyFilters({
+      status: 'all',
+      brand: 'all',
+      location: 'all',
+    });
+
+    // Réinitialiser le terme de recherche
+    setSearchTerm('');
+  };
+
+  const handleRefresh = () => {
+    // Vider le cache pour forcer un rechargement complet
+    clearCache();
+    refresh();
+    fetchInitialData();
+  };
+
+  // Gestion des événements
   const handleVehicleAdded = () => {
-    fetchVehicles();
+    refresh();
+    fetchInitialData();
     toast.success('Véhicule ajouté avec succès !');
   };
 
@@ -180,6 +219,23 @@ export default function StockPage() {
     setIsDetailDrawerOpen(true);
   };
 
+  const handleStatusChange = async (vehicleId: string, newStatus: string) => {
+    try {
+      await vehicleService.updateVehicleStatus(vehicleId, newStatus);
+      toast.success('Statut mis à jour avec succès !');
+
+      // Rafraîchir les données de manière optimisée
+      await Promise.all([
+        refresh(), // Rafraîchir la liste des véhicules
+        fetchInitialData() // Rafraîchir les statistiques
+      ]);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  // Utilitaires d'affichage
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'disponible': return 'bg-green-100 text-green-800';
@@ -233,7 +289,7 @@ export default function StockPage() {
 
       {/* Metrics */}
       <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
@@ -267,33 +323,17 @@ export default function StockPage() {
       >
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Rechercher par marque, modèle, référence..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="disponible">Disponible</SelectItem>
-                  <SelectItem value="reserve">Réservé</SelectItem>
-                  <SelectItem value="vendu">Vendu</SelectItem>
-                  <SelectItem value="a-verifier">À Vérifier</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Plus de filtres
-              </Button>
-            </div>
+            <DataFilters
+              filters={filterConfigs}
+              values={currentFilters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+              onRefresh={handleRefresh}
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Rechercher par marque, modèle, référence..."
+              loading={loading}
+            />
           </CardContent>
         </Card>
       </motion.div>
@@ -307,15 +347,27 @@ export default function StockPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-mkb-black">
-              Véhicules en Stock ({filteredVehicles.length})
+              Véhicules en Stock ({pagination.totalItems})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mkb-blue"></div>
               </div>
-            ) : filteredVehicles.length === 0 ? (
+            ) : error ? (
+              <div className="text-center py-12">
+                <AlertTriangle className="h-12 w-12 text-red-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-700">Erreur de chargement</h3>
+                <p className="text-gray-500 mt-2">{error}</p>
+                <Button
+                  className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
+                  onClick={handleRefresh}
+                >
+                  Réessayer
+                </Button>
+              </div>
+            ) : vehicles.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun véhicule trouvé</h3>
@@ -329,121 +381,175 @@ export default function StockPage() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Prix</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Statut</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Assigné à</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredVehicles.map((vehicle, index) => (
-                      <motion.tr
-                        key={vehicle.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="border-b hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleViewVehicle(vehicle.id)}
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <Car className="h-5 w-5 text-mkb-blue" />
-                            <div>
-                              <div className="font-medium text-mkb-black">
-                                {vehicle.brand} {vehicle.model}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {vehicle.reference} • {vehicle.year} • {vehicle.mileage.toLocaleString()} km
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                {vehicle.color} • {vehicle.location}
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Prix</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Statut</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Assigné à</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
+                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vehicles.map((vehicle, index) => (
+                        <motion.tr
+                          key={vehicle.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="border-b hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleViewVehicle(vehicle.id)}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <Car className="h-5 w-5 text-mkb-blue" />
+                              <div>
+                                <div className="font-medium text-mkb-black">
+                                  {vehicle.brand} {vehicle.model}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {vehicle.reference} • {vehicle.year} • {vehicle.mileage.toLocaleString()} km
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {vehicle.color} • {vehicle.location}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-mkb-black">
-                            €{vehicle.price.toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <Badge className={getStatusColor(vehicle.status)}>
-                            {getStatusText(vehicle.status)}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm">{vehicle.assignedTo}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-mkb-blue" />
-                            <span className="text-sm text-mkb-blue cursor-pointer hover:underline">
-                              {vehicle.contact}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Voir détails"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewVehicle(vehicle.id);
-                              }}
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Créer facture"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewVehicle(vehicle.id);
-                                // Delay to allow drawer to open first
-                                setTimeout(() => {
-                                  (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
-                                }, 500);
-                              }}
-                            >
-                              <Receipt className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Créer devis"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewVehicle(vehicle.id);
-                                // Delay to allow drawer to open first
-                                setTimeout(() => {
-                                  (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
-                                }, 500);
-                              }}
-                            >
-                              <FileText className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" title="Plus d'actions">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-mkb-black">
+                              €{vehicle.price.toLocaleString()}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2">
+                              <Select
+                                value={vehicle.status}
+                                onValueChange={(newStatus) => handleStatusChange(vehicle.id, newStatus)}
+                              >
+                                <SelectTrigger className="w-36 border-0 bg-transparent hover:bg-gray-50 focus:ring-0">
+                                  <SelectValue>
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={getStatusColor(vehicle.status)}>
+                                        {getStatusText(vehicle.status)}
+                                      </Badge>
+                                      <Edit3 className="h-3 w-3 text-gray-400" />
+                                    </div>
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="disponible">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-green-100 text-green-800">Disponible</Badge>
+                                      <span className="text-sm text-gray-600">Véhicule disponible à la vente</span>
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="reserve">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-orange-100 text-orange-800">Réservé</Badge>
+                                      <span className="text-sm text-gray-600">Véhicule réservé par un client</span>
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="vendu">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-blue-100 text-blue-800">Vendu</Badge>
+                                      <span className="text-sm text-gray-600">Véhicule vendu</span>
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="a-verifier">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-red-100 text-red-800">À Vérifier</Badge>
+                                      <span className="text-sm text-gray-600">Véhicule nécessitant une vérification</span>
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm">{vehicle.assignedTo}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-mkb-blue" />
+                              <span className="text-sm text-mkb-blue cursor-pointer hover:underline">
+                                {vehicle.contact}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Voir détails"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewVehicle(vehicle.id);
+                                }}
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Créer facture"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewVehicle(vehicle.id);
+                                  setTimeout(() => {
+                                    (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
+                                  }, 500);
+                                }}
+                              >
+                                <Receipt className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Créer devis"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewVehicle(vehicle.id);
+                                  setTimeout(() => {
+                                    (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
+                                  }, 500);
+                                }}
+                              >
+                                <FileText className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
+                      onPageChange={(page) => {
+                        // La pagination est gérée automatiquement par le hook
+                      }}
+                      hasNextPage={pagination.hasNextPage}
+                      hasPrevPage={pagination.hasPrevPage}
+                      totalItems={pagination.totalItems}
+                      itemsPerPage={paginationConfig.itemsPerPage}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -498,18 +604,22 @@ export default function StockPage() {
       </motion.div>
 
       {/* Vehicle Drawer */}
-      <VehicleDrawer
-        open={isVehicleDrawerOpen}
-        onOpenChange={setIsVehicleDrawerOpen}
-        onSuccess={handleVehicleAdded}
-      />
+      {isVehicleDrawerOpen && (
+        <VehicleDrawer
+          open={isVehicleDrawerOpen}
+          onOpenChange={setIsVehicleDrawerOpen}
+          onSuccess={handleVehicleAdded}
+        />
+      )}
 
       {/* Vehicle Detail Drawer */}
-      <VehicleDetailDrawer
-        open={isDetailDrawerOpen}
-        onOpenChange={setIsDetailDrawerOpen}
-        vehicleId={selectedVehicle || ''}
-      />
+      {isDetailDrawerOpen && selectedVehicle && (
+        <VehicleDetailDrawer
+          open={isDetailDrawerOpen}
+          onOpenChange={setIsDetailDrawerOpen}
+          vehicleId={selectedVehicle}
+        />
+      )}
     </div>
   );
 }
