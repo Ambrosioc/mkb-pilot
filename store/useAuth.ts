@@ -15,6 +15,8 @@ interface AuthState {
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<{ error: AuthError | null }>;
+  updateProfilePhoto: (photoUrl: string) => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -63,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
               email: data.user.email!,
               first_name: firstName,
               last_name: lastName,
-              avatar_url: data.user.user_metadata?.avatar_url,
+              photo_url: data.user.user_metadata?.avatar_url,
               created_at: data.user.created_at,
               updated_at: data.user.updated_at || data.user.created_at,
             };
@@ -127,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
               email: data.user.email!,
               first_name: userData?.prenom || '',
               last_name: userData?.nom || '',
-              avatar_url: (userData as any)?.photo_url || data.user.user_metadata?.avatar_url,
+              photo_url: (userData as any)?.photo_url || data.user.user_metadata?.avatar_url,
               created_at: data.user.created_at,
               updated_at: data.user.updated_at || data.user.created_at,
             };
@@ -184,6 +186,97 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      updateProfilePhoto: async (photoUrl: string) => {
+        const { user } = get();
+        if (!user) return;
+
+        set({ loading: true });
+        
+        try {
+          const { data, error } = await supabase.auth.updateUser({
+            data: {
+              photo_url: photoUrl
+            }
+          });
+
+          if (error) {
+            set({ loading: false });
+            return;
+          }
+
+          if (data.user) {
+            const updatedUser: User = {
+              ...user,
+              photo_url: photoUrl,
+              updated_at: new Date().toISOString(),
+            };
+            set({ user: updatedUser, loading: false });
+          }
+        } catch (error) {
+          set({ loading: false });
+        }
+      },
+
+      refreshUserData: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        set({ loading: true });
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            // Try to get user profile data, handle missing columns gracefully
+            let userData = null;
+            try {
+              const { data: userDataResult, error: userError } = await supabase
+                .from('users')
+                .select('prenom, nom, email, photo_url')
+                .eq('auth_user_id', session.user.id)
+                .single();
+
+              if (userError) {
+                console.error('Erreur lors de la récupération du profil utilisateur:', userError);
+                // If the error is about missing column, try without photo_url
+                if (userError.message?.includes('photo_url') || userError.code === '42703') {
+                  const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('users')
+                    .select('prenom, nom, email')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+                  
+                  if (!fallbackError) {
+                    userData = fallbackData;
+                  }
+                }
+              } else {
+                userData = userDataResult;
+              }
+            } catch (err) {
+              console.error('Erreur lors de la récupération du profil utilisateur:', err);
+            }
+
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email!,
+              first_name: userData?.prenom || '',
+              last_name: userData?.nom || '',
+              photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+              created_at: session.user.created_at,
+              updated_at: session.user.updated_at || session.user.created_at,
+            };
+            set({ user });
+          } else {
+            set({ user: null });
+          }
+        } catch (error) {
+          console.error('Erreur lors de la mise à jour des données utilisateur:', error);
+        } finally {
+          set({ loading: false });
+        }
+      },
+
       initialize: async () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -224,7 +317,7 @@ export const useAuthStore = create<AuthState>()(
               email: session.user.email!,
               first_name: userData?.prenom || '',
               last_name: userData?.nom || '',
-              avatar_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+              photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
               created_at: session.user.created_at,
               updated_at: session.user.updated_at || session.user.created_at,
             };
@@ -270,7 +363,7 @@ export const useAuthStore = create<AuthState>()(
                 email: session.user.email!,
                 first_name: userData?.prenom || '',
                 last_name: userData?.nom || '',
-                avatar_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
+                photo_url: (userData as any)?.photo_url || session.user.user_metadata?.avatar_url,
                 created_at: session.user.created_at,
                 updated_at: session.user.updated_at || session.user.created_at,
               };

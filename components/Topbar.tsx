@@ -13,18 +13,25 @@ import {
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
 import { LogOut, Search, User } from 'lucide-react';
 import Link from 'next/link';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 
 export const Topbar = memo(() => {
-  const { user, logout, getFullName } = useAuth();
+  const { user, signOut, refreshUserData } = useAuthStore();
 
   const handleSignOut = async () => {
-    await logout();
+    await signOut();
   };
+
+  // Rafraîchir les données utilisateur au montage du composant
+  useEffect(() => {
+    if (user) {
+      refreshUserData();
+    }
+  }, [user, refreshUserData]);
 
   // Fonction pour générer les initiales à partir du prénom et nom
   const getUserInitials = () => {
@@ -40,8 +47,10 @@ export const Topbar = memo(() => {
   };
 
   const getUserDisplayName = () => {
-    const fullName = getFullName();
-    return fullName || user?.email?.split('@')[0] || 'Utilisateur';
+    if (!user) return 'Utilisateur';
+
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    return fullName || user.email?.split('@')[0] || 'Utilisateur';
   };
 
   return (
