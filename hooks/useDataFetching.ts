@@ -221,6 +221,7 @@ export function useSearchableDataFetching<T>(
 ) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
 
   // Debounce pour la recherche
   useEffect(() => {
@@ -231,16 +232,30 @@ export function useSearchableDataFetching<T>(
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Fonction pour mettre à jour les filtres
+  const updateFilters = useCallback((key: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  }, []);
+
+  // Fonction pour effacer tous les filtres
+  const clearFilters = useCallback(() => {
+    setFilters(initialFilters);
+    setSearchTerm('');
+  }, [initialFilters]);
+
   const dataFetching = useDataFetching(
     fetchFunction, 
     {
       ...config,
       filters: {
-        ...initialFilters,
+        ...filters,
         search: debouncedSearchTerm,
       }
     }, 
-    [debouncedSearchTerm] // Tableau de dépendances
+    [debouncedSearchTerm, filters] // Dépendances mises à jour
   );
 
   return {
@@ -248,5 +263,8 @@ export function useSearchableDataFetching<T>(
     searchTerm,
     setSearchTerm,
     debouncedSearchTerm,
+    filters,
+    updateFilters,
+    clearFilters,
   };
 } 

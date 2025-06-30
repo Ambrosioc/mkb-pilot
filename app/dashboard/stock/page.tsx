@@ -98,6 +98,9 @@ export default function StockPage() {
     totalItems,
     searchTerm,
     setSearchTerm,
+    filters,
+    updateFilters,
+    clearFilters,
     refetch,
   } = useSearchableDataFetching<Vehicle>(
     vehicleService.fetchVehicles,
@@ -178,13 +181,11 @@ export default function StockPage() {
 
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
-    // TODO: Implémenter la gestion des filtres
+    updateFilters(key, value);
   };
 
   const handleClearFilters = () => {
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
-    // TODO: Implémenter la réinitialisation des filtres
+    clearFilters();
   };
 
   const handleRefresh = () => {
@@ -310,7 +311,7 @@ export default function StockPage() {
           <CardContent className="pt-6">
             <DataFilters
               filters={filterConfigs}
-              values={{}}
+              values={filters}
               onFilterChange={handleFilterChange}
               onClearFilters={handleClearFilters}
               onRefresh={handleRefresh}
