@@ -18,7 +18,8 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { signUp, loading, user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,24 +30,106 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 [REGISTER] Soumission du formulaire d\'inscription');
 
     if (!email || !password || !firstName || !lastName) {
-      toast.error('Veuillez remplir tous les champs');
+      console.log('❌ [REGISTER] Champs manquants');
+      toast.error('Veuillez remplir tous les champs', {
+        description: 'Tous les champs sont obligatoires pour créer votre compte.',
+        duration: 5000,
+      });
       return;
     }
 
     if (password.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères');
+      console.log('❌ [REGISTER] Mot de passe trop court');
+      toast.error('Mot de passe trop court', {
+        description: 'Le mot de passe doit contenir au moins 6 caractères.',
+        duration: 5000,
+      });
       return;
     }
 
-    const { error } = await signUp(email, password, firstName, lastName);
+    console.log('📤 [REGISTER] Envoi de la requête d\'inscription...');
+    setLoading(true);
 
-    if (error) {
-      toast.error('Erreur lors de la création du compte: ' + error.message);
-    } else {
-      toast.success('Compte créé avec succès !');
-      router.push('/dashboard');
+    try {
+      // Utiliser notre API d'inscription personnalisée
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+        }),
+      });
+
+      console.log('📥 [REGISTER] Réponse reçue:', response.status);
+      const data = await response.json();
+      console.log('📄 [REGISTER] Données de réponse:', data);
+
+      if (!data.success) {
+        console.log('❌ [REGISTER] Échec de l\'inscription:', data.error);
+        // Gérer les erreurs spécifiques avec des toasts appropriés
+        if (data.error.includes('déjà utilisée') ||
+          data.error.includes('already registered') ||
+          data.error.includes('already exists') ||
+          data.error.includes('duplicate key') ||
+          data.error.includes('User already registered')) {
+          toast.error('Compte déjà existant', {
+            description: 'Un compte avec cette adresse email existe déjà. Veuillez vous connecter ou utiliser une autre adresse email.',
+            duration: 8000,
+            action: {
+              label: 'Se connecter',
+              onClick: () => router.push('/login'),
+            },
+          });
+        } else if (data.error.includes('mot de passe')) {
+          toast.error('Mot de passe invalide', {
+            description: data.error,
+            duration: 5000,
+          });
+        } else if (data.error.includes('email valide')) {
+          toast.error('Email invalide', {
+            description: 'Veuillez saisir une adresse email valide.',
+            duration: 5000,
+          });
+        } else {
+          toast.error('Erreur lors de la création du compte', {
+            description: data.error || 'Une erreur inattendue s&apos;est produite. Veuillez réessayer.',
+            duration: 6000,
+          });
+        }
+        return;
+      }
+
+      console.log('✅ [REGISTER] Inscription réussie!');
+      toast.success('Compte créé avec succès !', {
+        description: 'Votre compte a été créé. Vous pouvez maintenant vous connecter avec votre email et mot de passe.',
+        duration: 8000,
+        action: {
+          label: 'Aller à la connexion',
+          onClick: () => router.push('/login'),
+        },
+      });
+
+      // Rediriger vers la page de connexion après un délai
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ [REGISTER] Erreur de connexion:', error);
+      toast.error('Erreur de connexion', {
+        description: 'Impossible de contacter le serveur. Vérifiez votre connexion internet et réessayez.',
+        duration: 6000,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,7 +148,7 @@ export default function RegisterPage() {
               Créer un compte
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Rejoignez MKB Pilot dès aujourd'hui
+              Rejoignez MKB Pilot dès aujourd&apos;hui
             </CardDescription>
           </CardHeader>
 

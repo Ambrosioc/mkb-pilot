@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -233,7 +233,14 @@ export default function LoginPage() {
                   className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium"
                   disabled={loading}
                 >
-                  {loading ? 'Connexion...' : 'Se connecter'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connexion...
+                    </>
+                  ) : (
+                    'Se connecter'
+                  )}
                 </Button>
               </form>
             </CardContent>

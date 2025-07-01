@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { arrayBufferToBase64, generateDocumentNumber, generateDocumentPDF } from '@/lib/pdf-generator';
 
 // Types
 interface VehicleDetailDrawerProps {
@@ -122,6 +123,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
 
   // Fetch vehicle data when drawer opens
   React.useEffect(() => {
@@ -138,6 +140,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
       setDocumentPreviewUrl(null);
       setDocumentId(null);
       setSendEmailOpen(false);
+      setEmailMessage('');
     }
   }, [open, vehicleId]);
 
@@ -222,6 +225,75 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
       const vatAmount = (priceBeforeTax * documentForm.vatRate) / 100;
       const totalPrice = priceBeforeTax + vatAmount;
 
+      console.log('🔧 [DOCUMENT] Génération du document:', {
+        vehicle_id: vehicle.id,
+        contact_id: documentForm.contactId,
+        type: documentForm.type,
+        base_price: basePrice,
+        discount_percentage: documentForm.discount || 0,
+        discount_amount: discountAmount,
+        vat_rate: documentForm.vatRate,
+        vat_amount: vatAmount,
+        final_price: totalPrice
+      });
+
+      // Récupérer les informations du contact
+      const selectedContact = contacts.find(c => c.id === documentForm.contactId);
+      if (!selectedContact) {
+        throw new Error('Contact non trouvé');
+      }
+
+      // Générer le numéro de document
+      const documentNumber = generateDocumentNumber(documentForm.type);
+
+      // Préparer les données pour le PDF
+      const pdfDocumentData = {
+        type: documentForm.type,
+        number: documentNumber,
+        date: new Date(documentForm.date),
+        customer: {
+          name: selectedContact.nom,
+          email: selectedContact.email || '',
+          phone: selectedContact.telephone || '',
+          address: selectedContact.societe || '',
+        },
+        vehicle: {
+          brand: vehicle.brand,
+          model: vehicle.model,
+          year: vehicle.year,
+          reference: vehicle.reference,
+          color: vehicle.color,
+          mileage: vehicle.mileage,
+        },
+        items: [
+          {
+            description: `${vehicle.brand} ${vehicle.model} (${vehicle.year}) - ${vehicle.reference}`,
+            quantity: 1,
+            unitPrice: basePrice,
+            taxRate: documentForm.vatRate,
+          }
+        ],
+        notes: documentForm.notes,
+        paymentTerms: documentForm.type === 'facture' ? 'Paiement à 30 jours' : 'Devis valable 30 jours',
+        companyInfo: {
+          name: 'MKB Automobile',
+          address: '123 Rue de l\'Automobile, 75000 Paris',
+          phone: '+33 1 23 45 67 89',
+          email: 'contact@mkbautomobile.fr',
+          website: 'www.mkbautomobile.fr',
+          siret: '12345678901234',
+          tva: 'FR12345678901',
+        },
+      };
+
+      console.log('📄 [DOCUMENT] Génération du PDF...');
+
+      // Générer le PDF
+      const pdfBytes = await generateDocumentPDF(pdfDocumentData);
+      const pdfBase64 = arrayBufferToBase64(pdfBytes);
+
+      console.log('✅ [DOCUMENT] PDF généré avec succès');
+
       // Create document record in database
       const { data: documentData, error: documentError } = await supabase
         .from('sales_documents')
@@ -230,46 +302,43 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
             vehicle_id: vehicle.id,
             contact_id: documentForm.contactId,
             type: documentForm.type,
+            number: documentNumber,
             date: documentForm.date,
             base_price: basePrice,
             discount_percentage: documentForm.discount || 0,
             discount_amount: discountAmount,
-            price_before_tax: priceBeforeTax,
             vat_rate: documentForm.vatRate,
             vat_amount: vatAmount,
-            total_price: totalPrice,
+            final_price: totalPrice,
             notes: documentForm.notes,
             status: 'created',
-            pdf_url: null, // Will be updated later
+            pdf_url: null,
+            pdf_content: pdfBase64,
             sent_by_email: false
           }
         ])
         .select('id')
         .single();
 
-      if (documentError) throw documentError;
+      if (documentError) {
+        console.error('❌ [DOCUMENT] Erreur lors de la création du document:', documentError);
+        throw documentError;
+      }
 
-      // In a real app, here we would generate the actual PDF
-      // For this demo, we'll simulate PDF generation with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('✅ [DOCUMENT] Document créé avec succès:', documentData.id);
 
-      // Update the document with a mock PDF URL
-      const mockPdfUrl = `https://example.com/documents/${documentData.id}.pdf`;
-
-      await supabase
-        .from('sales_documents')
-        .update({ pdf_url: mockPdfUrl, status: 'generated' })
-        .eq('id', documentData.id);
+      // Créer l'URL du PDF pour l'affichage
+      const pdfUrl = `/api/documents/${documentData.id}/pdf`;
 
       setDocumentId(documentData.id);
-      setDocumentPreviewUrl(mockPdfUrl);
+      setDocumentPreviewUrl(pdfUrl);
       toast.success(`${documentForm.type === 'devis' ? 'Devis' : 'Facture'} généré avec succès !`);
 
       // Close the form and show the preview
       setDocumentFormOpen(false);
 
     } catch (error) {
-      console.error('Error generating document:', error);
+      console.error('❌ [DOCUMENT] Erreur lors de la génération du document:', error);
       toast.error(`Erreur lors de la génération du ${documentForm.type === 'devis' ? 'devis' : 'facture'}`);
     } finally {
       setIsGeneratingDocument(false);
@@ -277,7 +346,7 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
   };
 
   const handleSendEmail = async () => {
-    if (!documentId) return;
+    if (!documentId || !vehicle) return;
 
     const selectedContact = contacts.find(c => c.id === documentForm.contactId);
 
@@ -289,15 +358,45 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
     setIsSendingEmail(true);
 
     try {
-      // In a real app, here we would call an API endpoint to send the email
-      // For this demo, we'll simulate sending with a timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Update the document status
-      await supabase
+      // Récupérer le contenu PDF du document
+      const { data: documentData, error: documentError } = await supabase
         .from('sales_documents')
-        .update({ sent_by_email: true, status: 'sent' })
-        .eq('id', documentId);
+        .select('pdf_content, number, type')
+        .eq('id', documentId)
+        .single();
+
+      if (documentError || !documentData?.pdf_content) {
+        throw new Error('Impossible de récupérer le contenu du document');
+      }
+
+      // Préparer les informations du véhicule
+      const vehicleInfo = `${vehicle.brand} ${vehicle.model} (${vehicle.year}) - ${vehicle.reference}`;
+
+      // Envoyer l'email via l'API
+      const response = await fetch('/api/send-email', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          documentId,
+          recipientEmail: selectedContact.email,
+          recipientName: selectedContact.nom,
+          documentType: documentData.type,
+          documentNumber: documentData.number,
+          pdfBase64: documentData.pdf_content,
+          vehicleInfo,
+          message: emailMessage || documentForm.notes || undefined,
+          sendCopy: true // Envoyer une copie à l'utilisateur connecté
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur lors de l\'envoi');
+      }
 
       toast.success(`Document envoyé par email à ${selectedContact.email}`);
       setSendEmailOpen(false);
@@ -600,24 +699,53 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                               Aperçu du {documentForm.type === 'devis' ? 'devis' : 'facture'}
                             </h3>
                             <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (documentPreviewUrl) {
+                                    const printWindow = window.open(documentPreviewUrl, '_blank');
+                                    if (printWindow) {
+                                      printWindow.onload = () => {
+                                        printWindow.print();
+                                      };
+                                    }
+                                  }
+                                }}
+                              >
                                 <Printer className="h-4 w-4 mr-2" />
                                 Imprimer
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (documentPreviewUrl) {
+                                    window.open(documentPreviewUrl, '_blank');
+                                  }
+                                }}
+                              >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Aperçu
                               </Button>
                             </div>
                           </div>
                           <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center">
-                            <div className="bg-white shadow-lg w-[80%] h-[80%] flex flex-col items-center justify-center">
-                              <FileText className="h-16 w-16 text-gray-300 mb-4" />
-                              <p className="text-gray-500">Aperçu du document</p>
-                              <p className="text-xs text-gray-400 mt-2">
-                                (Dans une application réelle, le PDF serait affiché ici)
-                              </p>
-                            </div>
+                            {documentPreviewUrl ? (
+                              <iframe
+                                src={documentPreviewUrl}
+                                className="w-full h-full border-0"
+                                title="Aperçu du document"
+                              />
+                            ) : (
+                              <div className="bg-white shadow-lg w-[80%] h-[80%] flex flex-col items-center justify-center">
+                                <FileText className="h-16 w-16 text-gray-300 mb-4" />
+                                <p className="text-gray-500">Chargement de l&apos;aperçu...</p>
+                                <p className="text-xs text-gray-400 mt-2">
+                                  Le PDF se charge dans l&apos;iframe ci-dessus
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
 
