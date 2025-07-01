@@ -471,7 +471,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             model_id: undefined,
             year: new Date().getFullYear(),
             first_registration: '',
-            mileage: 0,
+            mileage: undefined,
             color: '',
             vehicle_type_id: undefined,
             fuel_type_id: undefined,
@@ -482,8 +482,8 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             gearbox: '',
             din_power: undefined,
             fiscal_power: undefined,
-            price: 0,
-            purchase_price: 0,
+            price: undefined,
+            purchase_price: undefined,
             description: '',
             location: ''
         });
@@ -835,9 +835,9 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                             <SelectValue placeholder="Sélectionner" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="3">3 portes</SelectItem>
-                                                            <SelectItem value="4">4 portes</SelectItem>
-                                                            <SelectItem value="5">5 portes</SelectItem>
+                                                            <SelectItem value="3">3</SelectItem>
+                                                            <SelectItem value="4">4</SelectItem>
+                                                            <SelectItem value="5">5</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </FormControl>
@@ -863,7 +863,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                         <SelectContent>
                                                             {[2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                                                                 <SelectItem key={num} value={num.toString()}>
-                                                                    {num} places
+                                                                    {num}
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>
