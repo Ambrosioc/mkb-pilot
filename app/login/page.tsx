@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getAuthErrorMessage } from '@/lib/auth-error-messages';
 import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signIn, loading, user } = useAuthStore();
   const router = useRouter();
 
@@ -27,16 +29,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!email || !password) {
       toast.error('Veuillez remplir tous les champs');
       return;
     }
 
-    const { error } = await signIn(email, password);
+    const { error: authError } = await signIn(email, password);
 
-    if (error) {
-      toast.error('Erreur de connexion: ' + error.message);
+    if (authError) {
+      const errorMessage = getAuthErrorMessage(authError);
+      setError(errorMessage);
     } else {
       toast.success('Connexion réussie !');
       router.push('/dashboard');
@@ -181,6 +185,13 @@ export default function LoginPage() {
 
             <CardContent className="pt-0">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Affichage de l'erreur */}
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 text-sm font-medium">{error}</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700 font-medium">
                     Adresse e-mail
@@ -191,7 +202,8 @@ export default function LoginPage() {
                     placeholder="Votre adresse e-mail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue"
+                    className={`h-12 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                      }`}
                     disabled={loading}
                   />
                 </div>
@@ -215,7 +227,8 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pr-12 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue"
+                      className={`h-12 pr-12 border-gray-300 focus:border-mkb-blue focus:ring-mkb-blue ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                        }`}
                       disabled={loading}
                     />
                     <button

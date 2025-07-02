@@ -9,11 +9,18 @@
 -- Add purchase_price column to cars_v2 table if it doesn't exist
 DO $$ 
 BEGIN
-  IF NOT EXISTS (
-    SELECT FROM information_schema.columns 
-    WHERE table_name = 'cars_v2' AND column_name = 'purchase_price'
+  -- Check if cars_v2 table exists first
+  IF EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_name = 'cars_v2'
   ) THEN
-    ALTER TABLE cars_v2 ADD COLUMN purchase_price numeric(12, 2);
+    -- Then check if purchase_price column doesn't exist
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'cars_v2' AND column_name = 'purchase_price'
+    ) THEN
+      ALTER TABLE cars_v2 ADD COLUMN purchase_price numeric(12, 2);
+    END IF;
   END IF;
 END $$;
 
