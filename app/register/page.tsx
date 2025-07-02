@@ -31,6 +31,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🚀 [REGISTER] Soumission du formulaire d\'inscription');
+    console.log('📝 [REGISTER] Valeurs du formulaire:', { firstName, lastName, email });
 
     if (!email || !password || !firstName || !lastName) {
       console.log('❌ [REGISTER] Champs manquants');
@@ -51,21 +52,26 @@ export default function RegisterPage() {
     }
 
     console.log('📤 [REGISTER] Envoi de la requête d\'inscription...');
+    console.log('📤 [REGISTER] Données envoyées:', { email, firstName, lastName, passwordLength: password.length });
     setLoading(true);
 
     try {
       // Utiliser notre API d'inscription personnalisée
+      const requestBody = {
+        email,
+        password,
+        firstName,
+        lastName,
+      };
+
+      console.log('📤 [REGISTER] Corps de la requête:', requestBody);
+
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('📥 [REGISTER] Réponse reçue:', response.status);

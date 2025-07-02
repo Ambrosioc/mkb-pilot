@@ -188,17 +188,26 @@ export async function sendCustomWelcomeEmail(email: string, firstName: string, l
 export async function customSignUp(email: string, password: string, firstName: string, lastName: string) {
   console.log('🚀 [SIGNUP] Début de l\'inscription utilisateur');
   console.log('📧 [SIGNUP] Email:', email);
-  console.log('👤 [SIGNUP] Nom:', `${firstName} ${lastName}`);
+  console.log('👤 [SIGNUP] Prénom reçu:', firstName);
+  console.log('👤 [SIGNUP] Nom reçu:', lastName);
+  console.log('👤 [SIGNUP] Nom complet:', `${firstName} ${lastName}`);
   
   try {
     // Créer l'utilisateur sans confirmation automatique
     console.log('👤 [SIGNUP] Création de l\'utilisateur dans Supabase...');
+    console.log('👤 [SIGNUP] Metadata à envoyer:', {
+      first_name: firstName,
+      last_name: lastName,
+      role: 'user',
+    });
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
           role: 'user',
         },
         emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,

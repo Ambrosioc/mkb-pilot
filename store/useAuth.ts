@@ -37,7 +37,8 @@ export const useAuthStore = create<AuthState>()(
             password,
             options: {
               data: {
-                full_name: `${firstName} ${lastName}`,
+                first_name: firstName,
+                last_name: lastName,
                 role: 'user',
               }
             }
