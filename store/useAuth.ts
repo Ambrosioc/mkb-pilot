@@ -340,17 +340,13 @@ export const useAuthStore = create<AuthState>()(
           // Configurer l'écouteur d'événements d'authentification une seule fois
           const { authListenerSet } = get();
           if (!authListenerSet) {
-            console.log('Setting up auth listener...');
             set({ authListenerSet: true });
             
             supabase.auth.onAuthStateChange(async (event, session) => {
-              console.log('Auth state change:', event, session?.user?.id);
-              
               if (session?.user) {
                 // Vérifier si on a déjà les données utilisateur pour éviter les refetch inutiles
                 const currentUser = get().user;
                 if (currentUser && currentUser.id === session.user.id) {
-                  console.log('User data already present, skipping fetch');
                   return;
                 }
 

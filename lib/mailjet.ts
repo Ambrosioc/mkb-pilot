@@ -48,8 +48,7 @@ export async function sendEmail(options: EmailOptions) {
 
   // Logs de debug pour le développement uniquement
   if (process.env.NODE_ENV === 'development') {
-    console.log('MAILJET: Envoi d\'email - Sujet:', subject);
-    console.log('MAILJET: Destinataires:', recipients.map(r => r.Email));
+
   }
 
   try {
@@ -80,7 +79,7 @@ export async function sendEmail(options: EmailOptions) {
     const result = await mailjet.post('send', { version: 'v3.1' }).request(data);
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('MAILJET: Email envoyé avec succès - Message ID:', (result.body as any).Messages?.[0]?.MessageID);
+  
     }
     
     return {

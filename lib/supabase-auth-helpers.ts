@@ -5,11 +5,11 @@ import { sendEmail, sendPasswordResetEmail } from './mailjet';
 // Fonction pour désactiver les emails automatiques de Supabase
 // Note: Ceci doit être fait dans l'interface Supabase, pas via code
 export function disableSupabaseEmails() {
-  console.log('Pour désactiver les emails automatiques de Supabase:');
-  console.log('1. Allez dans le dashboard Supabase > Authentication > Email Templates');
-  console.log('2. Pour chaque template (Confirmation, Invitation, Magic Link, Reset Password):');
-  console.log('   - Décochez la case "Enable email template"');
-  console.log('   - Cliquez sur "Save"');
+  // Instructions pour désactiver les emails automatiques de Supabase
+  // 1. Allez dans le dashboard Supabase > Authentication > Email Templates
+  // 2. Pour chaque template (Confirmation, Invitation, Magic Link, Reset Password):
+  //    - Décochez la case "Enable email template"
+  //    - Cliquez sur "Save"
 }
 
 // Générer un lien de confirmation d'email
@@ -77,16 +77,11 @@ export async function sendCustomEmailConfirmation(email: string, firstName?: str
 
 // Envoyer un email de réinitialisation de mot de passe personnalisé
 export async function sendCustomPasswordReset(email: string, firstName?: string, lastName?: string) {
-  console.log('🔧 [PASSWORD RESET] Début de la réinitialisation pour:', email);
-  
   try {
     // Générer un lien de réinitialisation avec Supabase
-    console.log('🔗 [PASSWORD RESET] Génération du lien de réinitialisation...');
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
     });
-
-    console.log('📊 [PASSWORD RESET] Réponse de Supabase:', { data, error });
 
     if (error) {
       console.error('❌ [PASSWORD RESET] Erreur lors de la génération du lien:', error);
@@ -95,8 +90,6 @@ export async function sendCustomPasswordReset(email: string, firstName?: string,
 
     // Créer un lien de réinitialisation personnalisé
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?email=${encodeURIComponent(email)}`;
-    
-    console.log('📧 [PASSWORD RESET] Envoi de l\'email via Mailjet...');
     
     // Envoyer l'email via Mailjet
     const result = await sendPasswordResetEmail(
@@ -109,8 +102,6 @@ export async function sendCustomPasswordReset(email: string, firstName?: string,
       return false;
     }
 
-    console.log('✅ [PASSWORD RESET] Email de réinitialisation envoyé avec succès à:', email);
-    console.log('🔗 [PASSWORD RESET] Lien de réinitialisation:', resetLink);
     return true;
   } catch (error) {
     console.error('❌ [PASSWORD RESET] Erreur lors de l\'envoi de l\'email de réinitialisation:', error);
@@ -120,10 +111,6 @@ export async function sendCustomPasswordReset(email: string, firstName?: string,
 
 // Envoyer un email de bienvenue après inscription
 export async function sendCustomWelcomeEmail(email: string, firstName: string, lastName: string) {
-  console.log('🎉 [WELCOME EMAIL] Début de l\'envoi de l\'email de bienvenue');
-  console.log('📧 [WELCOME EMAIL] Destinataire:', email);
-  console.log('👤 [WELCOME EMAIL] Nom:', `${firstName} ${lastName}`);
-  
   try {
     // Créer le contenu HTML simple pour l'email de bienvenue
     const htmlContent = `
@@ -162,9 +149,6 @@ export async function sendCustomWelcomeEmail(email: string, firstName: string, l
       </html>
     `;
 
-    console.log('📄 [WELCOME EMAIL] HTML généré avec succès');
-    console.log('📤 [WELCOME EMAIL] Envoi via Mailjet...');
-
     const result = await sendEmail({
       recipients: [{ Email: email, Name: `${firstName} ${lastName}` }],
       subject: 'Bienvenue chez MKB Automobile !',
@@ -172,7 +156,6 @@ export async function sendCustomWelcomeEmail(email: string, firstName: string, l
       textContent: `Bonjour ${firstName} ${lastName}, Bienvenue chez MKB Automobile ! Votre compte a été créé avec succès. Vous pouvez dès maintenant vous connecter et commencer à utiliser notre plateforme. Cordialement, L'équipe MKB Automobile`,
     });
 
-    console.log('✅ [WELCOME EMAIL] Email de bienvenue envoyé:', result.success);
     if (!result.success) {
       console.error('❌ [WELCOME EMAIL] Échec de l\'envoi:', result.error);
     }
@@ -186,21 +169,8 @@ export async function sendCustomWelcomeEmail(email: string, firstName: string, l
 
 // Remplacer la fonction de signup de Supabase pour envoyer nos propres emails
 export async function customSignUp(email: string, password: string, firstName: string, lastName: string) {
-  console.log('🚀 [SIGNUP] Début de l\'inscription utilisateur');
-  console.log('📧 [SIGNUP] Email:', email);
-  console.log('👤 [SIGNUP] Prénom reçu:', firstName);
-  console.log('👤 [SIGNUP] Nom reçu:', lastName);
-  console.log('👤 [SIGNUP] Nom complet:', `${firstName} ${lastName}`);
-  
   try {
     // Créer l'utilisateur sans confirmation automatique
-    console.log('👤 [SIGNUP] Création de l\'utilisateur dans Supabase...');
-    console.log('👤 [SIGNUP] Metadata à envoyer:', {
-      first_name: firstName,
-      last_name: lastName,
-      role: 'user',
-    });
-    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -239,22 +209,15 @@ export async function customSignUp(email: string, password: string, firstName: s
       throw new Error('Erreur lors de la création du compte. Veuillez réessayer.');
     }
 
-    console.log('✅ [SIGNUP] Utilisateur créé avec succès dans Supabase');
-    console.log('🆔 [SIGNUP] User ID:', data.user?.id);
-
     // Envoyer seulement l'email de bienvenue (pas de confirmation personnalisée pour l'instant)
     if (data.user) {
-      console.log('📧 [SIGNUP] Envoi de l\'email de bienvenue...');
       try {
         await sendCustomWelcomeEmail(email, firstName, lastName);
-        console.log('✅ [SIGNUP] Email de bienvenue envoyé avec succès');
       } catch (emailError) {
         console.error('❌ [SIGNUP] Erreur lors de l\'envoi de l\'email de bienvenue:', emailError);
         // Ne pas faire échouer l'inscription si l'email échoue
       }
     }
-
-    console.log('🎉 [SIGNUP] Inscription terminée avec succès');
     return { data, error: null };
   } catch (error) {
     console.error('❌ [SIGNUP] Erreur lors de l\'inscription:', error);

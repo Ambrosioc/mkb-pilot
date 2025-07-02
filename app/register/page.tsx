@@ -30,11 +30,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 [REGISTER] Soumission du formulaire d\'inscription');
-    console.log('📝 [REGISTER] Valeurs du formulaire:', { firstName, lastName, email });
 
     if (!email || !password || !firstName || !lastName) {
-      console.log('❌ [REGISTER] Champs manquants');
       toast.error('Veuillez remplir tous les champs', {
         description: 'Tous les champs sont obligatoires pour créer votre compte.',
         duration: 5000,
@@ -43,7 +40,6 @@ export default function RegisterPage() {
     }
 
     if (password.length < 6) {
-      console.log('❌ [REGISTER] Mot de passe trop court');
       toast.error('Mot de passe trop court', {
         description: 'Le mot de passe doit contenir au moins 6 caractères.',
         duration: 5000,
@@ -51,8 +47,6 @@ export default function RegisterPage() {
       return;
     }
 
-    console.log('📤 [REGISTER] Envoi de la requête d\'inscription...');
-    console.log('📤 [REGISTER] Données envoyées:', { email, firstName, lastName, passwordLength: password.length });
     setLoading(true);
 
     try {
@@ -64,8 +58,6 @@ export default function RegisterPage() {
         lastName,
       };
 
-      console.log('📤 [REGISTER] Corps de la requête:', requestBody);
-
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -74,12 +66,9 @@ export default function RegisterPage() {
         body: JSON.stringify(requestBody),
       });
 
-      console.log('📥 [REGISTER] Réponse reçue:', response.status);
       const data = await response.json();
-      console.log('📄 [REGISTER] Données de réponse:', data);
 
       if (!data.success) {
-        console.log('❌ [REGISTER] Échec de l\'inscription:', data.error);
         // Gérer les erreurs spécifiques avec des toasts appropriés
         if (data.error.includes('déjà utilisée') ||
           data.error.includes('already registered') ||
@@ -113,7 +102,6 @@ export default function RegisterPage() {
         return;
       }
 
-      console.log('✅ [REGISTER] Inscription réussie!');
       toast.success('Compte créé avec succès !', {
         description: 'Votre compte a été créé. Vous pouvez maintenant vous connecter avec votre email et mot de passe.',
         duration: 8000,

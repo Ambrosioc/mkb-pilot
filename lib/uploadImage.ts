@@ -77,33 +77,60 @@ export async function uploadMultipleImages(
 
 /**
  * Uploads a profile photo to Supabase Storage
+ * Automatically deletes the previous profile photo to ensure only one photo per user
  * @param file The image file to upload
  * @param userId The user ID
+ * @param supabaseClient The Supabase client instance (optional, will create one if not provided)
  * @returns Promise with the upload result
  */
 export async function uploadProfilePhoto(
   file: File,
-  userId: string
+  userId: string,
+  supabaseClient?: any
 ): Promise<{ success: boolean; filePath?: string; error?: string }> {
+  
   try {
-    console.log('Starting profile photo upload...', { userId, fileName: file.name, fileSize: file.size });
-    
-    const supabase = createClient(
+    const supabase = supabaseClient || createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    console.log('Supabase client created with URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    // First, delete any existing profile photos for this user
+    try {
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from('profile')
+        .list(userId, {
+          limit: 100,
+          offset: 0,
+          search: 'profile-'
+        });
 
-    // Generate a unique filename
+      if (!listError && existingFiles && existingFiles.length > 0) {
+        // Delete all existing profile photos
+        const filesToDelete = existingFiles.map(file => `${userId}/${file.name}`);
+        
+        const { error: deleteError } = await supabase.storage
+          .from('profile')
+          .remove(filesToDelete);
+
+        if (deleteError) {
+          console.warn('Warning: Could not delete previous profile photos:', deleteError);
+          // Continue anyway, don't fail the upload
+        } else {
+          console.log(`Deleted ${filesToDelete.length} previous profile photo(s) for user ${userId}`);
+        }
+      }
+    } catch (deleteError) {
+      console.warn('Warning: Error while trying to delete previous profile photos:', deleteError);
+      // Continue anyway, don't fail the upload
+    }
+
+    // Generate a unique filename in user's folder (for RLS policies)
     const fileExtension = file.name.split('.').pop();
-    const fileName = `profile-${userId}-${Date.now()}.${fileExtension}`;
-    const filePath = fileName; // Store directly in the profile bucket root
-
-    console.log('Generated file path:', filePath);
+    const fileName = `profile-${Date.now()}.${fileExtension}`;
+    const filePath = `${userId}/${fileName}`; // Store in user's folder
 
     // Upload to Supabase Storage using the profile bucket
-    console.log('Attempting to upload to bucket "profile"...');
     const { data, error } = await supabase.storage
       .from('profile')
       .upload(filePath, file, {
@@ -128,19 +155,11 @@ export async function uploadProfilePhoto(
       };
     }
 
-    console.log('Upload successful, data:', data);
-
-    // Get the public URL
-    console.log('Getting public URL...');
-    const { data: urlData } = supabase.storage
-      .from('profile')
-      .getPublicUrl(filePath);
-
-    console.log('Public URL data:', urlData);
-
+    // Return the file path in the bucket (not the public URL)
+    // The public URL can be generated later when needed
     return {
       success: true,
-      filePath: urlData.publicUrl
+      filePath: filePath
     };
   } catch (error) {
     console.error('Error in uploadProfilePhoto:', error);
