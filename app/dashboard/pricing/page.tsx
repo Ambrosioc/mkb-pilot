@@ -89,17 +89,31 @@ export default function PricingPage() {
 
             if (vehiculesPostesJourError) throw vehiculesPostesJourError;
 
-            // 4. Moyenne de posts / collaborateur sur le mois
-            const { data: moyennePostsData, error: moyennePostsError } = await supabase
-                .rpc('get_average_posts_per_user_this_month');
+            // 4. Moyenne de posts / collaborateur sur le mois (placeholder pour l'instant)
+            let moyennePostsData = 0;
+            try {
+                const { data: avgData, error: moyennePostsError } = await supabase
+                    .rpc('get_average_posts_per_user_this_month');
+                if (!moyennePostsError && avgData !== null) {
+                    moyennePostsData = avgData;
+                }
+            } catch (error) {
+                console.warn("Function get_average_posts_per_user_this_month not available, using default value");
+                moyennePostsData = 0;
+            }
 
-            if (moyennePostsError) throw moyennePostsError;
-
-            // 5. Best priceur du mois
-            const { data: bestPriceurData, error: bestPriceurError } = await supabase
-                .rpc('get_best_pricer_this_month');
-
-            if (bestPriceurError) throw bestPriceurError;
+            // 5. Best priceur du mois (placeholder pour l'instant)
+            let bestPriceurData = null;
+            try {
+                const { data: bestData, error: bestPriceurError } = await supabase
+                    .rpc('get_best_pricer_this_month');
+                if (!bestPriceurError && bestData) {
+                    bestPriceurData = bestData;
+                }
+            } catch (error) {
+                console.warn("Function get_best_pricer_this_month not available, using default value");
+                bestPriceurData = null;
+            }
 
             // 6. Nombre de véhicules à poster
             const { data: vehiculesAPosterData, error: vehiculesAPosterError } = await supabase

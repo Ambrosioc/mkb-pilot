@@ -4,6 +4,11 @@
 -- Enable RLS on users table if not already enabled
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can read their own profile" ON users;
+DROP POLICY IF EXISTS "Users can update their own profile" ON users;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON users;
+
 -- Policy to allow users to read their own profile
 CREATE POLICY "Users can read their own profile" ON users
     FOR SELECT USING (auth.uid() = auth_user_id);

@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -84,7 +83,7 @@ export default function PricingAngolaPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [countryFilter, setCountryFilter] = useState<'all' | 'FR' | 'ALL'>('all');
+
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
@@ -104,20 +103,18 @@ export default function PricingAngolaPage() {
   }, [currentPage]);
 
   useEffect(() => {
-    console.log('useEffect[vehicles, searchTerm, countryFilter]: filter vehicles');
-    // Filter vehicles based on search term and location filter
+    console.log('useEffect[vehicles, searchTerm]: filter vehicles');
+    // Filter vehicles based on search term only
     const filtered = vehicles.filter(vehicle => {
       const matchesSearch =
         vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesCountry = countryFilter === 'all' || vehicle.location === countryFilter;
-
-      return matchesSearch && matchesCountry;
+      return matchesSearch;
     });
 
     setFilteredVehicles(filtered);
-  }, [vehicles, searchTerm, countryFilter]);
+  }, [vehicles, searchTerm]);
 
   const fetchPricingStats = async () => {
     try {
@@ -156,17 +153,31 @@ export default function PricingAngolaPage() {
 
       if (todayError) throw todayError;
 
-      // 4. Get average posts per user this month
-      const { data: avgData, error: avgError } = await supabase
-        .rpc('get_average_posts_per_user_this_month');
+      // 4. Get average posts per user this month (placeholder for now)
+      let avgData = 0;
+      try {
+        const { data: avgResult, error: avgError } = await supabase
+          .rpc('get_average_posts_per_user_this_month');
+        if (!avgError && avgResult !== null) {
+          avgData = avgResult;
+        }
+      } catch (error) {
+        console.warn("Function get_average_posts_per_user_this_month not available, using default value");
+        avgData = 0;
+      }
 
-      if (avgError) throw avgError;
-
-      // 5. Get best pricer this month
-      const { data: bestPricerData, error: bestPricerError } = await supabase
-        .rpc('get_best_pricer_this_month');
-
-      if (bestPricerError) throw bestPricerError;
+      // 5. Get best pricer this month (placeholder for now)
+      let bestPricerData = null;
+      try {
+        const { data: bestResult, error: bestPricerError } = await supabase
+          .rpc('get_best_pricer_this_month');
+        if (!bestPricerError && bestResult) {
+          bestPricerData = bestResult;
+        }
+      } catch (error) {
+        console.warn("Function get_best_pricer_this_month not available, using default value");
+        bestPricerData = null;
+      }
 
       // 6. Get vehicles to be posted
       const { data: toPostData, error: toPostError } = await supabase
@@ -612,29 +623,14 @@ export default function PricingAngolaPage() {
                 <Car className="h-5 w-5" />
                 Véhicules pricés ce mois-ci
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={countryFilter}
-                  onValueChange={(value) => setCountryFilter(value as 'all' | 'FR' | 'ALL')}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Pays d'origine" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les pays</SelectItem>
-                    <SelectItem value="FR">France 🇫🇷</SelectItem>
-                    <SelectItem value="ALL">Allemagne 🇩🇪</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-60"
-                  />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-60"
+                />
               </div>
             </div>
           </CardHeader>
@@ -656,7 +652,7 @@ export default function PricingAngolaPage() {
                 <Car className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun véhicule trouvé</h3>
                 <p className="text-gray-500 mt-2">
-                  {searchTerm || countryFilter !== 'all'
+                  {searchTerm
                     ? 'Essayez de modifier vos filtres de recherche.'
                     : 'Aucun véhicule n\'a été pricé ce mois-ci.'}
                 </p>
@@ -776,7 +772,7 @@ export default function PricingAngolaPage() {
               </Link>
               <Button variant="outline" className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white">
                 <Filter className="mr-2 h-4 w-4" />
-                Filtrer par pays
+                Filtrer
               </Button>
               <Button variant="outline" className="border-gray-300">
                 <Flag className="mr-2 h-4 w-4" />
