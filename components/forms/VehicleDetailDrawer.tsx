@@ -69,6 +69,9 @@ interface VehicleData {
   emissions?: number;
   created_at?: string;
   updated_at?: string;
+  // Additional fields from joins
+  brands?: { name: string };
+  models?: { name: string };
 }
 
 interface AdvertisementData {
@@ -147,15 +150,27 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
   const fetchVehicleData = async (id: string) => {
     setLoading(true);
     try {
-      // Fetch vehicle data
+      // Fetch vehicle data with joins for brand and model names
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('cars_v2')
-        .select('*')
+        .select(`
+          *,
+          brands!left(name),
+          models!left(name)
+        `)
         .eq('id', id)
         .single();
 
       if (vehicleError) throw vehicleError;
-      setVehicle(vehicleData);
+
+      // Transform the data to include brand and model names
+      const transformedVehicle = {
+        ...vehicleData,
+        brand: (vehicleData.brands as any)?.name || 'N/A',
+        model: (vehicleData.models as any)?.name || 'N/A'
+      };
+
+      setVehicle(transformedVehicle);
 
       // Fetch advertisement data
       const { data: adData, error: adError } = await supabase

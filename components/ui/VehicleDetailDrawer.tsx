@@ -2,21 +2,17 @@ import { supabase } from '@/lib/supabase';
 import {
   Car,
   ChevronRight,
-  Download,
-  Eye,
   FileText,
   Loader2,
-  Mail,
-  Printer,
   Receipt,
   X
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 
+import { DocumentForm } from '@/components/forms/DocumentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Drawer,
   DrawerClose,
@@ -26,13 +22,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { DocumentForm } from '@/components/forms/DocumentForm';
 
 // Types
 interface VehicleDetailDrawerProps {
@@ -67,6 +58,9 @@ interface VehicleData {
   emissions?: number;
   created_at?: string;
   updated_at?: string;
+  // Additional fields from joins
+  brands?: { name: string };
+  models?: { name: string };
 }
 
 interface AdvertisementData {
@@ -143,15 +137,27 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
   const fetchVehicleData = async (id: string) => {
     setLoading(true);
     try {
-      // Fetch vehicle data
+      // Fetch vehicle data with joins for brand and model names
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('cars_v2')
-        .select('*')
+        .select(`
+          *,
+          brands!left(name),
+          models!left(name)
+        `)
         .eq('id', id)
         .single();
 
       if (vehicleError) throw vehicleError;
-      setVehicle(vehicleData);
+
+      // Transform the data to include brand and model names
+      const transformedVehicle = {
+        ...vehicleData,
+        brand: (vehicleData.brands as any)?.name || 'N/A',
+        model: (vehicleData.models as any)?.name || 'N/A'
+      };
+
+      setVehicle(transformedVehicle);
 
       // Fetch advertisement data
       const { data: adData, error: adError } = await supabase
