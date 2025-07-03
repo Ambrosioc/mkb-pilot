@@ -78,7 +78,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             first_registration: '',
             mileage: 0,
             color: '',
-            vehicle_type_id: undefined,
+            car_type_id: undefined,
             fuel_type_id: undefined,
             doors: 5,
             seats: 5,
@@ -152,7 +152,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 first_registration: data.first_registration,
                 mileage: data.mileage,
                 color: data.color,
-                vehicle_type_id: vehicleTypes.find(t => t.id === Number(data.vehicle_type_id))?.id,
+                car_type_id: vehicleTypes.find(t => t.id === Number(data.car_type_id))?.id,
                 fuel_type_id: fuelTypes.find(f => f.id === Number(data.fuel_type_id))?.id,
                 dealer_id: dealers.find(d => d.id === Number(data.dealer_id))?.id,
                 dossier_type_id: dossierTypes.find(d => d.id === Number(data.dossier_type_id))?.id,
@@ -473,7 +473,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             first_registration: '',
             mileage: undefined,
             color: '',
-            vehicle_type_id: undefined,
+            car_type_id: undefined,
             fuel_type_id: undefined,
             doors: 5,
             seats: 5,
@@ -720,7 +720,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FormField
                                         control={vehicleForm.control}
-                                        name="vehicle_type_id"
+                                        name="car_type_id"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="text-mkb-black font-medium">Type de véhicule *</FormLabel>

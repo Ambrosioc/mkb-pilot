@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Uploads a single image to the server
+ * Uploads a single image to the Infomaniak server via SFTP
  * @param file The file to upload
  * @param reference The vehicle reference (used for folder name)
  * @param car_id The vehicle ID in the database
@@ -18,8 +18,27 @@ export async function uploadImageToServer(
   formData.append('car_id', car_id.toString());
 
   try {
+    // Get the current session token
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'Token d\'authentification manquant. Veuillez vous reconnecter.',
+      };
+    }
+
     const response = await fetch('/api/upload', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
       body: formData,
     });
 
@@ -45,7 +64,7 @@ export async function uploadImageToServer(
 }
 
 /**
- * Uploads multiple images to the server
+ * Uploads multiple images to the Infomaniak server via SFTP
  * @param files Array of files to upload
  * @param reference The vehicle reference
  * @param car_id The vehicle ID in the database

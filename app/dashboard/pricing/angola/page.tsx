@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
+import { uniq } from 'lodash';
 import {
   ArrowLeft,
   ArrowRight,
@@ -293,20 +294,18 @@ export default function PricingAngolaPage() {
       const from = (page - 1) * VEHICLES_PER_PAGE;
       const to = from + VEHICLES_PER_PAGE - 1;
 
+      // 1. Récupérer les véhicules avec user_id
       const { data, error, count } = await supabase
         .from('cars_v2')
         .select(`
           id,
-          brand,
-          model,
           price,
           purchase_price,
           location,
           created_at,
-          users:user_id (
-            prenom,
-            nom
-          )
+          user_id,
+          brands!inner(name),
+          models!inner(name)
         `, { count: 'exact' })
         .gte('created_at', firstDayOfMonth.toISOString())
         .order('created_at', { ascending: false })
@@ -314,19 +313,34 @@ export default function PricingAngolaPage() {
 
       if (error) throw error;
 
-      // Transform data
+      // 2. Extraire tous les user_id uniques
+      const userIds = uniq((data || []).map(item => item.user_id).filter(Boolean));
+
+      // 3. Récupérer les utilisateurs correspondants
+      let usersMap = {};
+      if (userIds.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('auth_user_id, prenom, nom')
+          .in('auth_user_id', userIds);
+        if (!usersError && usersData) {
+          usersMap = usersData.reduce((acc, user) => {
+            acc[user.auth_user_id] = { prenom: user.prenom, nom: user.nom };
+            return acc;
+          }, {});
+        }
+      }
+
+      // 4. Mapper les infos utilisateur sur chaque véhicule
       const transformedData = (data || []).map(item => ({
         id: item.id,
-        brand: item.brand || 'N/A',
-        model: item.model || 'N/A',
+        brand: item.brands?.name || 'N/A',
+        model: item.models?.name || 'N/A',
         price: item.price || 0,
         purchase_price: item.purchase_price || 0,
         location: item.location || 'FR',
         created_at: item.created_at,
-        user: {
-          prenom: item.users?.[0]?.prenom || 'Utilisateur',
-          nom: item.users?.[0]?.nom || 'inconnu'
-        }
+        user: usersMap[item.user_id] || { prenom: 'Utilisateur', nom: 'inconnu' }
       }));
 
       setVehicles(transformedData);
@@ -345,8 +359,14 @@ export default function PricingAngolaPage() {
           })
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la récupération des véhicules:', error);
+      console.error('Détails de l\'erreur:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      });
       toast.error('Erreur lors du chargement des véhicules');
     } finally {
       setLoading(false);

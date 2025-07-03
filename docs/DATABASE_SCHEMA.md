@@ -102,8 +102,8 @@ CREATE TABLE cars_v2 (
     location TEXT DEFAULT 'FR',
     description TEXT,
     status TEXT DEFAULT 'disponible' CHECK (status IN ('disponible', 'vendue', 'en attente', 'annulée', 'prêt à poster')),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    posted_by_user UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_id UUID, -- Stores auth.uid() directly
+    posted_by_user UUID, -- Stores auth.uid() directly
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -129,7 +129,7 @@ CREATE TABLE advertisements (
 CREATE TABLE post_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     car_id UUID REFERENCES cars_v2(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_id UUID, -- Stores auth.uid() directly
     post_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     platform TEXT, -- Optional: which platform was posted to
     status TEXT DEFAULT 'posted' CHECK (status IN ('posted', 'failed', 'pending'))

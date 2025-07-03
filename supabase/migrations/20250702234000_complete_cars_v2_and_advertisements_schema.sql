@@ -87,8 +87,8 @@ CREATE TABLE cars_v2 (
     location TEXT DEFAULT 'FR',
     description TEXT,
     status TEXT DEFAULT 'disponible' CHECK (status IN ('disponible', 'vendue', 'en attente', 'annulée', 'prêt à poster')),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    posted_by_user UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_id UUID,
+    posted_by_user UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -110,7 +110,7 @@ CREATE TABLE advertisements (
 CREATE TABLE IF NOT EXISTS post_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     car_id UUID REFERENCES cars_v2(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    user_id UUID,
     post_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     platform TEXT, -- Optional: which platform was posted to
     status TEXT DEFAULT 'posted' CHECK (status IN ('posted', 'failed', 'pending'))
@@ -180,13 +180,13 @@ CREATE POLICY "Users can view all vehicles" ON cars_v2
     FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert their own vehicles" ON cars_v2
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Users can update their own vehicles" ON cars_v2
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Users can delete their own vehicles" ON cars_v2
-    FOR DELETE USING (auth.uid() = user_id);
+    FOR DELETE USING (auth.uid()::text = user_id::text);
 
 -- RLS Policies for advertisements
 CREATE POLICY "Users can view all advertisements" ON advertisements
@@ -224,7 +224,7 @@ CREATE POLICY "Users can view all post logs" ON post_logs
     FOR SELECT USING (true);
 
 CREATE POLICY "Users can insert their own post logs" ON post_logs
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

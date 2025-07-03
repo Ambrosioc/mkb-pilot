@@ -214,8 +214,8 @@ async function uploadViaSftp(
       throw uploadError;
     }
 
-    // Construire l'URL publique correcte
-    const publicUrl = `https://mkbautomobile.com/photos/${reference}/${fileName}`;
+    // Construire l'URL publique correcte avec le sous-domaine images
+    const publicUrl = `https://images.mkbautomobile.com/photos/${reference}/${fileName}`;
     console.log(`URL publique générée: ${publicUrl}`);
     
     return {
