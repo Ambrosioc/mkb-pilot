@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 // Import dynamique des pages
 const DashboardPage = dynamic(() => import('@/app/dashboard/page'), { ssr: false });
 const StockPage = dynamic(() => import('@/app/dashboard/stock/page'), { ssr: false });
+const NewStockPage = dynamic(() => import('@/app/dashboard/stock/new/page'), { ssr: false });
 const ContactsPage = dynamic(() => import('@/app/dashboard/contacts/page'), { ssr: false });
 const CommercialPage = dynamic(() => import('@/app/dashboard/commercial/page'), { ssr: false });
 const ACSGPage = dynamic(() => import('@/app/dashboard/acsg/page'), { ssr: false });
@@ -16,6 +17,7 @@ const ITPage = dynamic(() => import('@/app/dashboard/it/page'), { ssr: false });
 const EntretienPage = dynamic(() => import('@/app/dashboard/entretien/page'), { ssr: false });
 const CoordinationPage = dynamic(() => import('@/app/dashboard/coordination/page'), { ssr: false });
 const PricingPage = dynamic(() => import('@/app/dashboard/pricing/page'), { ssr: false });
+const PricingToPostPage = dynamic(() => import('@/app/dashboard/pricing/to-post/page'), { ssr: false });
 const PricingAngolaPage = dynamic(() => import('@/app/dashboard/pricing/angola/page'), { ssr: false });
 const PricingAngolaAddPage = dynamic(() => import('@/app/dashboard/pricing/angola/add/page'), { ssr: false });
 const DirectionGeneralePage = dynamic(() => import('@/app/dashboard/direction-generale/page'), { ssr: false });
@@ -44,6 +46,8 @@ export function TabRenderer() {
       return <DashboardPage />;
     case '/dashboard/stock':
       return <StockPage />;
+    case '/dashboard/stock/new':
+      return <NewStockPage />;
     case '/dashboard/contacts':
       return <ContactsPage />;
     case '/dashboard/commercial':
@@ -62,6 +66,8 @@ export function TabRenderer() {
       return <CoordinationPage />;
     case '/dashboard/pricing':
       return <PricingPage />;
+    case '/dashboard/pricing/to-post':
+      return <PricingToPostPage />;
     case '/dashboard/pricing/angola':
       return <PricingAngolaPage />;
     case '/dashboard/pricing/angola/add':

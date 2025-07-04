@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePricingStats } from '@/hooks/usePricingStats';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import {
@@ -24,39 +25,26 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-interface PricingStats {
-    voDisponibles: number;
-    vehiculesPostesMois: number;
-    vehiculesPostesJour: number;
-    moyennePostsCollaborateur: number;
-    bestPriceur: {
-        userId: string;
-        total: number;
-        name?: string;
-    } | null;
-    vehiculesAPoster: number;
-    loading: boolean;
-}
-
 export default function PricingPage() {
     const router = useRouter();
-    const [stats, setStats] = useState<PricingStats>({
-        voDisponibles: 0,
-        vehiculesPostesMois: 0,
-        vehiculesPostesJour: 0,
-        moyennePostsCollaborateur: 0,
-        bestPriceur: null,
-        vehiculesAPoster: 0,
-        loading: true
-    });
+    const [voDisponibles, setVoDisponibles] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    // Utiliser le nouveau hook pour les statistiques
+    const {
+        postedStats,
+        vehiclesToPost,
+        loading: statsLoading,
+        error: statsError
+    } = usePricingStats();
 
     useEffect(() => {
-        fetchPricingStats();
+        fetchVoDisponibles();
     }, []);
 
-    const fetchPricingStats = async () => {
+    const fetchVoDisponibles = async () => {
         try {
-            // 1. VO disponibles
+            // VO disponibles (véhicules en stock avec status 'disponible')
             const { data: voDisponiblesData, error: voDisponiblesError } = await supabase
                 .from('cars_v2')
                 .select('count')
@@ -65,99 +53,12 @@ export default function PricingPage() {
 
             if (voDisponiblesError) throw voDisponiblesError;
 
-            // 2. Véhicules postés ce mois-ci
-            const { data: vehiculesPostesMoisData, error: vehiculesPostesMoisError } = await supabase
-                .from('cars_v2')
-                .select('count')
-                .not('created_at', 'is', null)
-                .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-                .single();
-
-            if (vehiculesPostesMoisError) throw vehiculesPostesMoisError;
-
-            // 3. Véhicules postés aujourd'hui
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const { data: vehiculesPostesJourData, error: vehiculesPostesJourError } = await supabase
-                .from('cars_v2')
-                .select('count')
-                .not('created_at', 'is', null)
-                .gte('created_at', today.toISOString())
-                .lt('created_at', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString())
-                .single();
-
-            if (vehiculesPostesJourError) throw vehiculesPostesJourError;
-
-            // 4. Moyenne de posts / collaborateur sur le mois (placeholder pour l'instant)
-            let moyennePostsData = 0;
-            try {
-                const { data: avgData, error: moyennePostsError } = await supabase
-                    .rpc('get_average_posts_per_user_this_month');
-                if (!moyennePostsError && avgData !== null) {
-                    moyennePostsData = avgData;
-                }
-            } catch (error) {
-                console.warn("Function get_average_posts_per_user_this_month not available, using default value");
-                moyennePostsData = 0;
-            }
-
-            // 5. Best priceur du mois (placeholder pour l'instant)
-            let bestPriceurData = null;
-            try {
-                const { data: bestData, error: bestPriceurError } = await supabase
-                    .rpc('get_best_pricer_this_month');
-                if (!bestPriceurError && bestData) {
-                    bestPriceurData = bestData;
-                }
-            } catch (error) {
-                console.warn("Function get_best_pricer_this_month not available, using default value");
-                bestPriceurData = null;
-            }
-
-            // 6. Nombre de véhicules à poster
-            const { data: vehiculesAPosterData, error: vehiculesAPosterError } = await supabase
-                .from('cars_v2')
-                .select('count')
-                .eq('status', 'prêt à poster')
-                .single();
-
-            if (vehiculesAPosterError) throw vehiculesAPosterError;
-
-            // Si le best priceur existe, récupérer son nom
-            let bestPriceurName = '';
-            if (bestPriceurData && bestPriceurData.length > 0) {
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('prenom, nom')
-                    .eq('id', bestPriceurData[0].user_id)
-                    .single();
-
-                if (!userError && userData) {
-                    bestPriceurName = `${userData.prenom} ${userData.nom}`;
-                }
-            }
-
-            setStats({
-                voDisponibles: voDisponiblesData?.count || 0,
-                vehiculesPostesMois: vehiculesPostesMoisData?.count || 0,
-                vehiculesPostesJour: vehiculesPostesJourData?.count || 0,
-                moyennePostsCollaborateur: moyennePostsData || 0,
-                bestPriceur: bestPriceurData && bestPriceurData.length > 0
-                    ? {
-                        userId: bestPriceurData[0].user_id,
-                        total: bestPriceurData[0].total,
-                        name: bestPriceurName
-                    }
-                    : null,
-                vehiculesAPoster: vehiculesAPosterData?.count || 0,
-                loading: false
-            });
-
+            setVoDisponibles(voDisponiblesData?.count || 0);
         } catch (error) {
-            console.error('Erreur lors de la récupération des statistiques:', error);
+            console.error('Erreur lors de la récupération des VO disponibles:', error);
             toast.error('Erreur lors du chargement des données');
-            setStats(prev => ({ ...prev, loading: false }));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -207,10 +108,10 @@ export default function PricingPage() {
                         <Car className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {loading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
                         ) : (
-                            <div className="text-2xl font-bold text-mkb-black">{stats.voDisponibles}</div>
+                            <div className="text-2xl font-bold text-mkb-black">{voDisponibles}</div>
                         )}
                         <p className="text-xs text-gray-500 mb-4">
                             Véhicules actuellement en stock
@@ -236,10 +137,10 @@ export default function PricingPage() {
                         <Calendar className="h-4 w-4 text-mkb-blue" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
                         ) : (
-                            <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesPostesMois}</div>
+                            <div className="text-2xl font-bold text-mkb-black">{postedStats.posted_this_month}</div>
                         )}
                         <p className="text-xs text-gray-500 mb-4">
                             Publications depuis le début du mois
@@ -259,15 +160,15 @@ export default function PricingPage() {
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600">
-                            Véhicules postés aujourd'hui
+                            Véhicules postés aujourd&apos;hui
                         </CardTitle>
                         <Clock className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
                         ) : (
-                            <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesPostesJour}</div>
+                            <div className="text-2xl font-bold text-mkb-black">{postedStats.posted_today}</div>
                         )}
                         <p className="text-xs text-gray-500 mb-4">
                             Publications du jour
@@ -292,10 +193,10 @@ export default function PricingPage() {
                         <Users className="h-4 w-4 text-mkb-yellow" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
                         ) : (
-                            <div className="text-2xl font-bold text-mkb-black">{stats.moyennePostsCollaborateur}</div>
+                            <div className="text-2xl font-bold text-mkb-black">{postedStats.avg_posts_per_user.toFixed(1)}</div>
                         )}
                         <p className="text-xs text-gray-500 mb-4">
                             Moyenne mensuelle par utilisateur
@@ -320,12 +221,14 @@ export default function PricingPage() {
                         <Crown className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
-                        ) : stats.bestPriceur ? (
+                        ) : postedStats.best_pricer_user_id ? (
                             <div className="flex items-center gap-2">
-                                <div className="text-2xl font-bold text-mkb-black">{stats.bestPriceur.name || 'Utilisateur #' + stats.bestPriceur.userId.substring(0, 4)}</div>
-                                <Badge className="bg-yellow-100 text-yellow-800">🔥 {stats.bestPriceur.total} posts</Badge>
+                                <div className="text-2xl font-bold text-mkb-black">
+                                    {postedStats.best_pricer_name || `Utilisateur #${postedStats.best_pricer_user_id.substring(0, 8)}`}
+                                </div>
+                                <Badge className="bg-yellow-100 text-yellow-800">🔥 {postedStats.best_pricer_total} posts</Badge>
                             </div>
                         ) : (
                             <div className="text-sm text-gray-500">Aucune donnée disponible</div>
@@ -337,7 +240,7 @@ export default function PricingPage() {
                             variant="outline"
                             size="sm"
                             className="w-full"
-                            disabled={!stats.bestPriceur}
+                            disabled={!postedStats.best_pricer_user_id}
                         >
                             Voir le profil
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -354,10 +257,10 @@ export default function PricingPage() {
                         <ListChecks className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <Skeleton className="h-8 w-24 mb-2" />
                         ) : (
-                            <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesAPoster}</div>
+                            <div className="text-2xl font-bold text-mkb-black">{vehiclesToPost.length}</div>
                         )}
                         <p className="text-xs text-gray-500 mb-4">
                             Véhicules prêts à être publiés
@@ -366,6 +269,7 @@ export default function PricingPage() {
                             variant="outline"
                             size="sm"
                             className="w-full"
+                            onClick={() => router.push('/dashboard/pricing/to-post')}
                         >
                             Voir la liste
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -391,7 +295,7 @@ export default function PricingPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {stats.loading ? (
+                        {statsLoading ? (
                             <div className="space-y-3">
                                 <Skeleton className="h-[250px] w-full" />
                             </div>

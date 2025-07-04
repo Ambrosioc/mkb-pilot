@@ -1,29 +1,30 @@
 import { BaseEmail } from '../base';
-import { ResetPasswordEmailProps } from '../types';
+import { ResetPasswordProps } from '../types';
 
 /**
  * Template d'email de réinitialisation de mot de passe
  */
 export function ResetPasswordTemplate({
-  email,
+  recipientEmail,
+  recipientName,
   token,
   ctaLink,
   expiresIn = '1 heure',
   previewText
-}: ResetPasswordEmailProps) {
+}: ResetPasswordProps) {
   return (
     <BaseEmail
       title="Réinitialisation de votre mot de passe"
-      previewText={previewText || `Réinitialisation du mot de passe pour ${email}`}
+      previewText={previewText || `Réinitialisation du mot de passe pour ${recipientEmail}`}
     >
       <h1 style={{ color: '#2bbbdc', textAlign: 'center', marginBottom: '20px' }}>
         Réinitialisation de votre mot de passe
       </h1>
 
-      <p>Bonjour,</p>
+      <p>Bonjour {recipientName},</p>
 
       <p>
-        Vous avez demandé la réinitialisation de votre mot de passe pour le compte associé à l'adresse <strong>{email}</strong>.
+        Vous avez demandé la réinitialisation de votre mot de passe pour le compte associé à l'adresse <strong>{recipientEmail}</strong>.
       </p>
 
       <p style={{ color: '#666', fontSize: '16px', lineHeight: '1.6', marginBottom: '20px' }}>

@@ -355,31 +355,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 5. Déterminer le nom du fichier (photo-1.jpg, photo-2.jpg, etc.)
+    // 5. Utiliser le nom du fichier envoyé par le client
+    const fileName = file.name; // Utiliser le nom original du fichier
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    
-    // Récupérer le nombre de photos existantes pour déterminer le numéro
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json(
-        { success: false, error: 'Configuration Supabase manquante' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const { data: existingAd } = await supabase
-      .from('advertisements')
-      .select('photos')
-      .eq('car_id', car_id)
-      .maybeSingle();
-
-    const existingPhotos = existingAd?.photos || [];
-    const photoNumber = existingPhotos.length + 1;
-    const fileName = `photo-${photoNumber}.${fileExtension}`;
 
     console.log(`Début upload: ${fileName} pour reference: ${reference}`);
 
@@ -408,7 +386,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: true,
       filePath: uploadResult.filePath,
       message: uploadResult.message,
-      photoNumber: photoNumber
+      photoNumber: fileName.split('-').pop()?.split('.')[0]
     });
 
   } catch (error) {

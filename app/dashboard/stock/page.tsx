@@ -25,6 +25,7 @@ import {
   Receipt,
   User
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -75,6 +76,7 @@ const stockMetrics: StockMetric[] = [
 ];
 
 export default function StockPage() {
+  const router = useRouter();
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [isVehicleDrawerOpen, setIsVehicleDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
@@ -265,7 +267,7 @@ export default function StockPage() {
         <div className="flex items-center gap-3">
           <Button
             className="bg-mkb-blue hover:bg-mkb-blue/90"
-            onClick={() => setIsVehicleDrawerOpen(true)}
+            onClick={() => router.push('/dashboard/stock/new')}
           >
             <Plus className="h-4 w-4 mr-2" />
             Ajouter Véhicule
@@ -360,7 +362,7 @@ export default function StockPage() {
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau véhicule.</p>
                 <Button
                   className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
-                  onClick={() => setIsVehicleDrawerOpen(true)}
+                  onClick={() => router.push('/dashboard/stock/new')}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un véhicule
@@ -555,7 +557,7 @@ export default function StockPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Button
                 className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
-                onClick={() => setIsVehicleDrawerOpen(true)}
+                onClick={() => router.push('/dashboard/stock/new')}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Nouveau Véhicule

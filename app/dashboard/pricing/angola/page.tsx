@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
+import { usePricingStats, type PostedVehicle } from '@/hooks/usePricingStats';
 import { motion } from 'framer-motion';
-import { uniq } from 'lodash';
 import {
   ArrowLeft,
   ArrowRight,
@@ -30,70 +29,34 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-interface PricingStats {
-  vehiculesTotal: number;
-  vehiculesPostesMois: number;
-  vehiculesPostesJour: number;
-  moyennePostsCollaborateur: number;
-  bestPriceur: {
-    userId: string;
-    total: number;
-    name?: string;
-  } | null;
-  vehiculesAPoster: number;
-  userStats: {
-    postedToday: number;
-    postedThisMonth: number;
-  };
-  loading: boolean;
-}
-
-interface Vehicle {
-  id: string;
-  brand: string;
-  model: string;
-  price: number;
-  purchase_price: number;
-  location: 'FR' | 'ALL';
-  created_at: string;
-  user: {
-    prenom: string;
-    nom: string;
-  };
-}
-
 const VEHICLES_PER_PAGE = 10;
 const VEHICLE_CACHE_KEY = 'priced_vehicles_month_cache';
 
 export default function PricingAngolaPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [stats, setStats] = useState<PricingStats>({
-    vehiculesTotal: 0,
-    vehiculesPostesMois: 0,
-    vehiculesPostesJour: 0,
-    moyennePostsCollaborateur: 0,
-    bestPriceur: null,
-    vehiculesAPoster: 0,
-    userStats: {
-      postedToday: 0,
-      postedThisMonth: 0
-    },
-    loading: true
-  });
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<PostedVehicle[]>([]);
+  const [filteredVehicles, setFilteredVehicles] = useState<PostedVehicle[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const fetchedStatsRef = useRef(false);
 
+  // Utiliser le nouveau hook pour les statistiques
+  const {
+    postedStats,
+    vehiclesToPost,
+    loading: statsLoading,
+    error: statsError,
+    fetchPostedVehicles,
+    refreshStats
+  } = usePricingStats();
+
   useEffect(() => {
     console.log('useEffect[]: fetchPricingStats');
     if (!fetchedStatsRef.current) {
-      fetchPricingStats();
+      fetchPostedVehiclesStats();
       fetchedStatsRef.current = true;
     }
   }, []);
@@ -108,8 +71,8 @@ export default function PricingAngolaPage() {
     // Filter vehicles based on search term only
     const filtered = vehicles.filter(vehicle => {
       const matchesSearch =
-        vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
+        vehicle.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.model_name.toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesSearch;
     });
@@ -117,144 +80,10 @@ export default function PricingAngolaPage() {
     setFilteredVehicles(filtered);
   }, [vehicles, searchTerm]);
 
-  const fetchPricingStats = async () => {
-    try {
-      setStats(prev => ({ ...prev, loading: true }));
-
-      // 1. Get total vehicles
-      const { data: totalData, error: totalError } = await supabase
-        .from('cars_v2')
-        .select('count')
-        .single();
-
-      if (totalError) throw totalError;
-
-      // 2. Get vehicles posted this month
-      const firstDayOfMonth = new Date();
-      firstDayOfMonth.setDate(1);
-      firstDayOfMonth.setHours(0, 0, 0, 0);
-
-      const { data: monthData, error: monthError } = await supabase
-        .from('cars_v2')
-        .select('count')
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .single();
-
-      if (monthError) throw monthError;
-
-      // 3. Get vehicles posted today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const { data: todayData, error: todayError } = await supabase
-        .from('cars_v2')
-        .select('count')
-        .gte('created_at', today.toISOString())
-        .single();
-
-      if (todayError) throw todayError;
-
-      // 4. Get average posts per user this month (placeholder for now)
-      let avgData = 0;
-      try {
-        const { data: avgResult, error: avgError } = await supabase
-          .rpc('get_average_posts_per_user_this_month');
-        if (!avgError && avgResult !== null) {
-          avgData = avgResult;
-        }
-      } catch (error) {
-        console.warn("Function get_average_posts_per_user_this_month not available, using default value");
-        avgData = 0;
-      }
-
-      // 5. Get best pricer this month (placeholder for now)
-      let bestPricerData = null;
-      try {
-        const { data: bestResult, error: bestPricerError } = await supabase
-          .rpc('get_best_pricer_this_month');
-        if (!bestPricerError && bestResult) {
-          bestPricerData = bestResult;
-        }
-      } catch (error) {
-        console.warn("Function get_best_pricer_this_month not available, using default value");
-        bestPricerData = null;
-      }
-
-      // 6. Get vehicles to be posted
-      const { data: toPostData, error: toPostError } = await supabase
-        .from('cars_v2')
-        .select('count')
-        .eq('status', 'prêt à poster')
-        .single();
-
-      if (toPostError) throw toPostError;
-
-      // 7. Get current user stats if logged in
-      let userStats = { postedToday: 0, postedThisMonth: 0 };
-
-      if (user) {
-        // Today's posts by user
-        const { data: userTodayData, error: userTodayError } = await supabase
-          .from('cars_v2')
-          .select('count')
-          .eq('user_id', user.id)
-          .gte('created_at', today.toISOString())
-          .single();
-
-        if (!userTodayError && userTodayData) {
-          userStats.postedToday = userTodayData.count || 0;
-        }
-
-        // Month's posts by user
-        const { data: userMonthData, error: userMonthError } = await supabase
-          .from('cars_v2')
-          .select('count')
-          .eq('user_id', user.id)
-          .gte('created_at', firstDayOfMonth.toISOString())
-          .single();
-
-        if (!userMonthError && userMonthData) {
-          userStats.postedThisMonth = userMonthData.count || 0;
-        }
-      }
-
-      // 8. Get best pricer name if available
-      let bestPricerName = '';
-      if (bestPricerData && bestPricerData.length > 0) {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('prenom, nom')
-          .eq('id', bestPricerData[0].user_id)
-          .single();
-
-        if (!userError && userData) {
-          bestPricerName = `${userData.prenom} ${userData.nom}`;
-        }
-      }
-
-      // Update stats state
-      setStats({
-        vehiculesTotal: totalData?.count || 0,
-        vehiculesPostesMois: monthData?.count || 0,
-        vehiculesPostesJour: todayData?.count || 0,
-        moyennePostsCollaborateur: avgData || 0,
-        bestPriceur: bestPricerData && bestPricerData.length > 0
-          ? {
-            userId: bestPricerData[0].user_id,
-            total: bestPricerData[0].total,
-            name: bestPricerName
-          }
-          : null,
-        vehiculesAPoster: toPostData?.count || 0,
-        userStats,
-        loading: false
-      });
-
-    } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques:', error);
-      toast.error('Erreur lors du chargement des données');
-      setStats(prev => ({ ...prev, loading: false }));
-    }
+  const fetchPostedVehiclesStats = async () => {
+    // Cette fonction est maintenant gérée par le hook usePricingStats
+    // On peut l'appeler pour rafraîchir les données si nécessaire
+    refreshStats();
   };
 
   const fetchVehicles = async (page = 1, forceRefresh = false) => {
@@ -290,70 +119,20 @@ export default function PricingAngolaPage() {
         }
       }
 
-      // Fetch paginé depuis l'API
-      const from = (page - 1) * VEHICLES_PER_PAGE;
-      const to = from + VEHICLES_PER_PAGE - 1;
+      // Utiliser le nouveau hook pour récupérer les véhicules postés
+      const result = await fetchPostedVehicles(page, VEHICLES_PER_PAGE, forceRefresh);
 
-      // 1. Récupérer les véhicules avec user_id
-      const { data, error, count } = await supabase
-        .from('cars_v2')
-        .select(`
-          id,
-          price,
-          purchase_price,
-          location,
-          created_at,
-          user_id,
-          brands!inner(name),
-          models!inner(name)
-        `, { count: 'exact' })
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (error) throw error;
-
-      // 2. Extraire tous les user_id uniques
-      const userIds = uniq((data || []).map(item => item.user_id).filter(Boolean));
-
-      // 3. Récupérer les utilisateurs correspondants
-      let usersMap = {};
-      if (userIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('auth_user_id, prenom, nom')
-          .in('auth_user_id', userIds);
-        if (!usersError && usersData) {
-          usersMap = usersData.reduce((acc, user) => {
-            acc[user.auth_user_id] = { prenom: user.prenom, nom: user.nom };
-            return acc;
-          }, {});
-        }
-      }
-
-      // 4. Mapper les infos utilisateur sur chaque véhicule
-      const transformedData = (data || []).map(item => ({
-        id: item.id,
-        brand: item.brands?.name || 'N/A',
-        model: item.models?.name || 'N/A',
-        price: item.price || 0,
-        purchase_price: item.purchase_price || 0,
-        location: item.location || 'FR',
-        created_at: item.created_at,
-        user: usersMap[item.user_id] || { prenom: 'Utilisateur', nom: 'inconnu' }
-      }));
-
-      setVehicles(transformedData);
-      setFilteredVehicles(transformedData);
-      setTotalVehicles(count || 0);
+      setVehicles(result.vehicles);
+      setFilteredVehicles(result.vehicles);
+      setTotalVehicles(result.total);
 
       // Mettre à jour le cache
       if (typeof window !== 'undefined') {
         localStorage.setItem(
           VEHICLE_CACHE_KEY,
           JSON.stringify({
-            vehicles: transformedData,
-            total: count || 0,
+            vehicles: result.vehicles,
+            total: result.total,
             lastFetched: new Date().toISOString(),
             page
           })
@@ -396,7 +175,7 @@ export default function PricingAngolaPage() {
   // Fonction pour rafraîchir les données
   const refreshData = async () => {
     await Promise.all([
-      fetchPricingStats(),
+      refreshStats(),
       fetchVehicles(currentPage, true) // forceRefresh = true
     ]);
   };
@@ -453,10 +232,10 @@ export default function PricingAngolaPage() {
             <Calendar className="h-4 w-4 text-mkb-blue" />
           </CardHeader>
           <CardContent>
-            {stats.loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-24 mb-2" />
             ) : (
-              <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesPostesMois}</div>
+              <div className="text-2xl font-bold text-mkb-black">{postedStats.posted_this_month}</div>
             )}
             <p className="text-xs text-gray-500 mb-4">
               Publications depuis le début du mois
@@ -477,15 +256,15 @@ export default function PricingAngolaPage() {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
-              Véhicules postés aujourd'hui
+              Véhicules postés aujourd&apos;hui
             </CardTitle>
             <Target className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            {stats.loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-24 mb-2" />
             ) : (
-              <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesPostesJour}</div>
+              <div className="text-2xl font-bold text-mkb-black">{postedStats.posted_today}</div>
             )}
             <p className="text-xs text-gray-500 mb-4">
               Publications du jour
@@ -510,10 +289,10 @@ export default function PricingAngolaPage() {
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            {stats.loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-24 mb-2" />
             ) : (
-              <div className="text-2xl font-bold text-mkb-black">{stats.moyennePostsCollaborateur}</div>
+              <div className="text-2xl font-bold text-mkb-black">{postedStats.avg_posts_per_user.toFixed(1)}</div>
             )}
             <p className="text-xs text-gray-500 mb-4">
               Moyenne mensuelle par utilisateur
@@ -538,12 +317,14 @@ export default function PricingAngolaPage() {
             <TrendingUp className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            {stats.loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-24 mb-2" />
-            ) : stats.bestPriceur ? (
+            ) : postedStats.best_pricer_user_id ? (
               <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-mkb-black">{stats.bestPriceur.name || 'Utilisateur #' + stats.bestPriceur.userId.substring(0, 4)}</div>
-                <Badge className="bg-yellow-100 text-yellow-800">🔥 {stats.bestPriceur.total} posts</Badge>
+                <div className="text-2xl font-bold text-mkb-black">
+                  {postedStats.best_pricer_name || `Utilisateur #${postedStats.best_pricer_user_id.substring(0, 8)}`}
+                </div>
+                <Badge className="bg-yellow-100 text-yellow-800">🔥 {postedStats.best_pricer_total} posts</Badge>
               </div>
             ) : (
               <div className="text-sm text-gray-500">Aucune donnée disponible</div>
@@ -555,7 +336,7 @@ export default function PricingAngolaPage() {
               variant="outline"
               size="sm"
               className="w-full"
-              disabled={!stats.bestPriceur}
+              disabled={!postedStats.best_pricer_user_id}
             >
               Voir le profil
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -572,10 +353,10 @@ export default function PricingAngolaPage() {
             <Car className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            {stats.loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-24 mb-2" />
             ) : (
-              <div className="text-2xl font-bold text-mkb-black">{stats.vehiculesAPoster}</div>
+              <div className="text-2xl font-bold text-mkb-black">{vehiclesToPost.length}</div>
             )}
             <p className="text-xs text-gray-500 mb-4">
               Véhicules prêts à être publiés
@@ -584,6 +365,7 @@ export default function PricingAngolaPage() {
               variant="outline"
               size="sm"
               className="w-full"
+              onClick={() => router.push('/dashboard/pricing/to-post')}
             >
               Voir la liste
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -601,17 +383,17 @@ export default function PricingAngolaPage() {
               <User className="h-4 w-4 text-mkb-blue" />
             </CardHeader>
             <CardContent>
-              {stats.loading ? (
+              {statsLoading ? (
                 <Skeleton className="h-8 w-24 mb-2" />
               ) : (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Aujourd'hui:</span>
-                    <span className="font-bold text-mkb-blue">{stats.userStats.postedToday}</span>
+                    <span className="text-sm text-gray-600">Aujourd&apos;hui:</span>
+                    <span className="font-bold text-mkb-blue">{postedStats.user_posted_today}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Ce mois:</span>
-                    <span className="font-bold text-mkb-blue">{stats.userStats.postedThisMonth}</span>
+                    <span className="font-bold text-mkb-blue">{postedStats.user_posted_this_month}</span>
                   </div>
                 </div>
               )}
@@ -691,7 +473,7 @@ export default function PricingAngolaPage() {
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700"><MapPinned /></th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix de vente</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix d'achat</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix d&apos;achat</th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Marge</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Pricé par</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
@@ -714,7 +496,7 @@ export default function PricingAngolaPage() {
                         >
                           <td className="py-3 px-4">
                             <div className="text-mkb-black">
-                              {vehicle.brand} {vehicle.model}
+                              {vehicle.brand_name} {vehicle.model_name}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -741,7 +523,7 @@ export default function PricingAngolaPage() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="text-sm">
-                              {vehicle.user.prenom} {vehicle.user.nom}
+                              {vehicle.posted_by_user_name}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-600">

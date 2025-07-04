@@ -75,17 +75,26 @@ export async function uploadMultipleImages(
   reference: string,
   car_id: number
 ): Promise<{ success: boolean; filePaths: string[]; errors: string[] }> {
-  const results = await Promise.all(
+  // Utiliser Promise.allSettled pour préserver l'ordre des résultats
+  const results = await Promise.allSettled(
     files.map(file => uploadImageToServer(file, reference, car_id))
   );
 
-  const filePaths = results
-    .filter(result => result.success && result.filePath)
-    .map(result => result.filePath as string);
+  const filePaths: string[] = [];
+  const errors: string[] = [];
 
-  const errors = results
-    .filter(result => !result.success && result.error)
-    .map(result => result.error as string);
+  // Traiter les résultats dans l'ordre original
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      if (result.value.success && result.value.filePath) {
+        filePaths.push(result.value.filePath);
+      } else if (result.value.error) {
+        errors.push(result.value.error);
+      }
+    } else {
+      errors.push(result.reason || `Upload failed for file ${index + 1}`);
+    }
+  });
 
   return {
     success: errors.length === 0,
@@ -126,7 +135,7 @@ export async function uploadProfilePhoto(
 
       if (!listError && existingFiles && existingFiles.length > 0) {
         // Delete all existing profile photos
-        const filesToDelete = existingFiles.map(file => `${userId}/${file.name}`);
+        const filesToDelete = existingFiles.map((file: any) => `${userId}/${file.name}`);
         
         const { error: deleteError } = await supabase.storage
           .from('profile')

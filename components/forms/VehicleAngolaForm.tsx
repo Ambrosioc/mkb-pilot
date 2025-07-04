@@ -166,7 +166,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 fiscal_power: data.fiscal_power,
                 status: 'disponible',
                 user_id: user?.id,
-                posted_by_user: user?.id,
+                add_by_user: user?.id,
             };
 
             let result;
@@ -234,7 +234,8 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 title: data.title,
                 description: data.description,
                 price: data.price,
-                photos: []
+                photos: [],
+                posted_by_user: user?.id,
             };
 
             let result;

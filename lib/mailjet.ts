@@ -79,7 +79,7 @@ export async function sendEmail(options: EmailOptions) {
     const result = await mailjet.post('send', { version: 'v3.1' }).request(data);
     
     if (process.env.NODE_ENV === 'development') {
-  
+
     }
     
     return {
