@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
     const result = await sendEmail({
       recipients: to,
       subject,

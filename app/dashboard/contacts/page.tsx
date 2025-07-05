@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { VehicleDetailDrawer } from '@/components/ui/VehicleDetailDrawer';
 import { useSearchableDataFetching } from '@/hooks/useDataFetching';
 import { Contact, contactService } from '@/lib/services/contactService';
+import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import {
   Building2,
@@ -268,16 +269,125 @@ export default function ContactsPage() {
 
     setIsSendingGroupEmail(true);
     try {
-      // Simuler l'envoi d'email
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Récupérer les contacts sélectionnés avec leurs emails
+      const selectedContactsData = contacts.filter(contact =>
+        selectedContacts.includes(contact.id) && contact.email
+      );
 
-      toast.success(`Email envoyé à ${selectedContacts.length} contact(s)`);
+      if (selectedContactsData.length === 0) {
+        toast.error('Aucun contact sélectionné n\'a d\'adresse email valide');
+        return;
+      }
+
+      // Récupérer le token d'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Erreur d\'authentification');
+        return;
+      }
+
+      // Envoyer les emails un par un avec délai
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < selectedContactsData.length; i++) {
+        const contact = selectedContactsData[i];
+
+        try {
+          // Vérifier que la session est toujours valide
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.access_token) {
+            throw new Error('Session expirée');
+          }
+
+          const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentSession.access_token}`,
+            },
+            body: JSON.stringify({
+              to: [{ Email: contact.email, Name: contact.nom }],
+              subject: groupEmailData.subject,
+              htmlContent: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>${groupEmailData.subject}</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .content { background-color: #f9f9f9; padding: 20px; border-radius: 5px; }
+                    .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>MKB Automobile</h1>
+                    </div>
+                    <div class="content">
+                      <p>Bonjour ${contact.nom},</p>
+                      <div style="white-space: pre-line;">${groupEmailData.message}</div>
+                      <p>Cordialement,<br>L'équipe MKB Automobile</p>
+                    </div>
+                    <div class="footer">
+                      <p>© ${new Date().getFullYear()} MKB Automobile. Tous droits réservés.</p>
+                      <p>Cet email a été envoyé à ${contact.email}</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+              `,
+              textContent: `Bonjour ${contact.nom},\n\n${groupEmailData.message}\n\nCordialement,\nL'équipe MKB Automobile`
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+            const errorMsg = `Erreur envoi email à ${contact.email}: ${result.error || 'Erreur inconnue'}`;
+            errors.push(errorMsg);
+            console.error(errorMsg);
+          }
+        } catch (error) {
+          errorCount++;
+          const errorMsg = `Erreur envoi email à ${contact.email}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
+          errors.push(errorMsg);
+          console.error(errorMsg);
+        }
+
+        // Délai entre les envois pour éviter le rate limiting (sauf pour le dernier)
+        if (i < selectedContactsData.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Afficher le résultat
+      if (successCount > 0) {
+        toast.success(`${successCount} email(s) envoyé(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`);
+      } else {
+        toast.error('Aucun email n\'a pu être envoyé');
+      }
+
       setIsGroupEmailOpen(false);
       setGroupEmailData({ subject: '', message: '' });
       setSelectedContacts([]);
       setSelectAll(false);
     } catch (error) {
-      toast.error('Erreur lors de l\'envoi de l\'email');
+      console.error('Erreur lors de l\'envoi des emails groupés:', error);
+      toast.error('Erreur lors de l\'envoi des emails');
     } finally {
       setIsSendingGroupEmail(false);
     }

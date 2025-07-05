@@ -46,11 +46,6 @@ export async function sendEmail(options: EmailOptions) {
     replyTo,
   } = options;
 
-  // Logs de debug pour le développement uniquement
-  if (process.env.NODE_ENV === 'development') {
-
-  }
-
   try {
     // Préparer les données pour l'API Mailjet
     const data = {
@@ -77,10 +72,6 @@ export async function sendEmail(options: EmailOptions) {
 
     // Envoyer l'email via l'API Mailjet
     const result = await mailjet.post('send', { version: 'v3.1' }).request(data);
-    
-    if (process.env.NODE_ENV === 'development') {
-
-    }
     
     return {
       success: true,
