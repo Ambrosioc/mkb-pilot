@@ -155,8 +155,8 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
         .from('cars_v2')
         .select(`
           *,
-          brands!left(name),
-          models!left(name)
+          brands(name),
+          models(name)
         `)
         .eq('id', id)
         .single();
