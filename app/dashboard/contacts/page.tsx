@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
 import { TagsManagementDialog } from '@/components/ui/TagsManagementDialog';
 import { Textarea } from '@/components/ui/textarea';
+import { VehicleDetailDrawer } from '@/components/ui/VehicleDetailDrawer';
 import { useSearchableDataFetching } from '@/hooks/useDataFetching';
 import { Contact, contactService } from '@/lib/services/contactService';
 import { motion } from 'framer-motion';
@@ -81,6 +82,8 @@ export default function ContactsPage() {
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isTagsManagementOpen, setIsTagsManagementOpen] = useState(false);
   const [isGroupEmailOpen, setIsGroupEmailOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [isVehicleDetailOpen, setIsVehicleDetailOpen] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -228,6 +231,11 @@ export default function ContactsPage() {
   const handleViewContact = (contactId: string) => {
     setSelectedContact(contactId);
     setIsDetailDrawerOpen(true);
+  };
+
+  const handleVehicleClick = (vehicleId: string) => {
+    setSelectedVehicle(vehicleId);
+    setIsVehicleDetailOpen(true);
   };
 
   const handleSelectContact = (contactId: string, isChecked: boolean) => {
@@ -613,6 +621,7 @@ export default function ContactsPage() {
           onOpenChange={setIsDetailDrawerOpen}
           contactId={selectedContact}
           onContactUpdated={handleContactUpdated}
+          onVehicleClick={handleVehicleClick}
         />
       )}
 
@@ -685,6 +694,15 @@ export default function ContactsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Vehicle Detail Drawer */}
+      {isVehicleDetailOpen && selectedVehicle && (
+        <VehicleDetailDrawer
+          open={isVehicleDetailOpen}
+          onOpenChange={setIsVehicleDetailOpen}
+          vehicleId={selectedVehicle}
+        />
+      )}
     </div>
   );
 }

@@ -47,6 +47,7 @@ interface ContactDetailDrawerProps {
     onOpenChange: (open: boolean) => void;
     contactId?: string;
     onContactUpdated?: () => void;
+    onVehicleClick?: (vehicleId: string) => void;
 }
 
 interface Contact {
@@ -84,11 +85,15 @@ interface Document {
     id: string;
     type: string;
     date: string;
-    total_price: number;
+    final_price: number;
     status: string;
+    number: string;
+    vehicle_id: string;
+    // Vehicle data from join
+    cars_v2?: any;
 }
 
-export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUpdated }: ContactDetailDrawerProps) {
+export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUpdated, onVehicleClick }: ContactDetailDrawerProps) {
     const [activeTab, setActiveTab] = useState('details');
     const [contact, setContact] = useState<Contact | null>(null);
     const [tags, setTags] = useState<string[]>([]);
@@ -160,10 +165,50 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                 setInteractions(interactionsData);
             }
 
-            // Initialize empty arrays for vehicles and documents
-            // In a real app, we would fetch these from the database
-            setVehicles([]);
-            setDocuments([]);
+            // Fetch documents (devis and factures) for this contact
+            const { data: documentsData, error: documentsError } = await supabase
+                .from('sales_documents')
+                .select(`
+                    id,
+                    type,
+                    date,
+                    final_price,
+                    status,
+                    number,
+                    vehicle_id,
+                    cars_v2!vehicle_id(
+                        reference,
+                        year,
+                        brands(name),
+                        models(name)
+                    )
+                `)
+                .eq('contact_id', id)
+                .order('date', { ascending: false });
+
+            if (!documentsError && documentsData) {
+                setDocuments(documentsData as any);
+            } else {
+                console.error('Erreur lors de la récupération des documents:', documentsError);
+                setDocuments([]);
+            }
+
+            // Extract unique vehicles from documents
+            const uniqueVehicles = new Map();
+            if (documentsData) {
+                documentsData.forEach((doc: any) => {
+                    if (doc.cars_v2 && doc.vehicle_id && !uniqueVehicles.has(doc.vehicle_id)) {
+                        uniqueVehicles.set(doc.vehicle_id, {
+                            id: doc.vehicle_id,
+                            brand: doc.cars_v2.brands?.name || 'N/A',
+                            model: doc.cars_v2.models?.name || 'N/A',
+                            year: doc.cars_v2.year,
+                            reference: doc.cars_v2.reference
+                        });
+                    }
+                });
+            }
+            setVehicles(Array.from(uniqueVehicles.values()));
 
         } catch (error) {
             console.error('Error fetching contact data:', error);
@@ -320,6 +365,27 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
         if (onContactUpdated) {
             onContactUpdated();
         }
+    };
+
+    const handleVehicleClick = (vehicleId: string) => {
+        if (onVehicleClick) {
+            onVehicleClick(vehicleId);
+        }
+    };
+
+    const handleViewDocument = (documentId: string) => {
+        // Open document in new tab
+        window.open(`/api/documents/${documentId}/pdf`, '_blank');
+    };
+
+    const handleDownloadDocument = (documentId: string) => {
+        // Download document
+        const link = document.createElement('a');
+        link.href = `/api/documents/${documentId}/pdf`;
+        link.download = `document-${documentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const getTypeColor = (type: string) => {
@@ -815,7 +881,12 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <Button variant="ghost" size="sm">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleVehicleClick(vehicle.id)}
+                                                                    title="Voir le véhicule"
+                                                                >
                                                                     <Eye className="h-4 w-4" />
                                                                 </Button>
                                                             </div>
@@ -845,23 +916,40 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                                     )}
                                                                     <div>
                                                                         <p className="font-medium text-mkb-black">
-                                                                            {document.type === 'devis' ? 'Devis' : 'Facture'} du {formatDate(document.date)}
+                                                                            {document.type === 'devis' ? 'Devis' : 'Facture'} {document.number}
                                                                         </p>
                                                                         <p className="text-xs text-gray-500">
-                                                                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(document.total_price)}
+                                                                            {formatDate(document.date)}
+                                                                            {' • '}
+                                                                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(document.final_price)}
                                                                             {' • '}
                                                                             {document.status === 'sent' ? 'Envoyé' :
                                                                                 document.status === 'paid' ? 'Payé' :
-                                                                                    document.status === 'pending' ? 'En attente' :
+                                                                                    document.status === 'created' ? 'Créé' :
                                                                                         document.status}
                                                                         </p>
+                                                                        {document.cars_v2 && (
+                                                                            <p className="text-xs text-gray-400 mt-1">
+                                                                                {document.cars_v2.brands?.name} {document.cars_v2.models?.name} ({document.cars_v2.year}) - {document.cars_v2.reference}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex gap-1">
-                                                                    <Button variant="ghost" size="sm">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleViewDocument(document.id)}
+                                                                        title="Voir le document"
+                                                                    >
                                                                         <Eye className="h-4 w-4" />
                                                                     </Button>
-                                                                    <Button variant="ghost" size="sm">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleDownloadDocument(document.id)}
+                                                                        title="Télécharger le document"
+                                                                    >
                                                                         <Download className="h-4 w-4" />
                                                                     </Button>
                                                                 </div>
