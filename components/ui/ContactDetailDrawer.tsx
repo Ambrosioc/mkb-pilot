@@ -17,6 +17,7 @@ import {
     Phone,
     Plus,
     Receipt,
+    Send,
     User,
     X
 } from 'lucide-react';
@@ -109,6 +110,8 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
     const [isAddingNoteLoading, setIsAddingNoteLoading] = useState(false);
     const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [sendingDocumentId, setSendingDocumentId] = useState<string | null>(null);
 
     // Fetch contact data when drawer opens
     useEffect(() => {
@@ -386,6 +389,74 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleSendDocumentByEmail = async (document: Document) => {
+        if (!contact?.email) {
+            toast.error('Ce contact n\'a pas d\'adresse email');
+            return;
+        }
+
+        setIsSendingEmail(true);
+        setSendingDocumentId(document.id);
+
+        try {
+            // Récupérer le contenu PDF du document
+            const { data: documentData, error: documentError } = await supabase
+                .from('sales_documents')
+                .select('pdf_content, number, type')
+                .eq('id', document.id)
+                .single();
+
+            if (documentError || !documentData?.pdf_content) {
+                throw new Error('Impossible de récupérer le contenu du document');
+            }
+
+            // Préparer les informations du véhicule
+            const vehicleInfo = document.cars_v2
+                ? `${document.cars_v2.brands?.name} ${document.cars_v2.models?.name} (${document.cars_v2.year}) - ${document.cars_v2.reference}`
+                : 'Véhicule non spécifié';
+
+            // Envoyer l'email via l'API
+            const response = await fetch('/api/send-email', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                },
+                body: JSON.stringify({
+                    documentId: document.id,
+                    recipientEmail: contact.email,
+                    recipientName: contact.nom,
+                    documentType: documentData.type,
+                    documentNumber: documentData.number,
+                    pdfBase64: documentData.pdf_content,
+                    vehicleInfo,
+                    message: undefined,
+                    sendCopy: false
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Erreur lors de l\'envoi');
+            }
+
+            toast.success(`${document.type === 'devis' ? 'Devis' : 'Facture'} envoyé par email avec succès`);
+
+            // Rafraîchir les données du contact pour mettre à jour le statut
+            if (contactId) {
+                fetchContactData(contactId);
+            }
+
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi de l\'email:', error);
+            toast.error('Erreur lors de l\'envoi de l\'email');
+        } finally {
+            setIsSendingEmail(false);
+            setSendingDocumentId(null);
+        }
     };
 
     const getTypeColor = (type: string) => {
@@ -952,6 +1023,21 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                                     >
                                                                         <Download className="h-4 w-4" />
                                                                     </Button>
+                                                                    {contact?.email && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleSendDocumentByEmail(document)}
+                                                                            disabled={isSendingEmail && sendingDocumentId === document.id}
+                                                                            title="Envoyer par email"
+                                                                        >
+                                                                            {isSendingEmail && sendingDocumentId === document.id ? (
+                                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Send className="h-4 w-4" />
+                                                                            )}
+                                                                        </Button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         ))}
