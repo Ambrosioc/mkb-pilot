@@ -257,7 +257,8 @@ export default function PriceVehicleDrawer({
                 description: data.description,
                 price: vehicle.price,
                 photos: imageUrls,
-                status: data.status
+                status: data.status,
+                posted_by_user: user.id
             };
 
             console.log('📝 Données de l\'annonce à créer:', advertisementData);

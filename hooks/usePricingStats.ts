@@ -78,7 +78,7 @@ export function usePricingStats(
         .rpc('get_posted_vehicles_stats', {
           p_start_date: startDate?.toISOString() || null,
           p_end_date: endDate?.toISOString() || null,
-          p_user_id: userId || user?.id || null
+          p_user_id: userId || null // Ne pas utiliser user?.id pour les stats globales
         });
 
       if (statsError) {
@@ -149,7 +149,7 @@ export function usePricingStats(
         .rpc('get_posted_vehicles', {
           p_start_date: startDate?.toISOString() || null,
           p_end_date: endDate?.toISOString() || null,
-          p_user_id: userId || user?.id || null,
+          p_user_id: userId || null, // Ne pas utiliser user?.id pour récupérer tous les véhicules
           p_limit: limit,
           p_offset: offset
         });
@@ -160,12 +160,18 @@ export function usePricingStats(
       }
 
       // Pour obtenir le total, on fait une requête séparée
-      const { count, error: countError } = await supabase
+      let countQuery = supabase
         .from('advertisements')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startDate?.toISOString() || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-        .lt('created_at', endDate?.toISOString() || new Date().toISOString())
-        .eq(userId || user?.id ? 'posted_by_user' : 'posted_by_user', userId || user?.id || 'posted_by_user');
+        .lt('created_at', endDate?.toISOString() || new Date().toISOString());
+
+      // Filtrer par utilisateur seulement si un userId est spécifié
+      if (userId) {
+        countQuery = countQuery.eq('posted_by_user', userId);
+      }
+
+      const { count, error: countError } = await countQuery;
 
       if (countError) {
         console.error('Erreur lors du comptage:', countError);
