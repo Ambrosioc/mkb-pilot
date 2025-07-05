@@ -1,5 +1,6 @@
 'use client';
 
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
 import { ContactDrawer } from '@/components/forms/ContactDrawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { TagsManagementDialog } from '@/components/ui/TagsManagementDialog';
 import { Textarea } from '@/components/ui/textarea';
 import { VehicleDetailDrawer } from '@/components/ui/VehicleDetailDrawer';
 import { useSearchableDataFetching } from '@/hooks/useDataFetching';
+import { usePoleAccess } from '@/hooks/usePoleAccess';
 import { Contact, contactService } from '@/lib/services/contactService';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
@@ -77,7 +79,8 @@ const contactsMetrics: ContactMetric[] = [
   },
 ];
 
-export default function ContactsPage() {
+function ContactsPageContent() {
+  const { canWrite, canManage } = usePoleAccess('Commercial');
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
@@ -448,21 +451,25 @@ export default function ContactsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setIsTagsManagementOpen(true)}
-            className="gap-2"
-          >
-            <Tag className="h-4 w-4" />
-            Gérer les Tags
-          </Button>
-          <Button
-            className="bg-mkb-blue hover:bg-mkb-blue/90"
-            onClick={() => setIsContactDrawerOpen(true)}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Ajouter Contact
-          </Button>
+          {canWrite && (
+            <Button
+              variant="outline"
+              onClick={() => setIsTagsManagementOpen(true)}
+              className="gap-2"
+            >
+              <Tag className="h-4 w-4" />
+              Gérer les Tags
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              className="bg-mkb-blue hover:bg-mkb-blue/90"
+              onClick={() => setIsContactDrawerOpen(true)}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Ajouter Contact
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -529,7 +536,7 @@ export default function ContactsPage() {
               <CardTitle className="text-mkb-black">
                 Contacts ({totalItems})
               </CardTitle>
-              {selectedContacts.length > 0 && (
+              {selectedContacts.length > 0 && canWrite && (
                 <Button
                   variant="outline"
                   onClick={() => setIsGroupEmailOpen(true)}
@@ -563,13 +570,15 @@ export default function ContactsPage() {
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun contact trouvé</h3>
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau contact.</p>
-                <Button
-                  className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
-                  onClick={() => setIsContactDrawerOpen(true)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Ajouter un contact
-                </Button>
+                {canWrite && (
+                  <Button
+                    className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
+                    onClick={() => setIsContactDrawerOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Ajouter un contact
+                  </Button>
+                )}
               </div>
             ) : (
               <>
@@ -578,10 +587,12 @@ export default function ContactsPage() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-3 px-4">
-                          <Checkbox
-                            checked={selectAll}
-                            onCheckedChange={handleSelectAll}
-                          />
+                          {canWrite && (
+                            <Checkbox
+                              checked={selectAll}
+                              onCheckedChange={handleSelectAll}
+                            />
+                          )}
                         </th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
@@ -600,12 +611,14 @@ export default function ContactsPage() {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                            <Checkbox
-                              checked={selectedContacts.includes(contact.id)}
-                              onCheckedChange={(checked) =>
-                                handleSelectContact(contact.id, checked as boolean)
-                              }
-                            />
+                            {canWrite && (
+                              <Checkbox
+                                checked={selectedContacts.includes(contact.id)}
+                                onCheckedChange={(checked) =>
+                                  handleSelectContact(contact.id, checked as boolean)
+                                }
+                              />
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
@@ -661,17 +674,19 @@ export default function ContactsPage() {
                               >
                                 <Eye className="h-3 w-3" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Envoyer email"
-                                onClick={() => {
-                                  setSelectedContacts([contact.id]);
-                                  setIsGroupEmailOpen(true);
-                                }}
-                              >
-                                <Mail className="h-3 w-3" />
-                              </Button>
+                              {canWrite && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Envoyer email"
+                                  onClick={() => {
+                                    setSelectedContacts([contact.id]);
+                                    setIsGroupEmailOpen(true);
+                                  }}
+                                >
+                                  <Mail className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </motion.tr>
@@ -816,3 +831,8 @@ export default function ContactsPage() {
     </div>
   );
 }
+
+export default withPoleAccess(ContactsPageContent, {
+  poleName: 'Commercial',
+  requiredAccess: 'read'
+});

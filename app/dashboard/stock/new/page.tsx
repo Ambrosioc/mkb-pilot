@@ -1,5 +1,6 @@
 'use client';
 
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
 import { VehicleStockForm } from '@/components/forms/VehicleStockForm';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -7,7 +8,7 @@ import { ArrowLeft, Car } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function NewVehiclePage() {
+function NewVehiclePageContent() {
     const router = useRouter();
 
     const handleSuccess = () => {
@@ -61,4 +62,9 @@ export default function NewVehiclePage() {
             </motion.div>
         </div>
     );
-} 
+}
+
+export default withPoleAccess(NewVehiclePageContent, {
+    poleName: 'Stock',
+    requiredAccess: 'write'
+}); 

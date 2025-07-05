@@ -10,7 +10,6 @@ import {
   Loader2,
   Mail,
   Printer,
-  Receipt,
   X
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -791,28 +790,11 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
                           <p className="text-gray-500 mt-2">Générez un devis ou une facture pour ce véhicule.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button
-                            className="h-20 bg-mkb-blue hover:bg-mkb-blue/90"
-                            onClick={() => handleCreateDocument('devis')}
-                          >
-                            <FileText className="h-6 w-6 mr-3" />
-                            <div className="text-left">
-                              <div className="font-medium">Créer un devis</div>
-                              <div className="text-xs opacity-90">Générer un devis pour ce véhicule</div>
-                            </div>
-                          </Button>
-
-                          <Button
-                            className="h-20 bg-mkb-yellow hover:bg-mkb-yellow/90 text-mkb-black"
-                            onClick={() => handleCreateDocument('facture')}
-                          >
-                            <Receipt className="h-6 w-6 mr-3" />
-                            <div className="text-left">
-                              <div className="font-medium">Créer une facture</div>
-                              <div className="text-xs opacity-90">Générer une facture pour ce véhicule</div>
-                            </div>
-                          </Button>
+                        <div className="text-center py-8">
+                          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-700">Accès restreint</h3>
+                          <p className="text-gray-500 mt-2">Vous n&apos;avez pas les permissions nécessaires pour créer des documents.</p>
+                          <p className="text-sm text-gray-400 mt-1">Niveau requis : Écriture (niveau 4 ou moins)</p>
                         </div>
                       </div>
                     )}
@@ -1083,3 +1065,4 @@ export function VehicleDetailDrawer({ open, onOpenChange, vehicleId }: VehicleDe
     </>
   );
 }
+

@@ -17,6 +17,7 @@ export interface Vehicle {
   color: string;
   created_at: string;
   updated_at: string;
+  photos: string[];
 }
 
 export interface VehicleFilters {
@@ -37,7 +38,7 @@ export const vehicleService = {
     const from = (page - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
-    // Construire la requête de base avec jointures
+    // Construire la requête de base avec jointures incluant les photos
     let query = supabase
       .from('cars_v2')
       .select(`
@@ -52,7 +53,8 @@ export const vehicleService = {
         updated_at,
         status,
         brands!inner(name),
-        models!inner(name)
+        models!inner(name),
+        advertisements!left(photos)
       `, { count: 'exact' });
 
     // Appliquer les filtres
@@ -117,6 +119,7 @@ export const vehicleService = {
       color: car.color || 'Non spécifié',
       created_at: car.created_at,
       updated_at: car.updated_at,
+      photos: (car.advertisements as any)?.[0]?.photos || [],
     }));
 
     return {

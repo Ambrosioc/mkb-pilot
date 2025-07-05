@@ -1,5 +1,6 @@
 'use client';
 
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import {
   Car,
   Filter,
   Globe,
+  Image as ImageIcon,
   MapPinned,
   Plus,
   Search,
@@ -32,7 +34,7 @@ const VEHICLES_PER_PAGE = 10;
 const getVehicleCacheKey = (showMyVehiclesOnly: boolean) =>
   `priced_vehicles_month_cache_${showMyVehiclesOnly ? 'my' : 'all'}`;
 
-export default function PricingAngolaPage() {
+function PricingAngolaPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<PostedVehicle[]>([]);
@@ -460,6 +462,7 @@ export default function PricingAngolaPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Photo</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700"><MapPinned /></th>
                       <th className="text-right py-3 px-4 font-semibold text-gray-700">Prix de vente</th>
@@ -486,6 +489,25 @@ export default function PricingAngolaPage() {
                           transition={{ duration: 0.3, delay: index * 0.05 }}
                           className="border-b hover:bg-gray-50"
                         >
+                          <td className="py-3 px-4">
+                            <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                              {vehicle.photos && vehicle.photos.length > 0 ? (
+                                <img
+                                  src={vehicle.photos[0]}
+                                  alt={`${vehicle.brand_name} ${vehicle.model_name}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <div className={`w-full h-full flex items-center justify-center ${vehicle.photos && vehicle.photos.length > 0 ? 'hidden' : ''}`}>
+                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                              </div>
+                            </div>
+                          </td>
                           <td className="py-3 px-4">
                             <div className="text-mkb-black">
                               {vehicle.brand_name} {vehicle.model_name}
@@ -600,3 +622,8 @@ export default function PricingAngolaPage() {
     </div>
   );
 }
+
+export default withPoleAccess(PricingAngolaPageContent, {
+  poleName: 'Pricing',
+  requiredAccess: 'read'
+});

@@ -26,6 +26,7 @@ export interface PostedVehicle {
   created_at: string;
   posted_by_user_id: string;
   posted_by_user_name: string;
+  photos: string[];
 }
 
 export interface VehicleToPost {

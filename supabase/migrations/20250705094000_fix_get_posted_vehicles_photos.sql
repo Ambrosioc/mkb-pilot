@@ -1,42 +1,9 @@
--- Correction des types de retour pour les fonctions de statistiques de pricing
--- get_vehicles_to_post et get_posted_vehicles : car_id et id doivent être UUID
+-- Correction de la fonction get_posted_vehicles pour retourner les photos
+-- Migration: 20250705094000_fix_get_posted_vehicles_photos
 
-DROP FUNCTION IF EXISTS get_vehicles_to_post();
-CREATE OR REPLACE FUNCTION get_vehicles_to_post()
-RETURNS TABLE (
-    car_id UUID,
-    reference TEXT,
-    brand_name TEXT,
-    model_name TEXT,
-    year INTEGER,
-    color TEXT,
-    price NUMERIC,
-    status TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        c.id as car_id,
-        c.reference,
-        b.name as brand_name,
-        m.name as model_name,
-        c.year,
-        c.color,
-        c.price,
-        c.status
-    FROM cars_v2 c
-    LEFT JOIN brands b ON c.brand_id = b.id
-    LEFT JOIN models m ON c.model_id = m.id
-    WHERE c.status = 'disponible'
-    AND NOT EXISTS (
-        SELECT 1 FROM advertisements a 
-        WHERE a.car_id = c.id
-    )
-    ORDER BY c.created_at DESC;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
+-- Supprimer et recréer la fonction pour s'assurer qu'elle retourne les photos
 DROP FUNCTION IF EXISTS get_posted_vehicles(TIMESTAMPTZ, TIMESTAMPTZ, UUID, INTEGER, INTEGER);
+
 CREATE OR REPLACE FUNCTION get_posted_vehicles(
     p_start_date TIMESTAMPTZ DEFAULT NULL,
     p_end_date TIMESTAMPTZ DEFAULT NULL,
@@ -92,4 +59,7 @@ BEGIN
     LIMIT p_limit
     OFFSET p_offset;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER; 
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Ajouter un commentaire pour documenter la correction
+COMMENT ON FUNCTION get_posted_vehicles IS 'Retourne les véhicules postés avec leurs photos'; 

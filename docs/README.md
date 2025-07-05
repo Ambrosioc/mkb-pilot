@@ -370,3 +370,133 @@ npm run build
 **Version :** 1.0.0  
 **Dernière mise à jour :** Décembre 2024  
 **Auteur :** Équipe MKB 
+
+# Documentation - Système de Pôles Métiers et Contrôle d'Accès
+
+## 📚 Fichiers de documentation
+
+### 📖 Documentation principale
+- **[POLES_ET_ROLES.md](./POLES_ET_ROLES.md)** - Documentation complète du système
+  - Architecture et concepts
+  - Base de données et API
+  - Composants frontend et hooks
+  - Exemples d'utilisation
+  - Guide de maintenance
+
+### 📊 Rapports automatiques
+- **[REPORT_POLES.md](./REPORT_POLES.md)** - Rapport des affectations actuelles
+  - Généré automatiquement
+  - Statistiques des pôles et utilisateurs
+  - Répartition par niveaux d'accès
+
+## 🚀 Démarrage rapide
+
+### 1. Comprendre le système
+```bash
+# Lire la documentation principale
+open docs/POLES_ET_ROLES.md
+```
+
+### 2. Vérifier l'état actuel
+```bash
+# Générer le rapport des affectations
+node scripts/generate-docs.js
+
+# Vérifier les permissions d'un utilisateur
+node scripts/test-permissions-summary.js
+```
+
+### 3. Tester les protections
+```bash
+# Tester la protection des documents
+node scripts/test-document-protection.js
+```
+
+## 🎯 Concepts clés
+
+### Pôles métiers
+- **Stock** : Gestion du stock et inventaire
+- **Commercial** : Gestion commerciale et ventes  
+- **Pricing** : Gestion des prix et devis
+- **Direction** : Direction générale et administration
+
+### Niveaux d'accès
+- **Niveau 1-3** : Gestion complète (CRUD)
+- **Niveau 4** : Écriture (CRU)
+- **Niveau 5** : Lecture uniquement (R)
+
+## 🔧 Utilisation
+
+### Protection d'une page
+```typescript
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
+
+function MaPage() {
+  return <div>Contenu protégé</div>;
+}
+
+export default withPoleAccess(MaPage, {
+  poleName: 'Stock',
+  requiredAccess: 'read'
+});
+```
+
+### Protection d'une section
+```typescript
+import { PoleAccessSection } from '@/components/auth/PoleAccessSection';
+
+<PoleAccessSection poleName="Stock" requiredAccess="write">
+  <button>Action protégée</button>
+</PoleAccessSection>
+```
+
+### Utilisation du hook
+```typescript
+import { usePoleAccess } from '@/hooks/usePoleAccess';
+
+const { canWrite, canManage } = usePoleAccess('Stock', 'read');
+```
+
+## 📋 Scripts disponibles
+
+| Script | Description |
+|--------|-------------|
+| `scripts/generate-docs.js` | Génère le rapport des affectations |
+| `scripts/test-permissions-summary.js` | Teste les permissions d'un utilisateur |
+| `scripts/test-document-protection.js` | Teste la protection des documents |
+| `scripts/summary-document-protection.js` | Résumé des protections mises en place |
+
+## 🛠️ Maintenance
+
+### Ajouter un nouveau pôle
+1. Insérer dans la base de données
+2. Ajouter dans la matrice d'accès
+3. Protéger les pages concernées
+4. Mettre à jour la documentation
+
+### Modifier les affectations
+1. Mettre à jour la base de données
+2. Tester avec les scripts
+3. Régénérer la documentation
+
+### Vérifier l'état du système
+```bash
+# Générer un rapport complet
+node scripts/generate-docs.js
+
+# Vérifier les permissions
+node scripts/test-permissions-summary.js
+```
+
+## 📞 Support
+
+Pour toute question sur le système de pôles et rôles :
+
+1. **Consulter la documentation** : `docs/POLES_ET_ROLES.md`
+2. **Vérifier les rapports** : `docs/REPORT_POLES.md`
+3. **Exécuter les tests** : Scripts dans `scripts/`
+4. **Contacter l'équipe** : En cas de problème persistant
+
+---
+
+*Dernière mise à jour : $(date)* 
