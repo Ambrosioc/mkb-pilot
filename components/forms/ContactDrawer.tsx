@@ -149,7 +149,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
 
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <Form form={form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-6">
                 {/* Type de contact */}
                 <FormField
                   control={form.control}
@@ -331,7 +331,7 @@ export function ContactDrawer({ open, onOpenChange, onSuccess }: ContactDrawerPr
                     )}
                   </div>
                 </div>
-              </form>
+              </div>
             </Form>
           </div>
 

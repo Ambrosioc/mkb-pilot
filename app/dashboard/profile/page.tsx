@@ -56,6 +56,7 @@ export default function ProfilePage() {
     const { data: urlData } = supabase.storage
       .from('profile')
       .getPublicUrl(filePath);
+    console.log('Generated URL:', urlData.publicUrl); // Debug log
     return urlData.publicUrl;
   };
 

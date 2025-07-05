@@ -64,10 +64,12 @@ interface Contact {
 
 interface Interaction {
     id: string;
+    contact_id: string;
     type: string;
     date: string;
     description: string;
     created_at: string;
+    updated_at: string;
 }
 
 interface Vehicle {
@@ -158,17 +160,10 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                 setInteractions(interactionsData);
             }
 
-            // In a real app, we would fetch related vehicles and documents
-            // For this demo, we'll use mock data
-            setVehicles([
-                { id: '1', brand: 'Peugeot', model: '308', year: 2023, reference: 'REF-001' },
-                { id: '2', brand: 'Renault', model: 'Clio', year: 2022, reference: 'REF-002' }
-            ]);
-
-            setDocuments([
-                { id: '1', type: 'devis', date: '2024-03-15', total_price: 18500, status: 'sent' },
-                { id: '2', type: 'facture', date: '2024-03-20', total_price: 18500, status: 'paid' }
-            ]);
+            // Initialize empty arrays for vehicles and documents
+            // In a real app, we would fetch these from the database
+            setVehicles([]);
+            setDocuments([]);
 
         } catch (error) {
             console.error('Error fetching contact data:', error);

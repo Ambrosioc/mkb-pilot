@@ -29,6 +29,25 @@ export const contactService = {
     const from = (page - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
+    // Si on filtre par tag, on doit d'abord récupérer les IDs des contacts avec ce tag
+    let contactIds: string[] | null = null;
+    if (filters.tag && filters.tag !== 'all') {
+      const { data: tagData, error: tagError } = await supabase
+        .from('contact_tags')
+        .select('contact_id')
+        .eq('tag', filters.tag);
+
+      if (tagError) {
+        console.error('Erreur lors de la récupération des contacts par tag:', tagError);
+        return { data: [], totalItems: 0 };
+      }
+
+      contactIds = tagData.map(t => t.contact_id);
+      if (contactIds.length === 0) {
+        return { data: [], totalItems: 0 };
+      }
+    }
+
     // Construire la requête de base
     let query = supabase
       .from('contacts')
@@ -50,6 +69,11 @@ export const contactService = {
 
     if (filters.societe && filters.societe !== 'all') {
       query = query.eq('societe', filters.societe);
+    }
+
+    // Appliquer le filtre par tag si nécessaire
+    if (contactIds) {
+      query = query.in('id', contactIds);
     }
 
     // Appliquer le tri et la pagination
@@ -79,16 +103,8 @@ export const contactService = {
       })
     );
 
-    // Filtrer par tag si spécifié
-    let filteredContacts = contactsWithTags;
-    if (filters.tag && filters.tag !== 'all') {
-      filteredContacts = contactsWithTags.filter(contact => 
-        contact.tags.includes(filters.tag!)
-      );
-    }
-
     return {
-      data: filteredContacts,
+      data: contactsWithTags,
       totalItems: count || 0,
     };
   },

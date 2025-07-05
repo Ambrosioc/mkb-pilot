@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuth';
 import { motion } from 'framer-motion';
 import { LogOut, Search, User } from 'lucide-react';
@@ -24,6 +25,15 @@ export const Topbar = memo(() => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  // Function to generate public URL from file path
+  const getPublicUrl = (filePath: string | null) => {
+    if (!filePath) return null;
+    const { data: urlData } = supabase.storage
+      .from('profile')
+      .getPublicUrl(filePath);
+    return urlData.publicUrl;
   };
 
   // Fonction pour générer les initiales à partir du prénom et nom
@@ -86,7 +96,7 @@ export const Topbar = memo(() => {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-gray-100">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={user?.photo_url || ""}
+                    src={getPublicUrl(user?.photo_url || null) || ""}
                     alt="Profile"
                   />
                   <AvatarFallback className="bg-mkb-blue text-white text-sm font-semibold">

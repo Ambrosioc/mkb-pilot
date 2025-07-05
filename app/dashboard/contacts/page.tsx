@@ -93,12 +93,6 @@ export default function ContactsPage() {
   const [availableCompanies, setAvailableCompanies] = useState<string[]>([]);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
-  const [activeFilters, setActiveFilters] = useState({
-    type: 'all',
-    statut: 'actif',
-    tag: 'all',
-    societe: 'all',
-  });
 
   // Configuration de la pagination et du cache
   const paginationConfig = {
@@ -116,10 +110,13 @@ export default function ContactsPage() {
     searchTerm,
     setSearchTerm,
     refetch,
+    filters,
+    updateFilters,
+    clearFilters,
   } = useSearchableDataFetching<Contact>(
     contactService.fetchContacts,
     paginationConfig,
-    { type: 'all', statut: 'actif', tag: 'all' }
+    { type: 'all', statut: 'actif', tag: 'all', societe: 'all' }
   );
 
   // Charger les données initiales
@@ -203,19 +200,11 @@ export default function ContactsPage() {
 
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
-    setActiveFilters(prev => ({ ...prev, [key]: value }));
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    updateFilters(key, value);
   };
 
   const handleClearFilters = () => {
-    const defaultFilters = {
-      type: 'all',
-      statut: 'actif',
-      tag: 'all',
-      societe: 'all',
-    };
-    setActiveFilters(defaultFilters);
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    clearFilters();
   };
 
   const handleRefresh = () => {
@@ -397,7 +386,7 @@ export default function ContactsPage() {
           <CardContent className="pt-6">
             <DataFilters
               filters={filterConfigs}
-              values={activeFilters}
+              values={filters}
               onFilterChange={handleFilterChange}
               onClearFilters={handleClearFilters}
               onRefresh={handleRefresh}
