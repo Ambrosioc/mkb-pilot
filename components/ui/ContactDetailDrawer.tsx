@@ -17,6 +17,7 @@ import {
     Phone,
     Plus,
     Receipt,
+    Send,
     User,
     X
 } from 'lucide-react';
@@ -47,6 +48,7 @@ interface ContactDetailDrawerProps {
     onOpenChange: (open: boolean) => void;
     contactId?: string;
     onContactUpdated?: () => void;
+    onVehicleClick?: (vehicleId: string) => void;
 }
 
 interface Contact {
@@ -64,10 +66,12 @@ interface Contact {
 
 interface Interaction {
     id: string;
+    contact_id: string;
     type: string;
     date: string;
     description: string;
     created_at: string;
+    updated_at: string;
 }
 
 interface Vehicle {
@@ -82,11 +86,15 @@ interface Document {
     id: string;
     type: string;
     date: string;
-    total_price: number;
+    final_price: number;
     status: string;
+    number: string;
+    vehicle_id: string;
+    // Vehicle data from join
+    cars_v2?: any;
 }
 
-export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUpdated }: ContactDetailDrawerProps) {
+export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUpdated, onVehicleClick }: ContactDetailDrawerProps) {
     const [activeTab, setActiveTab] = useState('details');
     const [contact, setContact] = useState<Contact | null>(null);
     const [tags, setTags] = useState<string[]>([]);
@@ -102,6 +110,8 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
     const [isAddingNoteLoading, setIsAddingNoteLoading] = useState(false);
     const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [sendingDocumentId, setSendingDocumentId] = useState<string | null>(null);
 
     // Fetch contact data when drawer opens
     useEffect(() => {
@@ -158,17 +168,50 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                 setInteractions(interactionsData);
             }
 
-            // In a real app, we would fetch related vehicles and documents
-            // For this demo, we'll use mock data
-            setVehicles([
-                { id: '1', brand: 'Peugeot', model: '308', year: 2023, reference: 'REF-001' },
-                { id: '2', brand: 'Renault', model: 'Clio', year: 2022, reference: 'REF-002' }
-            ]);
+            // Fetch documents (devis and factures) for this contact
+            const { data: documentsData, error: documentsError } = await supabase
+                .from('sales_documents')
+                .select(`
+                    id,
+                    type,
+                    date,
+                    final_price,
+                    status,
+                    number,
+                    vehicle_id,
+                    cars_v2!vehicle_id(
+                        reference,
+                        year,
+                        brands(name),
+                        models(name)
+                    )
+                `)
+                .eq('contact_id', id)
+                .order('date', { ascending: false });
 
-            setDocuments([
-                { id: '1', type: 'devis', date: '2024-03-15', total_price: 18500, status: 'sent' },
-                { id: '2', type: 'facture', date: '2024-03-20', total_price: 18500, status: 'paid' }
-            ]);
+            if (!documentsError && documentsData) {
+                setDocuments(documentsData as any);
+            } else {
+                console.error('Erreur lors de la récupération des documents:', documentsError);
+                setDocuments([]);
+            }
+
+            // Extract unique vehicles from documents
+            const uniqueVehicles = new Map();
+            if (documentsData) {
+                documentsData.forEach((doc: any) => {
+                    if (doc.cars_v2 && doc.vehicle_id && !uniqueVehicles.has(doc.vehicle_id)) {
+                        uniqueVehicles.set(doc.vehicle_id, {
+                            id: doc.vehicle_id,
+                            brand: doc.cars_v2.brands?.name || 'N/A',
+                            model: doc.cars_v2.models?.name || 'N/A',
+                            year: doc.cars_v2.year,
+                            reference: doc.cars_v2.reference
+                        });
+                    }
+                });
+            }
+            setVehicles(Array.from(uniqueVehicles.values()));
 
         } catch (error) {
             console.error('Error fetching contact data:', error);
@@ -324,6 +367,95 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
         // Notify parent component
         if (onContactUpdated) {
             onContactUpdated();
+        }
+    };
+
+    const handleVehicleClick = (vehicleId: string) => {
+        if (onVehicleClick) {
+            onVehicleClick(vehicleId);
+        }
+    };
+
+    const handleViewDocument = (documentId: string) => {
+        // Open document in new tab
+        window.open(`/api/documents/${documentId}/pdf`, '_blank');
+    };
+
+    const handleDownloadDocument = (documentId: string) => {
+        // Download document
+        const link = document.createElement('a');
+        link.href = `/api/documents/${documentId}/pdf`;
+        link.download = `document-${documentId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleSendDocumentByEmail = async (document: Document) => {
+        if (!contact?.email) {
+            toast.error('Ce contact n\'a pas d\'adresse email');
+            return;
+        }
+
+        setIsSendingEmail(true);
+        setSendingDocumentId(document.id);
+
+        try {
+            // Récupérer le contenu PDF du document
+            const { data: documentData, error: documentError } = await supabase
+                .from('sales_documents')
+                .select('pdf_content, number, type')
+                .eq('id', document.id)
+                .single();
+
+            if (documentError || !documentData?.pdf_content) {
+                throw new Error('Impossible de récupérer le contenu du document');
+            }
+
+            // Préparer les informations du véhicule
+            const vehicleInfo = document.cars_v2
+                ? `${document.cars_v2.brands?.name} ${document.cars_v2.models?.name} (${document.cars_v2.year}) - ${document.cars_v2.reference}`
+                : 'Véhicule non spécifié';
+
+            // Envoyer l'email via l'API
+            const response = await fetch('/api/send-email', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                },
+                body: JSON.stringify({
+                    documentId: document.id,
+                    recipientEmail: contact.email,
+                    recipientName: contact.nom,
+                    documentType: documentData.type,
+                    documentNumber: documentData.number,
+                    pdfBase64: documentData.pdf_content,
+                    vehicleInfo,
+                    message: undefined,
+                    sendCopy: false
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Erreur lors de l\'envoi');
+            }
+
+            toast.success(`${document.type === 'devis' ? 'Devis' : 'Facture'} envoyé par email avec succès`);
+
+            // Rafraîchir les données du contact pour mettre à jour le statut
+            if (contactId) {
+                fetchContactData(contactId);
+            }
+
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi de l\'email:', error);
+            toast.error('Erreur lors de l\'envoi de l\'email');
+        } finally {
+            setIsSendingEmail(false);
+            setSendingDocumentId(null);
         }
     };
 
@@ -820,7 +952,12 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <Button variant="ghost" size="sm">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => handleVehicleClick(vehicle.id)}
+                                                                    title="Voir le véhicule"
+                                                                >
                                                                     <Eye className="h-4 w-4" />
                                                                 </Button>
                                                             </div>
@@ -850,25 +987,57 @@ export function ContactDetailDrawer({ open, onOpenChange, contactId, onContactUp
                                                                     )}
                                                                     <div>
                                                                         <p className="font-medium text-mkb-black">
-                                                                            {document.type === 'devis' ? 'Devis' : 'Facture'} du {formatDate(document.date)}
+                                                                            {document.type === 'devis' ? 'Devis' : 'Facture'} {document.number}
                                                                         </p>
                                                                         <p className="text-xs text-gray-500">
-                                                                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(document.total_price)}
+                                                                            {formatDate(document.date)}
+                                                                            {' • '}
+                                                                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(document.final_price)}
                                                                             {' • '}
                                                                             {document.status === 'sent' ? 'Envoyé' :
                                                                                 document.status === 'paid' ? 'Payé' :
-                                                                                    document.status === 'pending' ? 'En attente' :
+                                                                                    document.status === 'created' ? 'Créé' :
                                                                                         document.status}
                                                                         </p>
+                                                                        {document.cars_v2 && (
+                                                                            <p className="text-xs text-gray-400 mt-1">
+                                                                                {document.cars_v2.brands?.name} {document.cars_v2.models?.name} ({document.cars_v2.year}) - {document.cars_v2.reference}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex gap-1">
-                                                                    <Button variant="ghost" size="sm">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleViewDocument(document.id)}
+                                                                        title="Voir le document"
+                                                                    >
                                                                         <Eye className="h-4 w-4" />
                                                                     </Button>
-                                                                    <Button variant="ghost" size="sm">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => handleDownloadDocument(document.id)}
+                                                                        title="Télécharger le document"
+                                                                    >
                                                                         <Download className="h-4 w-4" />
                                                                     </Button>
+                                                                    {contact?.email && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleSendDocumentByEmail(document)}
+                                                                            disabled={isSendingEmail && sendingDocumentId === document.id}
+                                                                            title="Envoyer par email"
+                                                                        >
+                                                                            {isSendingEmail && sendingDocumentId === document.id ? (
+                                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Send className="h-4 w-4" />
+                                                                            )}
+                                                                        </Button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         ))}

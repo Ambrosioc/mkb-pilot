@@ -78,7 +78,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             first_registration: '',
             mileage: 0,
             color: '',
-            vehicle_type_id: undefined,
+            car_type_id: undefined,
             fuel_type_id: undefined,
             doors: 5,
             seats: 5,
@@ -152,7 +152,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 first_registration: data.first_registration,
                 mileage: data.mileage,
                 color: data.color,
-                vehicle_type_id: vehicleTypes.find(t => t.id === Number(data.vehicle_type_id))?.id,
+                car_type_id: vehicleTypes.find(t => t.id === Number(data.car_type_id))?.id,
                 fuel_type_id: fuelTypes.find(f => f.id === Number(data.fuel_type_id))?.id,
                 dealer_id: dealers.find(d => d.id === Number(data.dealer_id))?.id,
                 dossier_type_id: dossierTypes.find(d => d.id === Number(data.dossier_type_id))?.id,
@@ -166,7 +166,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 fiscal_power: data.fiscal_power,
                 status: 'disponible',
                 user_id: user?.id,
-                posted_by_user: user?.id,
+                add_by_user: user?.id,
             };
 
             let result;
@@ -234,7 +234,8 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                 title: data.title,
                 description: data.description,
                 price: data.price,
-                photos: []
+                photos: [],
+                posted_by_user: user?.id,
             };
 
             let result;
@@ -471,9 +472,9 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             model_id: undefined,
             year: new Date().getFullYear(),
             first_registration: '',
-            mileage: 0,
+            mileage: undefined,
             color: '',
-            vehicle_type_id: undefined,
+            car_type_id: undefined,
             fuel_type_id: undefined,
             doors: 5,
             seats: 5,
@@ -482,8 +483,8 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
             gearbox: '',
             din_power: undefined,
             fiscal_power: undefined,
-            price: 0,
-            purchase_price: 0,
+            price: undefined,
+            purchase_price: undefined,
             description: '',
             location: ''
         });
@@ -720,7 +721,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FormField
                                         control={vehicleForm.control}
-                                        name="vehicle_type_id"
+                                        name="car_type_id"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="text-mkb-black font-medium">Type de véhicule *</FormLabel>
@@ -835,9 +836,9 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                             <SelectValue placeholder="Sélectionner" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="3">3 portes</SelectItem>
-                                                            <SelectItem value="4">4 portes</SelectItem>
-                                                            <SelectItem value="5">5 portes</SelectItem>
+                                                            <SelectItem value="3">3</SelectItem>
+                                                            <SelectItem value="4">4</SelectItem>
+                                                            <SelectItem value="5">5</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </FormControl>
@@ -863,7 +864,7 @@ export function VehicleAngolaForm({ onSuccess, onCancel }: VehicleAngolaFormProp
                                                         <SelectContent>
                                                             {[2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                                                                 <SelectItem key={num} value={num.toString()}>
-                                                                    {num} places
+                                                                    {num}
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>

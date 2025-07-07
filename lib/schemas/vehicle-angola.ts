@@ -26,7 +26,7 @@ export const vehicleAngolaSchema = z.object({
   
   color: z.string().min(1, "La couleur est obligatoire"),
   
-  vehicle_type_id: z.number({
+  car_type_id: z.number({
     required_error: "Le type de véhicule est obligatoire",
     invalid_type_error: "Le type de véhicule doit être un nombre",
   }).or(z.string().transform(val => parseInt(val, 10))),

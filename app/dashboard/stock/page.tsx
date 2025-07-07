@@ -1,5 +1,6 @@
 'use client';
 
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
 import { VehicleDetailDrawer } from '@/components/forms/VehicleDetailDrawer';
 import { VehicleDrawer } from '@/components/forms/VehicleDrawer';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { DataFilters, FilterConfig } from '@/components/ui/DataFilters';
 import { Pagination } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSearchableDataFetching } from '@/hooks/useDataFetching';
+import { usePoleAccess } from '@/hooks/usePoleAccess';
 import { Vehicle, vehicleService } from '@/lib/services/vehicleService';
 import { motion } from 'framer-motion';
 import {
@@ -20,11 +22,13 @@ import {
   Edit3,
   Eye,
   FileText,
+  Image as ImageIcon,
   Package,
   Plus,
   Receipt,
   User
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -74,7 +78,9 @@ const stockMetrics: StockMetric[] = [
   },
 ];
 
-export default function StockPage() {
+function StockPageContent() {
+  const router = useRouter();
+  const { canWrite, canManage } = usePoleAccess('Stock');
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [isVehicleDrawerOpen, setIsVehicleDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
@@ -265,7 +271,7 @@ export default function StockPage() {
         <div className="flex items-center gap-3">
           <Button
             className="bg-mkb-blue hover:bg-mkb-blue/90"
-            onClick={() => setIsVehicleDrawerOpen(true)}
+            onClick={() => router.push('/dashboard/stock/new')}
           >
             <Plus className="h-4 w-4 mr-2" />
             Ajouter Véhicule
@@ -360,7 +366,7 @@ export default function StockPage() {
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau véhicule.</p>
                 <Button
                   className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
-                  onClick={() => setIsVehicleDrawerOpen(true)}
+                  onClick={() => router.push('/dashboard/stock/new')}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un véhicule
@@ -372,6 +378,7 @@ export default function StockPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Photo</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Véhicule</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Prix</th>
                         <th className="text-center py-3 px-4 font-semibold text-gray-700">Statut</th>
@@ -390,6 +397,25 @@ export default function StockPage() {
                           className="border-b hover:bg-gray-50 cursor-pointer"
                           onClick={() => handleViewVehicle(vehicle.id)}
                         >
+                          <td className="py-3 px-4">
+                            <div className="w-16 h-12 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                              {vehicle.photos && vehicle.photos.length > 0 ? (
+                                <img
+                                  src={vehicle.photos[0]}
+                                  alt={`${vehicle.brand} ${vehicle.model}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <div className={`w-full h-full flex items-center justify-center ${vehicle.photos && vehicle.photos.length > 0 ? 'hidden' : ''}`}>
+                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                              </div>
+                            </div>
+                          </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <Car className="h-5 w-5 text-mkb-blue" />
@@ -412,49 +438,57 @@ export default function StockPage() {
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2">
-                              <Select
-                                value={vehicle.status}
-                                onValueChange={(newStatus) => handleStatusChange(vehicle.id, newStatus)}
-                              >
-                                <SelectTrigger className="w-36 border-0 bg-transparent hover:bg-gray-50 focus:ring-0">
-                                  <SelectValue>
-                                    <div className="flex items-center gap-2">
-                                      <Badge className={getStatusColor(vehicle.status)}>
-                                        {getStatusText(vehicle.status)}
-                                      </Badge>
-                                      <Edit3 className="h-3 w-3 text-gray-400" />
-                                    </div>
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="disponible">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-green-100 text-green-800">Disponible</Badge>
-                                      <span className="text-sm text-gray-600">Véhicule disponible à la vente</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="reserve">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-orange-100 text-orange-800">Réservé</Badge>
-                                      <span className="text-sm text-gray-600">Véhicule réservé par un client</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="vendu">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-blue-100 text-blue-800">Vendu</Badge>
-                                      <span className="text-sm text-gray-600">Véhicule vendu</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="a-verifier">
-                                    <div className="flex items-center gap-2">
-                                      <Badge className="bg-red-100 text-red-800">À Vérifier</Badge>
-                                      <span className="text-sm text-gray-600">Véhicule nécessitant une vérification</span>
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            {canWrite ? (
+                              <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2">
+                                <Select
+                                  value={vehicle.status}
+                                  onValueChange={(newStatus) => handleStatusChange(vehicle.id, newStatus)}
+                                >
+                                  <SelectTrigger className="w-36 border-0 bg-transparent hover:bg-gray-50 focus:ring-0">
+                                    <SelectValue>
+                                      <div className="flex items-center gap-2">
+                                        <Badge className={getStatusColor(vehicle.status)}>
+                                          {getStatusText(vehicle.status)}
+                                        </Badge>
+                                        <Edit3 className="h-3 w-3 text-gray-400" />
+                                      </div>
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="disponible">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-green-100 text-green-800">Disponible</Badge>
+                                        <span className="text-sm text-gray-600">Véhicule disponible à la vente</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="reserve">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-orange-100 text-orange-800">Réservé</Badge>
+                                        <span className="text-sm text-gray-600">Véhicule réservé par un client</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="vendu">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-blue-100 text-blue-800">Vendu</Badge>
+                                        <span className="text-sm text-gray-600">Véhicule vendu</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="a-verifier">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-red-100 text-red-800">À Vérifier</Badge>
+                                        <span className="text-sm text-gray-600">Véhicule nécessitant une vérification</span>
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <Badge className={getStatusColor(vehicle.status)}>
+                                  {getStatusText(vehicle.status)}
+                                </Badge>
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
@@ -483,34 +517,58 @@ export default function StockPage() {
                               >
                                 <Eye className="h-3 w-3" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Créer facture"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewVehicle(vehicle.id);
-                                  setTimeout(() => {
-                                    (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
-                                  }, 500);
-                                }}
-                              >
-                                <Receipt className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Créer devis"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewVehicle(vehicle.id);
-                                  setTimeout(() => {
-                                    (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
-                                  }, 500);
-                                }}
-                              >
-                                <FileText className="h-3 w-3" />
-                              </Button>
+                              {canWrite ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Créer facture"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewVehicle(vehicle.id);
+                                    setTimeout(() => {
+                                      (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
+                                    }, 500);
+                                  }}
+                                >
+                                  <Receipt className="h-3 w-3" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Non autorisé"
+                                  disabled
+                                  className="text-gray-400"
+                                >
+                                  <Receipt className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {canWrite ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Créer devis"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewVehicle(vehicle.id);
+                                    setTimeout(() => {
+                                      (document.querySelector('[data-value="documents"]') as HTMLElement)?.click();
+                                    }, 500);
+                                  }}
+                                >
+                                  <FileText className="h-3 w-3" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Non autorisé"
+                                  disabled
+                                  className="text-gray-400"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </motion.tr>
@@ -553,25 +611,48 @@ export default function StockPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button
-                className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
-                onClick={() => setIsVehicleDrawerOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Nouveau Véhicule
-              </Button>
-              <Button variant="outline" className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white">
-                <Receipt className="mr-2 h-4 w-4" />
-                Créer Facture
-              </Button>
-              <Button variant="outline" className="border-gray-300">
-                <FileText className="mr-2 h-4 w-4" />
-                Générer Devis
-              </Button>
-              <Button variant="outline" className="border-gray-300">
-                <Archive className="mr-2 h-4 w-4" />
-                Archiver Sélection
-              </Button>
+              {canWrite && (
+                <Button
+                  className="bg-mkb-blue hover:bg-mkb-blue/90 text-white"
+                  onClick={() => router.push('/dashboard/stock/new')}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouveau Véhicule
+                </Button>
+              )}
+              {canWrite ? (
+                <Button variant="outline" className="border-mkb-yellow text-mkb-yellow hover:bg-mkb-yellow hover:text-white">
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Créer Facture
+                </Button>
+              ) : (
+                <Button variant="outline" className="border-gray-300 text-gray-400" disabled>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Non autorisé
+                </Button>
+              )}
+              {canWrite ? (
+                <Button variant="outline" className="border-gray-300">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Générer Devis
+                </Button>
+              ) : (
+                <Button variant="outline" className="border-gray-300 text-gray-400" disabled>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Non autorisé
+                </Button>
+              )}
+              {canWrite ? (
+                <Button variant="outline" className="border-gray-300">
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archiver Sélection
+                </Button>
+              ) : (
+                <Button variant="outline" className="border-gray-300 text-gray-400" disabled>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Non autorisé
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -609,3 +690,8 @@ export default function StockPage() {
     </div>
   );
 }
+
+export default withPoleAccess(StockPageContent, {
+  poleName: 'Stock',
+  requiredAccess: 'read'
+});

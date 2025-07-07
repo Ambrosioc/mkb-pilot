@@ -6,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -27,18 +26,26 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Utiliser notre API de réinitialisation personnalisée
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        toast.error('Erreur: ' + error.message);
-      } else {
-        setSent(true);
-        toast.success('Email de réinitialisation envoyé !');
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Une erreur est survenue');
       }
+
+      setSent(true);
+      toast.success('Email de réinitialisation envoyé !');
     } catch (error) {
-      toast.error('Une erreur est survenue');
+      console.error('Erreur:', error);
+      toast.error(error instanceof Error ? error.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -156,7 +163,14 @@ export default function ForgotPasswordPage() {
                 className="w-full bg-mkb-blue hover:bg-mkb-blue/90 text-white font-medium py-2"
                 disabled={loading}
               >
-                {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  'Envoyer le lien'
+                )}
               </Button>
             </form>
             

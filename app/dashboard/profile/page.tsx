@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 
 interface UserProfileData {
   id: string;
+  auth_user_id: string;
   prenom: string;
   nom: string;
   email: string;
@@ -48,6 +49,16 @@ export default function ProfilePage() {
   const [profileImage, setProfileImage] = useState('https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2');
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Function to generate public URL from file path
+  const getPublicUrl = (filePath: string | null) => {
+    if (!filePath) return null;
+    const { data: urlData } = supabase.storage
+      .from('profile')
+      .getPublicUrl(filePath);
+    console.log('Generated URL:', urlData.publicUrl); // Debug log
+    return urlData.publicUrl;
+  };
 
   // États pour le changement de mot de passe
   const [passwordData, setPasswordData] = useState({
@@ -75,7 +86,8 @@ export default function ProfilePage() {
 
   const handlePhotoUploaded = (photoUrl: string) => {
     setProfileImage(photoUrl);
-    setUserProfile(prev => prev ? { ...prev, photo_url: photoUrl } : null);
+    // Refresh user data to get the updated photo_url from database
+    fetchUserProfile();
   };
 
   const fetchUserProfile = async () => {
@@ -86,7 +98,7 @@ export default function ProfilePage() {
       // First, fetch basic user data
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('id, prenom, nom, email, telephone, date_creation, photo_url')
+        .select('id, auth_user_id, prenom, nom, email, telephone, date_creation, photo_url')
         .eq('auth_user_id', user.id)
         .single();
 
@@ -117,7 +129,7 @@ export default function ProfilePage() {
 
       // Set profile image if available
       if (userData.photo_url) {
-        setProfileImage(userData.photo_url);
+        setProfileImage(getPublicUrl(userData.photo_url) || '');
       }
 
       // Extract role information
@@ -125,6 +137,7 @@ export default function ProfilePage() {
 
       setUserProfile({
         id: userData.id,
+        auth_user_id: userData.auth_user_id,
         prenom: userData.prenom,
         nom: userData.nom,
         email: userData.email,
@@ -281,8 +294,8 @@ export default function ProfilePage() {
               {/* Photo de profil avec initiales par défaut */}
               <div className="flex flex-col items-center">
                 <ProfilePhotoUploader
-                  userId={userProfile?.id || ''}
-                  currentPhotoUrl={userProfile?.photo_url}
+                  userId={userProfile?.auth_user_id || ''}
+                  currentPhotoUrl={getPublicUrl(userProfile?.photo_url || null)}
                   onPhotoUploaded={handlePhotoUploaded}
                   size="lg"
                 />

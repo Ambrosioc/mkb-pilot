@@ -17,6 +17,7 @@ export interface Vehicle {
   color: string;
   created_at: string;
   updated_at: string;
+  photos: string[];
 }
 
 export interface VehicleFilters {
@@ -37,14 +38,12 @@ export const vehicleService = {
     const from = (page - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
-    // Construire la requête de base
+    // Construire la requête de base avec jointures incluant les photos
     let query = supabase
       .from('cars_v2')
       .select(`
         id,
         reference,
-        brand,
-        model,
         year,
         mileage,
         color,
@@ -52,13 +51,17 @@ export const vehicleService = {
         price,
         created_at,
         updated_at,
-        status
+        status,
+        brands!inner(name),
+        models!inner(name),
+        advertisements!left(photos)
       `, { count: 'exact' });
 
     // Appliquer les filtres
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      query = query.or(`brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
+      // Recherche dans les noms de marques et modèles via les jointures
+      query = query.or(`brands.name.ilike.%${searchTerm}%,models.name.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
     }
 
     if (filters.status && filters.status !== 'all') {
@@ -66,11 +69,11 @@ export const vehicleService = {
     }
 
     if (filters.brand && filters.brand !== 'all') {
-      query = query.eq('brand', filters.brand);
+      query = query.eq('brands.name', filters.brand);
     }
 
     if (filters.model && filters.model !== 'all') {
-      query = query.eq('model', filters.model);
+      query = query.eq('models.name', filters.model);
     }
 
     if (filters.location && filters.location !== 'all') {
@@ -103,8 +106,8 @@ export const vehicleService = {
     const transformedData: Vehicle[] = (data || []).map(car => ({
       id: car.id,
       reference: car.reference || `REF-${car.id.substring(0, 6)}`,
-      brand: car.brand || 'N/A',
-      model: car.model || 'N/A',
+      brand: (car.brands as any)?.name || 'N/A',
+      model: (car.models as any)?.name || 'N/A',
       year: car.year || 0,
       price: car.price || 0,
       status: car.status || 'disponible',
@@ -116,6 +119,7 @@ export const vehicleService = {
       color: car.color || 'Non spécifié',
       created_at: car.created_at,
       updated_at: car.updated_at,
+      photos: (car.advertisements as any)?.[0]?.photos || [],
     }));
 
     return {
@@ -141,7 +145,7 @@ export const vehicleService = {
         { count: aVerifier }
       ] = await Promise.all([
         supabase.from('cars_v2').select('*', { count: 'exact', head: true }).eq('status', 'disponible'),
-        supabase.from('cars_v2').select('*', { count: 'exact', head: true }).in('status', ['reserve', 'réservé']),
+        supabase.from('cars_v2').select('*', { count: 'exact', head: true }).eq('status', 'reserve'),
         supabase.from('cars_v2').select('*', { count: 'exact', head: true }).eq('status', 'vendu'),
         supabase.from('cars_v2').select('*', { count: 'exact', head: true }).eq('status', 'a-verifier')
       ]);
@@ -162,14 +166,13 @@ export const vehicleService = {
   async getAvailableBrands(): Promise<string[]> {
     try {
       const { data, error } = await supabase
-        .from('cars_v2')
-        .select('brand')
-        .not('brand', 'is', null);
+        .from('brands')
+        .select('name')
+        .order('name');
 
       if (error) throw error;
 
-      const brands = Array.from(new Set(data.map(item => item.brand).filter(Boolean)));
-      return brands.sort();
+      return data.map(brand => brand.name);
     } catch (error) {
       console.error('Erreur lors de la récupération des marques:', error);
       return [];
@@ -179,20 +182,29 @@ export const vehicleService = {
   async getAvailableModels(brand?: string): Promise<string[]> {
     try {
       let query = supabase
-        .from('cars_v2')
-        .select('model')
-        .not('model', 'is', null);
+        .from('models')
+        .select('name')
+        .order('name');
 
       if (brand) {
-        query = query.eq('brand', brand);
+        // D'abord récupérer l'ID de la marque
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('id')
+          .eq('name', brand)
+          .single();
+
+        if (brandError) throw brandError;
+
+        // Puis récupérer les modèles de cette marque
+        query = query.eq('brand_id', brandData.id);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      const models = Array.from(new Set(data.map(item => item.model).filter(Boolean)));
-      return models.sort();
+      return data.map(model => model.name);
     } catch (error) {
       console.error('Erreur lors de la récupération des modèles:', error);
       return [];
@@ -220,16 +232,13 @@ export const vehicleService = {
     try {
       const { error } = await supabase
         .from('cars_v2')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: newStatus })
         .eq('id', vehicleId);
 
       if (error) throw error;
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
-      throw new Error(`Erreur lors de la mise à jour du statut: ${error}`);
+      throw error;
     }
   },
 }; 

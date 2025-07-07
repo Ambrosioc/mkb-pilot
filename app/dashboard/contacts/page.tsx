@@ -1,5 +1,6 @@
 'use client';
 
+import { withPoleAccess } from '@/components/auth/withPoleAccess';
 import { ContactDrawer } from '@/components/forms/ContactDrawer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,11 @@ import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
 import { TagsManagementDialog } from '@/components/ui/TagsManagementDialog';
 import { Textarea } from '@/components/ui/textarea';
+import { VehicleDetailDrawer } from '@/components/ui/VehicleDetailDrawer';
 import { useSearchableDataFetching } from '@/hooks/useDataFetching';
+import { usePoleAccess } from '@/hooks/usePoleAccess';
 import { Contact, contactService } from '@/lib/services/contactService';
+import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import {
   Building2,
@@ -75,12 +79,15 @@ const contactsMetrics: ContactMetric[] = [
   },
 ];
 
-export default function ContactsPage() {
+function ContactsPageContent() {
+  const { canWrite, canManage } = usePoleAccess('Commercial');
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isTagsManagementOpen, setIsTagsManagementOpen] = useState(false);
   const [isGroupEmailOpen, setIsGroupEmailOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [isVehicleDetailOpen, setIsVehicleDetailOpen] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -93,12 +100,6 @@ export default function ContactsPage() {
   const [availableCompanies, setAvailableCompanies] = useState<string[]>([]);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
-  const [activeFilters, setActiveFilters] = useState({
-    type: 'all',
-    statut: 'actif',
-    tag: 'all',
-    societe: 'all',
-  });
 
   // Configuration de la pagination et du cache
   const paginationConfig = {
@@ -116,10 +117,13 @@ export default function ContactsPage() {
     searchTerm,
     setSearchTerm,
     refetch,
+    filters,
+    updateFilters,
+    clearFilters,
   } = useSearchableDataFetching<Contact>(
     contactService.fetchContacts,
     paginationConfig,
-    { type: 'all', statut: 'actif', tag: 'all' }
+    { type: 'all', statut: 'actif', tag: 'all', societe: 'all' }
   );
 
   // Charger les données initiales
@@ -203,19 +207,11 @@ export default function ContactsPage() {
 
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
-    setActiveFilters(prev => ({ ...prev, [key]: value }));
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    updateFilters(key, value);
   };
 
   const handleClearFilters = () => {
-    const defaultFilters = {
-      type: 'all',
-      statut: 'actif',
-      tag: 'all',
-      societe: 'all',
-    };
-    setActiveFilters(defaultFilters);
-    // Les filtres sont gérés automatiquement par le hook via les dépendances
+    clearFilters();
   };
 
   const handleRefresh = () => {
@@ -239,6 +235,11 @@ export default function ContactsPage() {
   const handleViewContact = (contactId: string) => {
     setSelectedContact(contactId);
     setIsDetailDrawerOpen(true);
+  };
+
+  const handleVehicleClick = (vehicleId: string) => {
+    setSelectedVehicle(vehicleId);
+    setIsVehicleDetailOpen(true);
   };
 
   const handleSelectContact = (contactId: string, isChecked: boolean) => {
@@ -271,16 +272,125 @@ export default function ContactsPage() {
 
     setIsSendingGroupEmail(true);
     try {
-      // Simuler l'envoi d'email
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Récupérer les contacts sélectionnés avec leurs emails
+      const selectedContactsData = contacts.filter(contact =>
+        selectedContacts.includes(contact.id) && contact.email
+      );
 
-      toast.success(`Email envoyé à ${selectedContacts.length} contact(s)`);
+      if (selectedContactsData.length === 0) {
+        toast.error('Aucun contact sélectionné n\'a d\'adresse email valide');
+        return;
+      }
+
+      // Récupérer le token d'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Erreur d\'authentification');
+        return;
+      }
+
+      // Envoyer les emails un par un avec délai
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < selectedContactsData.length; i++) {
+        const contact = selectedContactsData[i];
+
+        try {
+          // Vérifier que la session est toujours valide
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.access_token) {
+            throw new Error('Session expirée');
+          }
+
+          const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentSession.access_token}`,
+            },
+            body: JSON.stringify({
+              to: [{ Email: contact.email, Name: contact.nom }],
+              subject: groupEmailData.subject,
+              htmlContent: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>${groupEmailData.subject}</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .content { background-color: #f9f9f9; padding: 20px; border-radius: 5px; }
+                    .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>MKB Automobile</h1>
+                    </div>
+                    <div class="content">
+                      <p>Bonjour ${contact.nom},</p>
+                      <div style="white-space: pre-line;">${groupEmailData.message}</div>
+                      <p>Cordialement,<br>L'équipe MKB Automobile</p>
+                    </div>
+                    <div class="footer">
+                      <p>© ${new Date().getFullYear()} MKB Automobile. Tous droits réservés.</p>
+                      <p>Cet email a été envoyé à ${contact.email}</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+              `,
+              textContent: `Bonjour ${contact.nom},\n\n${groupEmailData.message}\n\nCordialement,\nL'équipe MKB Automobile`
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+            const errorMsg = `Erreur envoi email à ${contact.email}: ${result.error || 'Erreur inconnue'}`;
+            errors.push(errorMsg);
+            console.error(errorMsg);
+          }
+        } catch (error) {
+          errorCount++;
+          const errorMsg = `Erreur envoi email à ${contact.email}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
+          errors.push(errorMsg);
+          console.error(errorMsg);
+        }
+
+        // Délai entre les envois pour éviter le rate limiting (sauf pour le dernier)
+        if (i < selectedContactsData.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Afficher le résultat
+      if (successCount > 0) {
+        toast.success(`${successCount} email(s) envoyé(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`);
+      } else {
+        toast.error('Aucun email n\'a pu être envoyé');
+      }
+
       setIsGroupEmailOpen(false);
       setGroupEmailData({ subject: '', message: '' });
       setSelectedContacts([]);
       setSelectAll(false);
     } catch (error) {
-      toast.error('Erreur lors de l\'envoi de l\'email');
+      console.error('Erreur lors de l\'envoi des emails groupés:', error);
+      toast.error('Erreur lors de l\'envoi des emails');
     } finally {
       setIsSendingGroupEmail(false);
     }
@@ -341,21 +451,25 @@ export default function ContactsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setIsTagsManagementOpen(true)}
-            className="gap-2"
-          >
-            <Tag className="h-4 w-4" />
-            Gérer les Tags
-          </Button>
-          <Button
-            className="bg-mkb-blue hover:bg-mkb-blue/90"
-            onClick={() => setIsContactDrawerOpen(true)}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Ajouter Contact
-          </Button>
+          {canWrite && (
+            <Button
+              variant="outline"
+              onClick={() => setIsTagsManagementOpen(true)}
+              className="gap-2"
+            >
+              <Tag className="h-4 w-4" />
+              Gérer les Tags
+            </Button>
+          )}
+          {canWrite && (
+            <Button
+              className="bg-mkb-blue hover:bg-mkb-blue/90"
+              onClick={() => setIsContactDrawerOpen(true)}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Ajouter Contact
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -397,7 +511,7 @@ export default function ContactsPage() {
           <CardContent className="pt-6">
             <DataFilters
               filters={filterConfigs}
-              values={activeFilters}
+              values={filters}
               onFilterChange={handleFilterChange}
               onClearFilters={handleClearFilters}
               onRefresh={handleRefresh}
@@ -422,7 +536,7 @@ export default function ContactsPage() {
               <CardTitle className="text-mkb-black">
                 Contacts ({totalItems})
               </CardTitle>
-              {selectedContacts.length > 0 && (
+              {selectedContacts.length > 0 && canWrite && (
                 <Button
                   variant="outline"
                   onClick={() => setIsGroupEmailOpen(true)}
@@ -456,13 +570,15 @@ export default function ContactsPage() {
                 <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700">Aucun contact trouvé</h3>
                 <p className="text-gray-500 mt-2">Modifiez vos filtres ou ajoutez un nouveau contact.</p>
-                <Button
-                  className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
-                  onClick={() => setIsContactDrawerOpen(true)}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Ajouter un contact
-                </Button>
+                {canWrite && (
+                  <Button
+                    className="mt-4 bg-mkb-blue hover:bg-mkb-blue/90"
+                    onClick={() => setIsContactDrawerOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Ajouter un contact
+                  </Button>
+                )}
               </div>
             ) : (
               <>
@@ -471,10 +587,12 @@ export default function ContactsPage() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-3 px-4">
-                          <Checkbox
-                            checked={selectAll}
-                            onCheckedChange={handleSelectAll}
-                          />
+                          {canWrite && (
+                            <Checkbox
+                              checked={selectAll}
+                              onCheckedChange={handleSelectAll}
+                            />
+                          )}
                         </th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact</th>
                         <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
@@ -493,12 +611,14 @@ export default function ContactsPage() {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                            <Checkbox
-                              checked={selectedContacts.includes(contact.id)}
-                              onCheckedChange={(checked) =>
-                                handleSelectContact(contact.id, checked as boolean)
-                              }
-                            />
+                            {canWrite && (
+                              <Checkbox
+                                checked={selectedContacts.includes(contact.id)}
+                                onCheckedChange={(checked) =>
+                                  handleSelectContact(contact.id, checked as boolean)
+                                }
+                              />
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
@@ -554,17 +674,19 @@ export default function ContactsPage() {
                               >
                                 <Eye className="h-3 w-3" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Envoyer email"
-                                onClick={() => {
-                                  setSelectedContacts([contact.id]);
-                                  setIsGroupEmailOpen(true);
-                                }}
-                              >
-                                <Mail className="h-3 w-3" />
-                              </Button>
+                              {canWrite && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Envoyer email"
+                                  onClick={() => {
+                                    setSelectedContacts([contact.id]);
+                                    setIsGroupEmailOpen(true);
+                                  }}
+                                >
+                                  <Mail className="h-3 w-3" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </motion.tr>
@@ -624,6 +746,7 @@ export default function ContactsPage() {
           onOpenChange={setIsDetailDrawerOpen}
           contactId={selectedContact}
           onContactUpdated={handleContactUpdated}
+          onVehicleClick={handleVehicleClick}
         />
       )}
 
@@ -696,6 +819,20 @@ export default function ContactsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Vehicle Detail Drawer */}
+      {isVehicleDetailOpen && selectedVehicle && (
+        <VehicleDetailDrawer
+          open={isVehicleDetailOpen}
+          onOpenChange={setIsVehicleDetailOpen}
+          vehicleId={selectedVehicle}
+        />
+      )}
     </div>
   );
 }
+
+export default withPoleAccess(ContactsPageContent, {
+  poleName: 'Commercial',
+  requiredAccess: 'read'
+});

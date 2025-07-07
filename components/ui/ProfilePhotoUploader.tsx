@@ -1,8 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
-import { uploadProfilePhoto } from '@/lib/uploadImage';
 import { useAuthStore } from '@/store/useAuth';
 import { Camera, Loader2, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -71,27 +69,25 @@ export function ProfilePhotoUploader({
             const blob = await response.blob();
             const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
 
-            // Upload to Supabase Storage
-            const result = await uploadProfilePhoto(file, userId);
+            // Upload using API route
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', userId);
 
-            if (result.success && result.filePath) {
-                // Update user profile in database
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ photo_url: result.filePath })
-                    .eq('id', userId);
+            const uploadResponse = await fetch('/api/profile/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
 
-                if (updateError) {
-                    console.error('Error updating user photo_url:', updateError);
-                    toast.error('Erreur lors de la mise à jour du profil');
-                    return;
-                }
+            const result = await uploadResponse.json();
 
+            if (result.success) {
                 toast.success('Photo de profil mise à jour avec succès !');
-                onPhotoUploaded(result.filePath);
+                onPhotoUploaded(result.publicUrl);
                 setPreview(null);
                 refreshUserData();
             } else {
+                console.error('Upload failed:', result.error);
                 toast.error(`Erreur lors de l'upload: ${result.error}`);
             }
         } catch (error) {
