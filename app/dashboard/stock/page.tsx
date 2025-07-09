@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataFilters, FilterConfig } from '@/components/ui/DataFilters';
 import { Pagination } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSearchableDataFetching } from '@/hooks/useDataFetching';
 import { usePoleAccess } from '@/hooks/usePoleAccess';
 import { Vehicle, vehicleService } from '@/lib/services/vehicleService';
 import { motion } from 'framer-motion';
@@ -29,7 +28,7 @@ import {
   User
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface StockMetric {
@@ -89,35 +88,85 @@ function StockPageContent() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [availableLocations, setAvailableLocations] = useState<string[]>([]);
 
-  // Configuration de la pagination et du cache
-  const paginationConfig = {
-    itemsPerPage: 10,
-    cacheKey: 'stock_vehicles',
-    cacheExpiryMinutes: 5,
-  };
+  // État local pour les véhicules (plus simple et direct)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Hook de récupération des données avec recherche
-  const {
-    data: vehicles,
-    loading,
-    error,
-    totalItems,
-    searchTerm,
-    setSearchTerm,
-    filters,
-    updateFilters,
-    clearFilters,
-    refetch,
-    currentPage,
-    totalPages,
-    hasNextPage,
-    hasPrevPage,
-    onPageChange,
-  } = useSearchableDataFetching<Vehicle>(
-    vehicleService.fetchVehicles,
-    paginationConfig,
-    { status: 'all', brand: 'all', location: 'all' } // Filtres par défaut
-  );
+  // État pour la pagination et les filtres
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ status: 'all', brand: 'all', location: 'all' });
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
+
+  // Debounce pour la recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fonction pour charger les véhicules
+  const loadVehicles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await vehicleService.fetchVehicles({
+        page: currentPage,
+        limit: itemsPerPage,
+        filters: {
+          ...filters,
+          search: debouncedSearchTerm,
+        }
+      });
+
+      setVehicles(result.data);
+      setTotalItems(result.totalItems);
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du chargement des véhicules');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filters, debouncedSearchTerm]);
+
+  // Charger les véhicules quand les dépendances changent
+  useEffect(() => {
+    loadVehicles();
+  }, [loadVehicles]);
+
+  // Fonction pour mettre à jour les filtres
+  const updateFilters = useCallback((key: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    setCurrentPage(1); // Reset à la première page
+  }, []);
+
+  // Fonction pour effacer les filtres
+  const clearFilters = useCallback(() => {
+    setFilters({ status: 'all', brand: 'all', location: 'all' });
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, []);
+
+  // Fonction pour changer de page
+  const onPageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  // Fonction pour rafraîchir
+  const refetch = useCallback(async () => {
+    await loadVehicles();
+  }, [loadVehicles]);
 
   // Charger les données initiales
   useEffect(() => {
@@ -192,6 +241,7 @@ function StockPageContent() {
 
   // Gestion des filtres
   const handleFilterChange = (key: string, value: any) => {
+    console.log('🔍 Changement de filtre:', { key, value });
     updateFilters(key, value);
   };
 
@@ -218,16 +268,32 @@ function StockPageContent() {
 
   const handleStatusChange = async (vehicleId: string, newStatus: string) => {
     try {
+      console.log('🔄 Changement de statut:', { vehicleId, newStatus });
+
+      // Mettre à jour le statut dans la base de données
       await vehicleService.updateVehicleStatus(vehicleId, newStatus);
+      console.log('✅ Statut mis à jour en base');
+
+      // Mettre à jour immédiatement l'état local pour une réponse instantanée
+      setVehicles(prevVehicles =>
+        prevVehicles.map(vehicle =>
+          vehicle.id === vehicleId
+            ? { ...vehicle, status: newStatus }
+            : vehicle
+        )
+      );
+
+      // Afficher le toast de succès
       toast.success('Statut mis à jour avec succès !');
 
-      // Rafraîchir les données de manière optimisée
-      await Promise.all([
-        refetch(), // Rafraîchir la liste des véhicules
-        fetchInitialData() // Rafraîchir les statistiques
-      ]);
+      // Rafraîchir les statistiques en arrière-plan
+      console.log('🔄 Rafraîchissement des statistiques...');
+      fetchInitialData();
+
+      console.log('✅ Mise à jour terminée');
+
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut:', error);
+      console.error('❌ Erreur lors de la mise à jour du statut:', error);
       toast.error('Erreur lors de la mise à jour du statut');
     }
   };
@@ -583,7 +649,7 @@ function StockPageContent() {
                 </div>
 
                 {/* Pagination */}
-                {totalItems > paginationConfig.itemsPerPage && (
+                {totalItems > itemsPerPage && (
                   <div className="mt-6">
                     <Pagination
                       currentPage={currentPage}
@@ -592,7 +658,7 @@ function StockPageContent() {
                       hasNextPage={hasNextPage}
                       hasPrevPage={hasPrevPage}
                       totalItems={totalItems}
-                      itemsPerPage={paginationConfig.itemsPerPage}
+                      itemsPerPage={itemsPerPage}
                     />
                   </div>
                 )}

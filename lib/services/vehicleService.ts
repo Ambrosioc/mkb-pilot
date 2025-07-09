@@ -207,12 +207,19 @@ export const vehicleService = {
 
   async updateVehicleStatus(vehicleId: string, newStatus: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('cars_v2')
-        .update({ status: newStatus })
-        .eq('id', vehicleId);
+      // Utiliser la fonction RPC qui contourne RLS
+      const { data, error } = await supabase
+        .rpc('update_vehicle_status', {
+          vehicle_id_param: vehicleId,
+          new_status_param: newStatus
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur RPC update_vehicle_status:', error);
+        throw error;
+      }
+
+      console.log('✅ Statut mis à jour via RPC:', data);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
