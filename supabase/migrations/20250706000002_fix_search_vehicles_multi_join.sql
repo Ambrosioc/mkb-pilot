@@ -1,8 +1,11 @@
 -- Migration: Corriger la jointure dans search_vehicles_multi
 -- Date: 2025-07-06
 
+-- Supprimer d'abord la fonction existante pour éviter les conflits de type de retour
+DROP FUNCTION IF EXISTS search_vehicles_multi(text, text, text, text, numeric, numeric, integer, integer, integer);
+
 -- Recréer la fonction avec la bonne jointure (car_id au lieu de vehicle_id)
-create or replace function search_vehicles_multi(
+CREATE FUNCTION search_vehicles_multi(
   search_param text default null,
   status_param text default null,
   brand_param text default null,
