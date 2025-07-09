@@ -222,6 +222,7 @@ export function useSearchableDataFetching<T>(
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce pour la recherche
   useEffect(() => {
@@ -238,25 +239,40 @@ export function useSearchableDataFetching<T>(
       ...prev,
       [key]: value
     }));
+    // Reset à la première page quand on change les filtres
+    setCurrentPage(1);
   }, []);
 
   // Fonction pour effacer tous les filtres
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);
     setSearchTerm('');
+    setCurrentPage(1);
   }, [initialFilters]);
+
+  // Fonction pour changer de page
+  const onPageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   const dataFetching = useDataFetching(
     fetchFunction, 
     {
       ...config,
+      page: currentPage,
+      limit: config.itemsPerPage,
       filters: {
         ...filters,
         search: debouncedSearchTerm,
       }
     }, 
-    [debouncedSearchTerm, filters] // Dépendances mises à jour
+    [debouncedSearchTerm, filters, currentPage] // Ajouter currentPage aux dépendances
   );
+
+  // Calculer les informations de pagination
+  const totalPages = Math.ceil(dataFetching.totalItems / config.itemsPerPage);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
 
   return {
     ...dataFetching,
@@ -266,5 +282,10 @@ export function useSearchableDataFetching<T>(
     filters,
     updateFilters,
     clearFilters,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    onPageChange,
   };
 } 

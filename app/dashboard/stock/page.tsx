@@ -108,6 +108,11 @@ function StockPageContent() {
     updateFilters,
     clearFilters,
     refetch,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    onPageChange,
   } = useSearchableDataFetching<Vehicle>(
     vehicleService.fetchVehicles,
     paginationConfig,
@@ -581,13 +586,11 @@ function StockPageContent() {
                 {totalItems > paginationConfig.itemsPerPage && (
                   <div className="mt-6">
                     <Pagination
-                      currentPage={1}
-                      totalPages={Math.ceil(totalItems / paginationConfig.itemsPerPage)}
-                      onPageChange={(page) => {
-                        // TODO: Implémenter la pagination
-                      }}
-                      hasNextPage={1 < Math.ceil(totalItems / paginationConfig.itemsPerPage)}
-                      hasPrevPage={false}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={onPageChange}
+                      hasNextPage={hasNextPage}
+                      hasPrevPage={hasPrevPage}
                       totalItems={totalItems}
                       itemsPerPage={paginationConfig.itemsPerPage}
                     />
