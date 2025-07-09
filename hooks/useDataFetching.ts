@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface PaginationConfig {
   itemsPerPage: number;
@@ -97,8 +97,45 @@ export function useDataFetching<T>(
   }, [fetchFunction, options]);
 
   const refetch = useCallback(async () => {
-    await fetchData();
-  }, [fetchData]);
+    return new Promise<void>((resolve, reject) => {
+      // Forcer un nouveau fetch avec les options actuelles
+      setLoading(true);
+      setError(null);
+
+      // Annuler la requête précédente si elle existe
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Créer un nouveau contrôleur d'annulation
+      abortControllerRef.current = new AbortController();
+      const fetchId = Date.now();
+      lastFetchRef.current = fetchId;
+
+      fetchFunction(options)
+        .then((result) => {
+          // Vérifier si c'est toujours la requête la plus récente
+          if (lastFetchRef.current === fetchId) {
+            setData(result.data);
+            setTotalItems(result.totalItems);
+            setLoading(false);
+            resolve();
+          }
+        })
+        .catch((err: any) => {
+          // Ignorer les erreurs d'annulation
+          if (err.name === 'AbortError') {
+            return;
+          }
+          
+          if (lastFetchRef.current === fetchId) {
+            setError(err.message || 'Une erreur est survenue');
+            setLoading(false);
+            reject(err);
+          }
+        });
+    });
+  }, [fetchFunction, options]);
 
   useEffect(() => {
     fetchData();
@@ -197,8 +234,20 @@ export function useCachedDataFetching<T>(
     if (typeof window !== 'undefined') {
       localStorage.removeItem(cacheKey);
     }
-    await fetchData();
-  }, [fetchData, cacheKey]);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await fetchFunction(options);
+      setData(result.data);
+      setTotalItems(result.totalItems);
+      setCachedData(result.data, result.totalItems);
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchFunction, options, cacheKey, setCachedData]);
 
   useEffect(() => {
     fetchData();
@@ -222,6 +271,7 @@ export function useSearchableDataFetching<T>(
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce pour la recherche
   useEffect(() => {
@@ -238,25 +288,67 @@ export function useSearchableDataFetching<T>(
       ...prev,
       [key]: value
     }));
+    // Reset à la première page quand on change les filtres
+    setCurrentPage(1);
   }, []);
 
   // Fonction pour effacer tous les filtres
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);
     setSearchTerm('');
+    setCurrentPage(1);
   }, [initialFilters]);
+
+  // Fonction pour changer de page
+  const onPageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  // Mémoriser les options pour éviter les re-rendus inutiles
+  const options = useMemo(() => ({
+    ...config,
+    page: currentPage,
+    limit: config.itemsPerPage,
+    filters: {
+      ...filters,
+      search: debouncedSearchTerm,
+    }
+  }), [config, currentPage, filters, debouncedSearchTerm]);
 
   const dataFetching = useDataFetching(
     fetchFunction, 
-    {
+    options, 
+    [debouncedSearchTerm, JSON.stringify(filters), currentPage] // Utiliser JSON.stringify pour stabiliser filters
+  );
+
+  // Calculer les informations de pagination
+  const totalPages = Math.ceil(dataFetching.totalItems / config.itemsPerPage);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
+
+  // Fonction pour forcer un rafraîchissement sans les filtres de statut
+  const refetchWithoutStatusFilter = useCallback(async () => {
+    const tempOptions = {
       ...config,
+      page: currentPage,
+      limit: config.itemsPerPage,
       filters: {
         ...filters,
         search: debouncedSearchTerm,
+        status: 'all', // Forcer le statut à 'all' pour inclure tous les véhicules
       }
-    }, 
-    [debouncedSearchTerm, filters] // Dépendances mises à jour
-  );
+    };
+    
+    // Appeler directement la fonction de fetch avec les options temporaires
+    try {
+      const result = await fetchFunction(tempOptions);
+      // Note: Cette fonction ne met pas à jour l'état, elle retourne juste les données
+      return result;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement sans filtre:', error);
+      throw error;
+    }
+  }, [fetchFunction, config, currentPage, filters, debouncedSearchTerm]);
 
   return {
     ...dataFetching,
@@ -266,5 +358,11 @@ export function useSearchableDataFetching<T>(
     filters,
     updateFilters,
     clearFilters,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    onPageChange,
+    refetchWithoutStatusFilter,
   };
 } 

@@ -31,101 +31,78 @@ export interface VehicleFilters {
   year?: number;
 }
 
+// Interface pour le type de retour de la fonction RPC
+interface VehicleSearchResult {
+  id: string;
+  reference: string;
+  vehicle_year: number;
+  mileage: number;
+  color: string;
+  vehicle_location: string;
+  price: number;
+  created_at: string;
+  updated_at: string;
+  vehicle_status: string;
+  brand_name: string;
+  model_name: string;
+  photos: string[];
+  total_count: number;
+}
+
 export const vehicleService = {
   async fetchVehicles(options: FetchOptions): Promise<{ data: Vehicle[]; totalItems: number }> {
-    const { page = 1, filters = {}, sortBy = 'created_at', sortOrder = 'desc' } = options;
-    const itemsPerPage = 10;
-    const from = (page - 1) * itemsPerPage;
-    const to = from + itemsPerPage - 1;
+    const { page = 1, limit = 10, filters = {}, sortBy = 'created_at', sortOrder = 'desc' } = options;
 
-    // Construire la requête de base avec jointures incluant les photos
-    let query = supabase
-      .from('cars_v2')
-      .select(`
-        id,
-        reference,
-        year,
-        mileage,
-        color,
-        location,
-        price,
-        created_at,
-        updated_at,
-        status,
-        brands!inner(name),
-        models!inner(name),
-        advertisements!left(photos)
-      `, { count: 'exact' });
+    try {
+      // Utiliser la fonction RPC pour la recherche multi-champs
+      const { data, error } = await supabase
+        .rpc('search_vehicles_multi', {
+          search_param: filters.search || null,
+          status_param: filters.status !== 'all' ? filters.status : null,
+          brand_param: filters.brand !== 'all' ? filters.brand : null,
+          location_param: filters.location !== 'all' ? filters.location : null,
+          min_price_param: filters.minPrice || null,
+          max_price_param: filters.maxPrice || null,
+          year_param: filters.year || null,
+          page_param: page,
+          limit_count_param: limit,
+        }) as { data: VehicleSearchResult[] | null; error: any };
 
-    // Appliquer les filtres
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      // Recherche dans les noms de marques et modèles via les jointures
-      query = query.or(`brands.name.ilike.%${searchTerm}%,models.name.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
+      if (error) {
+        throw new Error(`Erreur lors de la récupération des véhicules: ${error.message}`);
+      }
+
+      // Transformer les données
+      const transformedData: Vehicle[] = (data || []).map((car: VehicleSearchResult) => ({
+        id: car.id,
+        reference: car.reference || `REF-${car.id.substring(0, 6)}`,
+        brand: car.brand_name || 'N/A',
+        model: car.model_name || 'N/A',
+        year: car.vehicle_year || 0,
+        price: car.price || 0,
+        status: car.vehicle_status || 'disponible',
+        location: car.vehicle_location || 'Non spécifié',
+        assignedTo: 'Non assigné', // À implémenter avec une jointure
+        contact: 'Non spécifié', // À implémenter avec une jointure
+        lastUpdate: car.updated_at ? new Date(car.updated_at).toLocaleDateString() : new Date(car.created_at).toLocaleDateString(),
+        mileage: car.mileage || 0,
+        color: car.color || 'Non spécifié',
+        created_at: car.created_at,
+        updated_at: car.updated_at,
+        photos: car.photos || [],
+      }));
+
+      // Récupérer le total depuis le premier élément (si disponible)
+      const totalItems = data && data.length > 0 ? data[0].total_count : 0;
+
+      return {
+        data: transformedData,
+        totalItems,
+      };
+    } catch (error) {
+      console.error('Erreur dans fetchVehicles:', error);
+      throw error;
     }
-
-    if (filters.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status);
-    }
-
-    if (filters.brand && filters.brand !== 'all') {
-      query = query.eq('brands.name', filters.brand);
-    }
-
-    if (filters.model && filters.model !== 'all') {
-      query = query.eq('models.name', filters.model);
-    }
-
-    if (filters.location && filters.location !== 'all') {
-      query = query.eq('location', filters.location);
-    }
-
-    if (filters.minPrice) {
-      query = query.gte('price', filters.minPrice);
-    }
-
-    if (filters.maxPrice) {
-      query = query.lte('price', filters.maxPrice);
-    }
-
-    if (filters.year) {
-      query = query.eq('year', filters.year);
-    }
-
-    // Appliquer le tri et la pagination
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-    query = query.range(from, to);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      throw new Error(`Erreur lors de la récupération des véhicules: ${error.message}`);
-    }
-
-    // Transformer les données
-    const transformedData: Vehicle[] = (data || []).map(car => ({
-      id: car.id,
-      reference: car.reference || `REF-${car.id.substring(0, 6)}`,
-      brand: (car.brands as any)?.name || 'N/A',
-      model: (car.models as any)?.name || 'N/A',
-      year: car.year || 0,
-      price: car.price || 0,
-      status: car.status || 'disponible',
-      location: car.location || 'Non spécifié',
-      assignedTo: 'Non assigné', // À implémenter avec une jointure
-      contact: 'Non spécifié', // À implémenter avec une jointure
-      lastUpdate: car.updated_at ? new Date(car.updated_at).toLocaleDateString() : new Date(car.created_at).toLocaleDateString(),
-      mileage: car.mileage || 0,
-      color: car.color || 'Non spécifié',
-      created_at: car.created_at,
-      updated_at: car.updated_at,
-      photos: (car.advertisements as any)?.[0]?.photos || [],
-    }));
-
-    return {
-      data: transformedData,
-      totalItems: count || 0,
-    };
   },
 
   async fetchVehicleStats() {
@@ -230,12 +207,19 @@ export const vehicleService = {
 
   async updateVehicleStatus(vehicleId: string, newStatus: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('cars_v2')
-        .update({ status: newStatus })
-        .eq('id', vehicleId);
+      // Utiliser la fonction RPC qui contourne RLS
+      const { data, error } = await supabase
+        .rpc('update_vehicle_status', {
+          vehicle_id_param: vehicleId,
+          new_status_param: newStatus
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur RPC update_vehicle_status:', error);
+        throw error;
+      }
+
+      console.log('✅ Statut mis à jour via RPC:', data);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
