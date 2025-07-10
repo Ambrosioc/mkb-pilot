@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Pole, poleService } from '@/lib/services/poleService';
+import { supabase } from '@/lib/supabase';
 import { Building2, Edit, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -30,7 +31,7 @@ export const poleManagerService = {
     // Créer un nouveau pôle
     async createPole(poleData: CreatePoleData): Promise<Pole> {
         try {
-            const { data, error } = await poleService.supabase
+            const { data, error } = await supabase
                 .from('poles')
                 .insert({
                     name: poleData.name,
@@ -50,7 +51,7 @@ export const poleManagerService = {
     // Mettre à jour un pôle
     async updatePole(id: number, poleData: UpdatePoleData): Promise<Pole> {
         try {
-            const { data, error } = await poleService.supabase
+            const { data, error } = await supabase
                 .from('poles')
                 .update({
                     name: poleData.name,
@@ -73,7 +74,7 @@ export const poleManagerService = {
     async deletePole(id: number): Promise<void> {
         try {
             // Vérifier s'il y a des utilisateurs affectés à ce pôle
-            const { data: usersWithPole, error: checkError } = await poleService.supabase
+            const { data: usersWithPole, error: checkError } = await supabase
                 .from('user_poles')
                 .select('id')
                 .eq('pole_id', id);
@@ -84,7 +85,7 @@ export const poleManagerService = {
                 throw new Error(`Impossible de supprimer ce pôle car ${usersWithPole.length} utilisateur(s) y sont affectés`);
             }
 
-            const { error } = await poleService.supabase
+            const { error } = await supabase
                 .from('poles')
                 .delete()
                 .eq('id', id);
@@ -99,7 +100,7 @@ export const poleManagerService = {
     // Vérifier si un nom de pôle existe déjà
     async checkPoleNameExists(name: string, excludeId?: number): Promise<boolean> {
         try {
-            let query = poleService.supabase
+            let query = supabase
                 .from('poles')
                 .select('id')
                 .eq('name', name);
@@ -254,7 +255,7 @@ export function PoleManager({ onPolesUpdated }: PoleManagerProps) {
                     <div className="text-center py-8 text-gray-500">
                         <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>Aucun pôle défini</p>
-                        <p className="text-sm">Cliquez sur "Nouveau Pôle" pour commencer</p>
+                        <p className="text-sm">Cliquez sur &quot;Nouveau Pôle&quot; pour commencer</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
