@@ -6,6 +6,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'MKB Pilot - Dashboard',
   description: 'Dashboard professionnel MKB Pilot #mkbpilot',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
