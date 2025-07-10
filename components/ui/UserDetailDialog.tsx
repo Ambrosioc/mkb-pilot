@@ -17,17 +17,26 @@ interface UserDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onUserUpdated: () => void;
+    adminName?: string; // Ajouter le nom de l'administrateur
 }
 
 const getRoleColor = (roleName: string) => {
-    if (['CEO'].includes(roleName)) return 'bg-red-100 text-red-800';
-    if (['G4'].includes(roleName)) return 'bg-orange-100 text-orange-800';
-    if (roleName.includes('Responsable')) return 'bg-blue-100 text-blue-800';
-    if (roleName.includes('Collaborateur')) return 'bg-green-100 text-green-800';
-    return 'bg-gray-100 text-gray-800';
+    switch (roleName.toLowerCase()) {
+        case 'ceo':
+        case 'g4':
+            return 'bg-purple-100 text-purple-800';
+        case 'responsable de pôle':
+            return 'bg-blue-100 text-blue-800';
+        case 'collaborateur confirmé':
+            return 'bg-green-100 text-green-800';
+        case 'collaborateur simple':
+            return 'bg-gray-100 text-gray-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
 };
 
-export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated }: UserDetailDialogProps) {
+export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated, adminName }: UserDetailDialogProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -72,7 +81,9 @@ export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated }: Us
 
         try {
             setSaving(true);
-            await userService.updateUser(user.id, formData);
+            // Utiliser le nom de l'admin pour les notifications
+            const adminNameToUse = adminName || 'Administrateur';
+            await userService.updateUser(user.id, formData, adminNameToUse);
             toast.success('Utilisateur mis à jour avec succès');
             setIsEditing(false);
             onUserUpdated();

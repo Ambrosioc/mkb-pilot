@@ -56,10 +56,12 @@ export function UserPolesManager({ user, onPolesUpdated }: UserPolesManagerProps
 
         try {
             setAssigning(true);
-            await poleService.assignPoleToUser({
-                user_id: user.id,
-                pole_id: parseInt(selectedPoleId)
-            });
+            const adminName = 'Administrateur'; // Vous pouvez récupérer le nom de l'admin connecté ici
+            await poleService.assignPoleToUser(
+                user.id,
+                parseInt(selectedPoleId),
+                adminName
+            );
 
             toast.success('Pôle assigné avec succès');
             setIsAssignDialogOpen(false);

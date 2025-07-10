@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { notificationService } from './notificationService';
 
 export interface Pole {
   id: number;
@@ -14,11 +15,6 @@ export interface UserPole {
   pole_name: string;
   pole_description: string;
   created_at: string;
-}
-
-export interface AssignPoleData {
-  user_id: string;
-  pole_id: number;
 }
 
 export const poleService = {
@@ -48,19 +44,17 @@ export const poleService = {
           user_id,
           pole_id,
           created_at,
-          poles (
+          poles(
             id,
             name,
             description
           )
         `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('user_id', userId);
 
       if (error) throw error;
 
-      // Transformer les données
-      const transformedPoles: UserPole[] = (data || []).map((item: any) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         user_id: item.user_id,
         pole_id: item.pole_id,
@@ -68,106 +62,156 @@ export const poleService = {
         pole_description: item.poles.description,
         created_at: item.created_at
       }));
-
-      return transformedPoles;
     } catch (error) {
       console.error('Erreur lors de la récupération des pôles utilisateur:', error);
       throw error;
     }
   },
 
-  // Assigner un pôle à un utilisateur
-  async assignPoleToUser(assignData: AssignPoleData): Promise<void> {
+  // Attribuer un pôle à un utilisateur
+  async assignPoleToUser(userId: string, poleId: number, adminName?: string): Promise<void> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      if (!token) {
-        throw new Error('Token d\'authentification manquant');
+      // Vérifier si l'accès existe déjà
+      const { data: existing, error: existingError } = await supabase
+        .from('user_poles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('pole_id', poleId)
+        .maybeSingle();
+
+      if (existingError && existingError.code !== 'PGRST116') {
+        throw existingError;
       }
 
-      const response = await fetch('/api/poles/assign', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(assignData)
-      });
+      if (existing) {
+        throw new Error('L\'utilisateur a déjà accès à ce pôle');
+      }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors de l\'assignation du pôle');
+      // Récupérer le nom du pôle pour la notification
+      const { data: pole, error: poleError } = await supabase
+        .from('poles')
+        .select('name')
+        .eq('id', poleId)
+        .maybeSingle();
+
+      if (poleError && poleError.code !== 'PGRST116') {
+        throw poleError;
+      }
+
+      if (!pole) {
+        throw new Error('Pôle non trouvé');
+      }
+
+      // Attribuer le pôle
+      const { error } = await supabase
+        .from('user_poles')
+        .insert({
+          user_id: userId,
+          pole_id: poleId
+        });
+
+      if (error) throw error;
+
+      // Envoyer une notification
+      if (adminName) {
+        try {
+          await notificationService.notifyPoleAccess(userId, pole.name, adminName);
+        } catch (notificationError) {
+          console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+        }
       }
     } catch (error) {
-      console.error('Erreur lors de l\'affectation du pôle:', error);
+      console.error('Erreur lors de l\'attribution du pôle:', error);
       throw error;
     }
   },
 
   // Retirer un pôle d'un utilisateur
-  async removePoleFromUser(userId: string, poleId: number): Promise<void> {
+  async removePoleFromUser(userId: string, poleId: number, adminName?: string): Promise<void> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      if (!token) {
-        throw new Error('Token d\'authentification manquant');
+      // Récupérer le nom du pôle pour la notification
+      const { data: pole, error: poleError } = await supabase
+        .from('poles')
+        .select('name')
+        .eq('id', poleId)
+        .maybeSingle();
+
+      if (poleError && poleError.code !== 'PGRST116') {
+        throw poleError;
       }
 
-      const response = await fetch('/api/poles/assign', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          pole_id: poleId
-        })
-      });
+      if (!pole) {
+        throw new Error('Pôle non trouvé');
+      }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors de la suppression de l\'affectation');
+      // Retirer le pôle
+      const { error } = await supabase
+        .from('user_poles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('pole_id', poleId);
+
+      if (error) throw error;
+
+      // Envoyer une notification
+      if (adminName) {
+        try {
+          await notificationService.notifyPoleRemoval(userId, pole.name, adminName);
+        } catch (notificationError) {
+          console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+        }
       }
     } catch (error) {
-      console.error('Erreur lors de la suppression de l\'affectation:', error);
+      console.error('Erreur lors du retrait du pôle:', error);
       throw error;
     }
   },
 
-  // Vérifier si un utilisateur a accès à un pôle
-  async hasPoleAccess(userId: string, poleName: string): Promise<boolean> {
+  // Récupérer tous les utilisateurs avec leurs pôles
+  async fetchUsersWithPoles(): Promise<any[]> {
     try {
       const { data, error } = await supabase
-        .rpc('has_pole_access', {
-          p_user_id: userId,
-          p_pole_name: poleName
-        });
+        .from('users')
+        .select(`
+          id,
+          prenom,
+          nom,
+          email,
+          actif,
+          user_poles(
+            id,
+            pole_id,
+            created_at,
+            poles(
+              id,
+              name,
+              description
+            )
+          )
+        `)
+        .order('prenom');
 
       if (error) throw error;
-      return data || false;
-    } catch (error) {
-      console.error('Erreur lors de la vérification d\'accès:', error);
-      return false;
-    }
-  },
 
-  // Obtenir les permissions d'un utilisateur pour un pôle
-  async getUserPoleAccess(userId: string, poleName: string) {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_user_pole_access', {
-          p_user_id: userId,
-          p_pole_name: poleName
-        });
-
-      if (error) throw error;
-      return data?.[0] || null;
+      return (data || []).map((user: any) => ({
+        id: user.id,
+        prenom: user.prenom,
+        nom: user.nom,
+        email: user.email,
+        actif: user.actif,
+        poles: Array.isArray(user.user_poles) 
+          ? user.user_poles.map((up: any) => ({
+              id: up.id,
+              pole_id: up.pole_id,
+              pole_name: up.poles.name,
+              pole_description: up.poles.description,
+              created_at: up.created_at
+            }))
+          : []
+      }));
     } catch (error) {
-      console.error('Erreur lors de la récupération des permissions:', error);
-      return null;
+      console.error('Erreur lors de la récupération des utilisateurs avec pôles:', error);
+      throw error;
     }
   }
 }; 
