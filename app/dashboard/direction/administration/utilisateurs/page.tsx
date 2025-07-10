@@ -447,6 +447,7 @@ export default function UtilisateursPage() {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Utilisateur</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Rôle</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Pôles</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Statut</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Date de création</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
@@ -480,11 +481,24 @@ export default function UtilisateursPage() {
                       <td className="py-3 px-4">
                         {user.role ? (
                           <Badge className={getRoleColor(user.role.nom)}>
-                            {user.role.nom} (N{user.role.niveau})
+                            {user.role.nom} (Niveau {user.role.niveau})
                           </Badge>
                         ) : (
                           <Badge className="bg-gray-100 text-gray-800">Aucun rôle</Badge>
                         )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1">
+                          {user.poles && user.poles.length > 0 ? (
+                            user.poles.map((pole) => (
+                              <Badge key={pole.id} className="bg-blue-100 text-blue-800 text-xs">
+                                {pole.pole_name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-gray-500 text-sm">Aucun pôle</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <Badge className={getStatusColor(user.actif)}>

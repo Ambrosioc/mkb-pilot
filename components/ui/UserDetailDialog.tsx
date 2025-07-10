@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserPolesManager } from '@/components/ui/UserPolesManager';
 import { UpdateUserData, User, userService } from '@/lib/services/userService';
 import { Calendar, Edit, Loader2, Save, User as UserIcon, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -96,11 +97,16 @@ export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated }: Us
         setIsEditing(false);
     };
 
+    // Callback quand les pôles sont mis à jour
+    const handlePolesUpdated = () => {
+        onUserUpdated();
+    };
+
     if (!user) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <UserIcon className="h-5 w-5" />
@@ -133,7 +139,7 @@ export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated }: Us
                                 </Badge>
                                 {user.role && (
                                     <Badge className={getRoleColor(user.role.nom)}>
-                                        {user.role.nom} (N{user.role.niveau})
+                                        {user.role.nom} (Niveau {user.role.niveau})
                                     </Badge>
                                 )}
                             </div>
@@ -245,6 +251,14 @@ export function UserDetailDialog({ user, open, onOpenChange, onUserUpdated }: Us
                             </div>
                         )}
                     </div>
+
+                    {/* Gestion des pôles */}
+                    {!isEditing && (
+                        <UserPolesManager
+                            user={user}
+                            onPolesUpdated={handlePolesUpdated}
+                        />
+                    )}
 
                     {/* Informations système */}
                     <div className="border-t pt-4">

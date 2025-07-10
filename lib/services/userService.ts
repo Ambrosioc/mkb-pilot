@@ -17,6 +17,13 @@ export interface User {
     description?: string;
   };
   last_login?: string;
+  poles?: Array<{
+    id: string;
+    pole_id: number;
+    pole_name: string;
+    pole_description: string;
+    created_at: string;
+  }>;
 }
 
 export interface UserStats {
@@ -46,7 +53,7 @@ export interface UpdateUserData {
 export const userService = {
   async fetchUsers(): Promise<User[]> {
     try {
-      // Requête optimisée pour récupérer les utilisateurs avec leurs rôles via la table intermédiaire
+      // Requête optimisée pour récupérer les utilisateurs avec leurs rôles et pôles
       const { data, error } = await supabase
         .from('users')
         .select(`
@@ -60,6 +67,16 @@ export const userService = {
               niveau,
               description
             )
+          ),
+          user_poles:user_poles!user_poles_user_id_fkey(
+            id,
+            pole_id,
+            created_at,
+            poles(
+              id,
+              name,
+              description
+            )
           )
         `)
         .order('date_creation', { ascending: false });
@@ -69,7 +86,6 @@ export const userService = {
       // Transformer les données pour simplifier la structure
       const transformedUsers: User[] = (data || []).map((user: any) => {
         // Récupérer le rôle depuis la relation user_roles
-        // Gérer le cas où user_roles peut être un objet ou un tableau
         let userRole;
         if (Array.isArray(user.user_roles)) {
           userRole = user.user_roles[0];
@@ -78,6 +94,17 @@ export const userService = {
         }
         
         const role = userRole?.roles;
+
+        // Récupérer les pôles depuis la relation user_poles
+        const poles = Array.isArray(user.user_poles) 
+          ? user.user_poles.map((up: any) => ({
+              id: up.id,
+              pole_id: up.pole_id,
+              pole_name: up.poles.name,
+              pole_description: up.poles.description,
+              created_at: up.created_at
+            }))
+          : [];
 
         return {
           id: user.id,
@@ -90,7 +117,8 @@ export const userService = {
           photo_url: user.photo_url,
           date_creation: user.date_creation,
           role: role || null,
-          last_login: user.last_login
+          last_login: user.last_login,
+          poles: poles
         };
       });
 
