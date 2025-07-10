@@ -32,40 +32,74 @@ async function testPermissionsSummary() {
     const user = users[0];
     console.log('✅ Utilisateur trouvé:', user.prenom, user.nom);
 
-    // 2. Vérifier toutes les affectations
-    console.log('\n📋 2. Affectations actuelles...');
+    // 2. Récupérer le rôle de l'utilisateur
+    console.log('\n📋 2. Récupération du rôle utilisateur...');
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select(`
+        roles (
+          id,
+          nom,
+          niveau,
+          description
+        )
+      `)
+      .eq('user_id', user.id)
+      .single();
+
+    if (roleError) {
+      console.error('❌ Erreur lors de la récupération du rôle:', roleError);
+      return;
+    }
+
+    const role = userRole?.roles;
+    console.log(`✅ Rôle: ${role?.nom} (Niveau ${role?.niveau})`);
+
+    // 3. Vérifier les affectations de pôles
+    console.log('\n📋 3. Affectations de pôles...');
     const { data: userPoles, error: userPolesError } = await supabase
       .from('user_poles')
       .select(`
-        role_level,
         poles (
           name,
           description
         )
       `)
-      .eq('user_id', user.auth_user_id);
+      .eq('user_id', user.id);
 
     if (userPolesError) {
       console.error('❌ Erreur lors de la récupération des affectations:', userPolesError);
       return;
     }
 
-    console.log('✅ Affectations trouvées:', userPoles.length);
+    console.log('✅ Pôles assignés:', userPoles.length);
     userPoles.forEach(assignment => {
       const pole = assignment.poles;
-      console.log(`   - ${pole.name} (niveau ${assignment.role_level})`);
-      
-      // Déterminer les permissions selon le niveau
-      let permissions = [];
-      if (assignment.role_level <= 5) permissions.push('Lecture');
-      if (assignment.role_level <= 4) permissions.push('Écriture');
-      if (assignment.role_level <= 3) permissions.push('Gestion');
-      
-      console.log(`     Permissions: ${permissions.join(', ')}`);
+      console.log(`   - ${pole.name}: ${pole.description}`);
     });
 
-    // 3. Résumé des accès par page
-    console.log('\n📋 3. Résumé des accès par page...');
+    // 4. Utiliser la fonction RPC pour obtenir les permissions détaillées
+    console.log('\n📋 4. Permissions détaillées par pôle...');
+    const { data: detailedPoles, error: detailedError } = await supabase
+      .rpc('get_user_poles', {
+        p_user_id: user.id
+      });
+
+    if (detailedError) {
+      console.error('❌ Erreur lors de la récupération des permissions détaillées:', detailedError);
+    } else {
+      console.log(`✅ ${detailedPoles.length} pôles avec permissions détaillées`);
+      detailedPoles.forEach(pole => {
+        console.log(`   - ${pole.pole_name}:`);
+        console.log(`     Niveau: ${pole.role_level}`);
+        console.log(`     Lecture: ${pole.can_read ? '✅' : '❌'}`);
+        console.log(`     Écriture: ${pole.can_write ? '✅' : '❌'}`);
+        console.log(`     Gestion: ${pole.can_manage ? '✅' : '❌'}`);
+      });
+    }
+
+    // 5. Résumé des accès par page
+    console.log('\n📋 5. Résumé des accès par page...');
     
     const pages = [
       { name: 'Stock', pole: 'Stock', url: '/dashboard/stock' },
@@ -76,42 +110,53 @@ async function testPermissionsSummary() {
     ];
 
     pages.forEach(page => {
-      const assignment = userPoles.find(up => up.poles.name === page.pole);
-      if (assignment) {
-        const canRead = assignment.role_level <= 5;
-        const canWrite = assignment.role_level <= 4;
-        const canManage = assignment.role_level <= 3;
-        
+      const poleAccess = detailedPoles?.find(p => p.pole_name === page.pole);
+      if (poleAccess) {
         console.log(`   ${page.name} (${page.url}):`);
-        console.log(`     - Accès: ${canRead ? '✅' : '❌'}`);
-        console.log(`     - Lecture: ${canRead ? '✅' : '❌'}`);
-        console.log(`     - Écriture: ${canWrite ? '✅' : '❌'}`);
-        console.log(`     - Gestion: ${canManage ? '✅' : '❌'}`);
+        console.log(`     - Accès: ✅`);
+        console.log(`     - Lecture: ${poleAccess.can_read ? '✅' : '❌'}`);
+        console.log(`     - Écriture: ${poleAccess.can_write ? '✅' : '❌'}`);
+        console.log(`     - Gestion: ${poleAccess.can_manage ? '✅' : '❌'}`);
       } else {
         console.log(`   ${page.name} (${page.url}): ❌ Aucun accès`);
       }
     });
 
+    // 6. Résumé final
     console.log('\n🎯 RÉSUMÉ FINAL');
     console.log('===============');
-    console.log('✅ Pages accessibles (lecture uniquement):');
-    console.log('   - /dashboard/stock (niveau 5)');
-    console.log('   - /dashboard/contacts (niveau 5)');
-    console.log('');
-    console.log('❌ Pages non accessibles:');
-    console.log('   - /dashboard/pricing/angola (aucune affectation)');
-    console.log('   - /dashboard/direction (aucune affectation)');
-    console.log('   - /dashboard/stock/new (niveau 5 < niveau requis)');
-    console.log('');
-    console.log('📝 Actions disponibles en niveau 5:');
-    console.log('   - ✅ Voir les listes de véhicules et contacts');
-    console.log('   - ✅ Voir les détails des véhicules et contacts');
-    console.log('   - ✅ Rechercher et filtrer');
-    console.log('   - ✅ Voir les statistiques');
-    console.log('   - ❌ Ajouter/modifier/supprimer des éléments');
-    console.log('   - ❌ Créer des devis/factures');
-    console.log('   - ❌ Envoyer des emails groupés');
-    console.log('   - ❌ Gérer les tags');
+    console.log(`Utilisateur: ${user.prenom} ${user.nom}`);
+    console.log(`Rôle: ${role?.nom} (Niveau ${role?.niveau})`);
+    console.log(`Pôles assignés: ${userPoles.length}`);
+    
+    if (userPoles.length > 0) {
+      console.log('✅ Pages accessibles:');
+      userPoles.forEach(assignment => {
+        const poleName = assignment.poles.name;
+        const poleAccess = detailedPoles?.find(p => p.pole_name === poleName);
+        if (poleAccess) {
+          console.log(`   - ${poleName}: Lecture ${poleAccess.can_read ? '✅' : '❌'}, Écriture ${poleAccess.can_write ? '✅' : '❌'}, Gestion ${poleAccess.can_manage ? '✅' : '❌'}`);
+        }
+      });
+    } else {
+      console.log('❌ Aucun pôle assigné - accès limité');
+    }
+
+    console.log('\n📝 Actions disponibles selon le niveau:');
+    if (role?.niveau <= 5) {
+      console.log('   - ✅ Voir les listes et détails');
+      console.log('   - ✅ Rechercher et filtrer');
+      console.log('   - ✅ Voir les statistiques');
+    }
+    if (role?.niveau <= 4) {
+      console.log('   - ✅ Ajouter/modifier des éléments');
+      console.log('   - ✅ Créer des devis/factures');
+    }
+    if (role?.niveau <= 3) {
+      console.log('   - ✅ Supprimer des éléments');
+      console.log('   - ✅ Gérer les utilisateurs');
+      console.log('   - ✅ Envoyer des emails groupés');
+    }
 
   } catch (error) {
     console.error('❌ Erreur générale:', error);

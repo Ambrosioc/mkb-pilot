@@ -25,14 +25,27 @@ export interface EmailOptions {
   replyTo?: EmailRecipient;
 }
 
-// Initialisation du client Mailjet
-export const mailjet = new createClient({
-  apiKey: process.env.MAILJET_API_KEY || '',
-  apiSecret: process.env.MAILJET_SECRET_KEY || '',
-});
+// Vérifier si Mailjet est configuré
+const isMailjetConfigured = process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY;
+
+// Initialisation du client Mailjet (seulement si configuré)
+export const mailjet = isMailjetConfigured 
+  ? new createClient({
+      apiKey: process.env.MAILJET_API_KEY!,
+      apiSecret: process.env.MAILJET_SECRET_KEY!,
+    })
+  : null;
 
 // Fonction pour envoyer un email
 export async function sendEmail(options: EmailOptions) {
+  if (!isMailjetConfigured) {
+    console.warn('Mailjet non configuré - email non envoyé');
+    return {
+      success: false,
+      error: new Error('Mailjet non configuré'),
+    };
+  }
+
   const {
     subject,
     htmlContent,
@@ -71,7 +84,7 @@ export async function sendEmail(options: EmailOptions) {
     };
 
     // Envoyer l'email via l'API Mailjet
-    const result = await mailjet.post('send', { version: 'v3.1' }).request(data);
+    const result = await mailjet!.post('send', { version: 'v3.1' }).request(data);
     
     return {
       success: true,

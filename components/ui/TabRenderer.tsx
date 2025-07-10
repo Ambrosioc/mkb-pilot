@@ -23,6 +23,14 @@ const PricingAngolaAddPage = dynamic(() => import('@/app/dashboard/pricing/angol
 const DirectionGeneralePage = dynamic(() => import('@/app/dashboard/direction-generale/page'), { ssr: false });
 const DirectionPage = dynamic(() => import('@/app/dashboard/direction/page'), { ssr: false });
 const ProfilePage = dynamic(() => import('@/app/dashboard/profile/page'), { ssr: false });
+const AdministrationPage = dynamic(() => import('@/app/dashboard/direction/administration/page'), { ssr: false });
+const LogsPage = dynamic(() => import('@/app/dashboard/direction/administration/logs/page'), { ssr: false });
+const HistoriqueAccesPage = dynamic(() => import('@/app/dashboard/direction/administration/historique-acces/page'), { ssr: false });
+const ParametresPage = dynamic(() => import('@/app/dashboard/direction/administration/parametres/page'), { ssr: false });
+const RolesPage = dynamic(() => import('@/app/dashboard/direction/administration/roles/page'), { ssr: false });
+const UtilisateursPage = dynamic(() => import('@/app/dashboard/direction/administration/utilisateurs/page'), { ssr: false });
+
+
 
 export function TabRenderer() {
   const { openTabs, activeTabId } = useTabsStore();
@@ -78,6 +86,18 @@ export function TabRenderer() {
       return <DirectionPage />;
     case '/dashboard/profile':
       return <ProfilePage />;
+    case '/dashboard/direction/administration':
+      return <AdministrationPage />;
+    case '/dashboard/direction/administration/roles':
+      return <RolesPage />;
+    case '/dashboard/direction/administration/utilisateurs':
+      return <UtilisateursPage />;
+    case '/dashboard/direction/administration/logs':
+      return <LogsPage />;
+    case '/dashboard/direction/administration/historique-acces':
+      return <HistoriqueAccesPage />;
+    case '/dashboard/direction/administration/parametres':
+      return <ParametresPage />;
     default:
       // Fallback pour les chemins non gérés
       return (

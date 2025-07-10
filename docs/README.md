@@ -356,7 +356,7 @@ npm run build
 ## 📞 Support
 
 ### Contact
-- **Email :** support@mkb.com
+- **Email :** support@mkbautomobile.fr
 - **Documentation :** [docs.mkb.com](https://docs.mkb.com)
 - **Issues :** [GitHub Issues](https://github.com/mkb/dashboard/issues)
 

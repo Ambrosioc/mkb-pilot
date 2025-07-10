@@ -1,10 +1,15 @@
 import type { MenuItem } from '@/types';
 import {
   BarChart3,
+  Clock,
+  Crown,
   DollarSign,
+  FileText,
   Globe,
   Home,
   Package,
+  Settings,
+  Shield,
   Users
 } from 'lucide-react';
 
@@ -25,74 +30,74 @@ export const navigationItems: MenuItem[] = [
     icon: Users,
     href: '/dashboard/contacts',
   },
-  // {
-  //   title: 'Pôle Direction Générale',
-  //   icon: Crown,
-  //   children: [
-  //     {
-  //       title: 'Statistiques',
-  //       icon: BarChart3,
-  //       href: '/dashboard/direction/statistiques',
-  //     },
-  //     {
-  //       title: 'Performances',
-  //       icon: TrendingUp,
-  //       href: '/dashboard/direction/performances',
-  //     },
-  //     {
-  //       title: 'Directeurs G4',
-  //       icon: Users,
-  //       href: '/dashboard/direction/directeurs',
-  //     },
-  //     {
-  //       title: 'Rapports',
-  //       icon: Calendar,
-  //       href: '/dashboard/direction/rapports',
-  //     },
-  //     {
-  //       title: 'Documents',
-  //       icon: FileText,
-  //       href: '/dashboard/direction/documents',
-  //     },
-  //     {
-  //       title: 'Finances',
-  //       icon: DollarSign,
-  //       href: '/dashboard/direction/finances',
-  //     },
-  //     {
-  //       title: 'Administration',
-  //       icon: Settings,
-  //       href: '/dashboard/administration',
-  //       children: [
-  //         {
-  //           title: 'Utilisateurs',
-  //           icon: Users,
-  //           href: '/dashboard/direction/administration/utilisateurs',
-  //         },
-  //         {
-  //           title: 'Rôles',
-  //           icon: Shield,
-  //           href: '/dashboard/direction/administration/roles',
-  //         },
-  //         {
-  //           title: 'Logs',
-  //           icon: FileText,
-  //           href: '/dashboard/direction/administration/logs',
-  //         },
-  //         {
-  //           title: 'Historique Accès',
-  //           icon: Clock,
-  //           href: '/dashboard/direction/administration/historique-acces',
-  //         },
-  //         {
-  //           title: 'Paramètres',
-  //           icon: Settings,
-  //           href: '/dashboard/direction/administration/parametres',
-  //         },
-  //       ],
-  //     },
-  //   ],
-  // },
+  {
+    title: 'Pôle Direction Générale',
+    icon: Crown,
+    children: [
+      // {
+      //   title: 'Statistiques',
+      //   icon: BarChart3,
+      //   href: '/dashboard/direction/statistiques',
+      // },
+      // {
+      //   title: 'Performances',
+      //   icon: TrendingUp,
+      //   href: '/dashboard/direction/performances',
+      // },
+      // {
+      //   title: 'Directeurs G4',
+      //   icon: Users,
+      //   href: '/dashboard/direction/directeurs',
+      // },
+      // {
+      //   title: 'Rapports',
+      //   icon: Calendar,
+      //   href: '/dashboard/direction/rapports',
+      // },
+      // {
+      //   title: 'Documents',
+      //   icon: FileText,
+      //   href: '/dashboard/direction/documents',
+      // },
+      // {
+      //   title: 'Finances',
+      //   icon: DollarSign,
+      //   href: '/dashboard/direction/finances',
+      // },
+      {
+        title: 'Administration',
+        icon: Settings,
+        href: '/dashboard/administration',
+        children: [
+          {
+            title: 'Utilisateurs',
+            icon: Users,
+            href: '/dashboard/direction/administration/utilisateurs',
+          },
+          {
+            title: 'Rôles',
+            icon: Shield,
+            href: '/dashboard/direction/administration/roles',
+          },
+          {
+            title: 'Logs',
+            icon: FileText,
+            href: '/dashboard/direction/administration/logs',
+          },
+          {
+            title: 'Historique Accès',
+            icon: Clock,
+            href: '/dashboard/direction/administration/historique-acces',
+          },
+          {
+            title: 'Paramètres',
+            icon: Settings,
+            href: '/dashboard/direction/administration/parametres',
+          },
+        ],
+      },
+    ],
+  },
   // {
   //   title: 'Pôle Commercial',
   //   icon: ShoppingCart,
