@@ -46,6 +46,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Récupérer le nom du pôle pour la notification
+    const { data: pole, error: poleError } = await supabase
+      .from('poles')
+      .select('name')
+      .eq('id', pole_id)
+      .single();
+
+    if (poleError || !pole) {
+      console.error('Erreur lors de la récupération du pôle:', poleError);
+      return NextResponse.json(
+        { error: 'Pôle non trouvé' },
+        { status: 404 }
+      );
+    }
+
+    // Récupérer le nom de l'administrateur qui effectue l'action
+    const { data: adminUser, error: adminError } = await supabase
+      .from('users')
+      .select('prenom, nom')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    const adminName = adminError || !adminUser 
+      ? 'Administrateur' 
+      : `${adminUser.prenom} ${adminUser.nom}`.trim() || 'Administrateur';
+
     // Assigner le pôle à l'utilisateur
     const { data, error } = await supabase
       .from('user_poles')
@@ -57,12 +83,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'L\'utilisateur est déjà affecté à ce pôle' },
-          { status: 409 }
-        );
-      }
       console.error('Erreur lors de l\'assignation:', error);
       return NextResponse.json(
         { error: 'Erreur lors de l\'assignation du pôle' },
@@ -70,13 +90,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Envoyer une notification à l'utilisateur
+    try {
+      const { data: notification, error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          recipient_id: user_id,
+          sender_id: user.id,
+          title: 'Accès au pôle accordé',
+          message: `${adminName} vous a accordé l'accès au pôle "${pole.name}"`,
+          type: 'success',
+          category: 'user'
+        })
+        .select()
+        .single();
+
+      if (notificationError) {
+        console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+      } else {
+        console.log('Notification d\'assignation de pôle envoyée:', notification.id);
+      }
+    } catch (notificationError) {
+      console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+    }
+
     return NextResponse.json({
       success: true,
-      data: data
+      data
     });
 
   } catch (error) {
-    console.error('Erreur API poles/assign:', error);
+    console.error('Erreur API poles/assign POST:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }
@@ -129,6 +173,32 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    // Récupérer le nom du pôle pour la notification
+    const { data: pole, error: poleError } = await supabase
+      .from('poles')
+      .select('name')
+      .eq('id', pole_id)
+      .single();
+
+    if (poleError || !pole) {
+      console.error('Erreur lors de la récupération du pôle:', poleError);
+      return NextResponse.json(
+        { error: 'Pôle non trouvé' },
+        { status: 404 }
+      );
+    }
+
+    // Récupérer le nom de l'administrateur qui effectue l'action
+    const { data: adminUser, error: adminError } = await supabase
+      .from('users')
+      .select('prenom, nom')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    const adminName = adminError || !adminUser 
+      ? 'Administrateur' 
+      : `${adminUser.prenom} ${adminUser.nom}`.trim() || 'Administrateur';
+
     // Supprimer l'affectation du pôle
     const { error } = await supabase
       .from('user_poles')
@@ -142,6 +212,30 @@ export async function DELETE(req: NextRequest) {
         { error: 'Erreur lors de la suppression de l\'affectation' },
         { status: 500 }
       );
+    }
+
+    // Envoyer une notification à l'utilisateur
+    try {
+      const { data: notification, error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          recipient_id: user_id,
+          sender_id: user.id,
+          title: 'Accès au pôle retiré',
+          message: `${adminName} a retiré votre accès au pôle "${pole.name}"`,
+          type: 'warning',
+          category: 'user'
+        })
+        .select()
+        .single();
+
+      if (notificationError) {
+        console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+      } else {
+        console.log('Notification de suppression de pôle envoyée:', notification.id);
+      }
+    } catch (notificationError) {
+      console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
     }
 
     return NextResponse.json({

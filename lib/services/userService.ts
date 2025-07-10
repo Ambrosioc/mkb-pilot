@@ -1,3 +1,4 @@
+import { notificationService } from '@/lib/services/notificationService';
 import { supabase } from '@/lib/supabase';
 
 export interface User {
@@ -172,7 +173,7 @@ export const userService = {
     }
   },
 
-  async createUser(userData: CreateUserData): Promise<void> {
+  async createUser(userData: CreateUserData, adminName?: string): Promise<void> {
     try {
       // 1. Créer l'utilisateur dans auth.users
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -197,27 +198,50 @@ export const userService = {
         p_role_id: userData.role_id
       });
       if (rpcError) throw rpcError;
+
+      // 3. Envoyer une notification à l'utilisateur créé
+      if (adminName) {
+        try {
+          // Utiliser l'ID de la table users (qui est le même que auth_user_id dans ce cas)
+          await notificationService.notifyUserCreation(authUser.user.id, adminName);
+        } catch (notificationError) {
+          console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+          // Ne pas faire échouer la création de l'utilisateur si la notification échoue
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la création de l\'utilisateur:', error);
       throw error;
     }
   },
 
-  async updateUserStatus(userId: string, actif: boolean): Promise<void> {
+  async updateUserStatus(userId: string, actif: boolean, adminName?: string): Promise<void> {
     try {
       const { error } = await supabase.rpc('update_user_status', {
         p_user_id: userId,
         p_actif: actif
       });
       if (error) throw error;
+
+      // Envoyer une notification à l'utilisateur
+      if (adminName) {
+        try {
+          await notificationService.notifyStatusChange(userId, actif, adminName);
+        } catch (notificationError) {
+          console.warn('Erreur lors de l\'envoi de la notification:', notificationError);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
     }
   },
 
-  async updateUser(userId: string, userData: UpdateUserData): Promise<void> {
+  async updateUser(userId: string, userData: UpdateUserData, adminName?: string): Promise<void> {
     try {
+      // Récupérer l'ancien rôle pour comparer
+      const oldRole = await this.getUserRole(userId);
+      
       const { error } = await supabase.rpc('update_user_info', {
         p_user_id: userId,
         p_prenom: userData.prenom ?? null,
@@ -227,6 +251,24 @@ export const userService = {
         p_role_id: userData.role_id ?? null
       });
       if (error) throw error;
+
+      // Si le rôle a changé, envoyer une notification
+      if (userData.role_id && oldRole && userData.role_id !== (oldRole as any).id && adminName) {
+        try {
+          // Récupérer le nouveau rôle
+          const { data: newRole } = await supabase
+            .from('roles')
+            .select('nom')
+            .eq('id', userData.role_id)
+            .single();
+          
+          if (newRole) {
+            await notificationService.notifyRoleChange(userId, newRole.nom, adminName);
+          }
+        } catch (notificationError) {
+          console.warn('Erreur lors de l\'envoi de la notification de changement de rôle:', notificationError);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
       throw error;

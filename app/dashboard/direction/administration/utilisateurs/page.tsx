@@ -125,6 +125,7 @@ export default function UtilisateursPage() {
 
     try {
       setCreatingUser(true);
+      const adminName = adminUser ? `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() : 'Administrateur';
       await userService.createUser({
         prenom: formData.prenom,
         nom: formData.nom,
@@ -132,7 +133,7 @@ export default function UtilisateursPage() {
         telephone: formData.telephone || undefined,
         role_id: parseInt(formData.role_id),
         password: formData.password
-      });
+      }, adminName);
 
       toast.success('Utilisateur créé avec succès');
       setIsCreateDialogOpen(false);
@@ -149,7 +150,8 @@ export default function UtilisateursPage() {
   // Mettre à jour le statut d'un utilisateur
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      await userService.updateUserStatus(userId, !currentStatus);
+      const adminName = adminUser ? `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() : 'Administrateur';
+      await userService.updateUserStatus(userId, !currentStatus, adminName);
       toast.success(`Utilisateur ${!currentStatus ? 'activé' : 'désactivé'} avec succès`);
       loadData(); // Recharger les données
     } catch (error) {
@@ -571,6 +573,7 @@ export default function UtilisateursPage() {
         open={isUserDetailDialogOpen}
         onOpenChange={handleCloseUserDetail}
         onUserUpdated={handleUserUpdated}
+        adminName={adminUser ? `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() : 'Administrateur'}
       />
     </div>
   );
