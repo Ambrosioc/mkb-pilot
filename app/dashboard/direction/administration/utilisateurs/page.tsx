@@ -1,179 +1,232 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Users,
-  Plus,
-  Search,
-  Filter,
-  Edit,
-  Trash2,
-  Lock,
-  Unlock,
-  RotateCcw,
-  Mail,
+import { UserDetailDialog } from '@/components/ui/UserDetailDialog';
+import { useAuth } from '@/hooks/useAuth';
+import { User, userService, UserStats } from '@/lib/services/userService';
+import { motion } from 'framer-motion';
+import {
   Calendar,
-  Shield,
+  Edit,
   Eye,
-  MoreHorizontal
+  Filter,
+  Loader2,
+  Lock,
+  Plus,
+  RotateCcw,
+  Search,
+  Shield,
+  Unlock,
+  Users
 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-const usersData = [
-  {
-    id: 1,
-    name: 'Alexandre Dubois',
-    email: 'alexandre.dubois@mkb.com',
-    role: 'CEO',
-    status: 'active',
-    lastLogin: '2024-03-15 14:30',
-    createdAt: '2024-01-15',
-    avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Direction',
-    permissions: ['admin', 'g4', 'all-access']
-  },
-  {
-    id: 2,
-    name: 'Marie-Claire Fontaine',
-    email: 'marie.fontaine@mkb.com',
-    role: 'COO',
-    status: 'active',
-    lastLogin: '2024-03-15 13:45',
-    createdAt: '2024-01-15',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Direction',
-    permissions: ['admin', 'g4', 'operations']
-  },
-  {
-    id: 3,
-    name: 'Thomas Leclerc',
-    email: 'thomas.leclerc@mkb.com',
-    role: 'CTO',
-    status: 'active',
-    lastLogin: '2024-03-15 15:20',
-    createdAt: '2024-01-15',
-    avatar: 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Technique',
-    permissions: ['admin', 'g4', 'technical']
-  },
-  {
-    id: 4,
-    name: 'Isabelle Moreau',
-    email: 'isabelle.moreau@mkb.com',
-    role: 'CCO',
-    status: 'active',
-    lastLogin: '2024-03-15 11:15',
-    createdAt: '2024-01-15',
-    avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Commercial',
-    permissions: ['admin', 'g4', 'commercial']
-  },
-  {
-    id: 5,
-    name: 'Jean Martin',
-    email: 'jean.martin@mkb.com',
-    role: 'Responsable Commercial',
-    status: 'active',
-    lastLogin: '2024-03-15 16:00',
-    createdAt: '2024-02-01',
-    avatar: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Commercial',
-    permissions: ['manager', 'commercial']
-  },
-  {
-    id: 6,
-    name: 'Sophie Laurent',
-    email: 'sophie.laurent@mkb.com',
-    role: 'Responsable Marketing',
-    status: 'suspended',
-    lastLogin: '2024-03-10 09:30',
-    createdAt: '2024-02-15',
-    avatar: 'https://images.pexels.com/photos/1239288/pexels-photo-1239288.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'Marketing',
-    permissions: ['manager', 'marketing']
-  },
-  {
-    id: 7,
-    name: 'Pierre Durand',
-    email: 'pierre.durand@mkb.com',
-    role: 'Agent N2',
-    status: 'active',
-    lastLogin: '2024-03-15 12:45',
-    createdAt: '2024-03-01',
-    avatar: 'https://images.pexels.com/photos/2379006/pexels-photo-2379006.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-    department: 'ACSG',
-    permissions: ['agent', 'acsg']
-  }
-];
+interface UserStatsDisplay {
+  title: string;
+  value: string;
+  change: string;
+  icon: typeof Users;
+  color: string;
+}
 
-const userStats = [
-  {
-    title: 'Total Utilisateurs',
-    value: '47',
-    change: '+3',
-    icon: Users,
-    color: 'text-mkb-blue',
-  },
-  {
-    title: 'Utilisateurs Actifs',
-    value: '42',
-    change: '+2',
-    icon: Shield,
-    color: 'text-green-600',
-  },
-  {
-    title: 'Comptes Suspendus',
-    value: '5',
-    change: '+1',
-    icon: Lock,
-    color: 'text-orange-600',
-  },
-  {
-    title: 'Nouveaux ce mois',
-    value: '8',
-    change: '+8',
-    icon: Calendar,
-    color: 'text-purple-600',
-  },
-];
-
-const getRoleColor = (role: string) => {
-  if (['CEO', 'COO', 'CTO', 'CCO'].includes(role)) return 'bg-red-100 text-red-800';
-  if (role.includes('Responsable')) return 'bg-blue-100 text-blue-800';
-  if (role.includes('Agent')) return 'bg-green-100 text-green-800';
+const getRoleColor = (roleName: string) => {
+  if (['CEO'].includes(roleName)) return 'bg-red-100 text-red-800';
+  if (['G4'].includes(roleName)) return 'bg-orange-100 text-orange-800';
+  if (roleName.includes('Responsable')) return 'bg-blue-100 text-blue-800';
+  if (roleName.includes('Collaborateur')) return 'bg-green-100 text-green-800';
   return 'bg-gray-100 text-gray-800';
 };
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active': return 'bg-green-100 text-green-800';
-    case 'suspended': return 'bg-red-100 text-red-800';
-    case 'pending': return 'bg-yellow-100 text-yellow-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
+const getStatusColor = (actif: boolean) => {
+  return actif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
 };
 
 export default function UtilisateursPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<UserStats>({ total: 0, actifs: 0, inactifs: 0, nouveauxCeMois: 0 });
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isUserDetailDialogOpen, setIsUserDetailDialogOpen] = useState(false);
 
-  const filteredUsers = usersData.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+  // État pour le formulaire de création
+  const [formData, setFormData] = useState({
+    prenom: '',
+    nom: '',
+    email: '',
+    telephone: '',
+    role_id: '',
+    password: ''
+  });
+
+  const { user: adminUser } = useAuth();
+
+  // Charger les données
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [usersData, statsData, rolesData] = await Promise.all([
+        userService.fetchUsers(),
+        userService.fetchUserStats(),
+        userService.getAvailableRoles()
+      ]);
+
+      console.log('📊 Données chargées:', {
+        users: usersData,
+        stats: statsData,
+        roles: rolesData
+      });
+
+      setUsers(usersData);
+      setStats(statsData);
+      setRoles(rolesData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      toast.error('Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Filtrer les utilisateurs
+  const filteredUsers = users.filter(user => {
+    const fullName = `${user.prenom} ${user.nom}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || user.role?.nom === roleFilter;
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'actif' && user.actif) ||
+      (statusFilter === 'inactif' && !user.actif);
     return matchesSearch && matchesRole && matchesStatus;
   });
+
+  // Créer un utilisateur
+  const handleCreateUser = async () => {
+    if (!formData.prenom || !formData.nom || !formData.email || !formData.role_id || !formData.password) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      setCreatingUser(true);
+      await userService.createUser({
+        prenom: formData.prenom,
+        nom: formData.nom,
+        email: formData.email,
+        telephone: formData.telephone || undefined,
+        role_id: parseInt(formData.role_id),
+        password: formData.password
+      });
+
+      toast.success('Utilisateur créé avec succès');
+      setIsCreateDialogOpen(false);
+      setFormData({ prenom: '', nom: '', email: '', telephone: '', role_id: '', password: '' });
+      loadData(); // Recharger les données
+    } catch (error) {
+      console.error('Erreur lors de la création:', error);
+      toast.error('Erreur lors de la création de l\'utilisateur');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  // Mettre à jour le statut d'un utilisateur
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await userService.updateUserStatus(userId, !currentStatus);
+      toast.success(`Utilisateur ${!currentStatus ? 'activé' : 'désactivé'} avec succès`);
+      loadData(); // Recharger les données
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  // Réinitialiser le mot de passe
+  const handleResetPassword = async (userId: string) => {
+    const newPassword = Math.random().toString(36).slice(-8); // Mot de passe temporaire
+    try {
+      const adminName = adminUser ? `${adminUser.first_name || ''} ${adminUser.last_name || ''}`.trim() : 'Administrateur';
+      await userService.resetUserPassword(userId, newPassword, adminName);
+      toast.success(`Mot de passe réinitialisé: ${newPassword}`);
+    } catch (error) {
+      console.error('Erreur lors de la réinitialisation:', error);
+      toast.error('Erreur lors de la réinitialisation du mot de passe');
+    }
+  };
+
+  // Ouvrir le dialogue de détails d'un utilisateur
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setIsUserDetailDialogOpen(true);
+  };
+
+  // Fermer le dialogue de détails
+  const handleCloseUserDetail = () => {
+    setIsUserDetailDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  // Callback quand un utilisateur est mis à jour
+  const handleUserUpdated = () => {
+    loadData();
+  };
+
+  // Préparer les statistiques pour l'affichage
+  const userStatsDisplay: UserStatsDisplay[] = [
+    {
+      title: 'Total Utilisateurs',
+      value: stats.total.toString(),
+      change: '+0',
+      icon: Users,
+      color: 'text-mkb-blue',
+    },
+    {
+      title: 'Utilisateurs Actifs',
+      value: stats.actifs.toString(),
+      change: '+0',
+      icon: Shield,
+      color: 'text-green-600',
+    },
+    {
+      title: 'Comptes Inactifs',
+      value: stats.inactifs.toString(),
+      change: '+0',
+      icon: Lock,
+      color: 'text-orange-600',
+    },
+    {
+      title: 'Nouveaux ce mois',
+      value: stats.nouveauxCeMois.toString(),
+      change: '+0',
+      icon: Calendar,
+      color: 'text-purple-600',
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-mkb-blue" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -213,57 +266,82 @@ export default function UtilisateursPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Nom complet</Label>
-                    <Input placeholder="Nom Prénom" />
+                    <Label>Prénom *</Label>
+                    <Input
+                      placeholder="Prénom"
+                      value={formData.prenom}
+                      onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
+                    />
                   </div>
                   <div>
-                    <Label>Email</Label>
-                    <Input type="email" placeholder="email@mkb.com" />
+                    <Label>Nom *</Label>
+                    <Input
+                      placeholder="Nom"
+                      value={formData.nom}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Rôle</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="agent-n1">Agent N1</SelectItem>
-                        <SelectItem value="agent-n2">Agent N2</SelectItem>
-                        <SelectItem value="agent-n3">Agent N3</SelectItem>
-                        <SelectItem value="responsable">Responsable</SelectItem>
-                        <SelectItem value="g4">Membre G4</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@mkb.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    />
                   </div>
                   <div>
-                    <Label>Département</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un département" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="direction">Direction</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
-                        <SelectItem value="technique">Technique</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="acsg">ACSG</SelectItem>
-                        <SelectItem value="it">IT/Réseau</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Téléphone</Label>
+                    <Input
+                      placeholder="+33 1 23 45 67 89"
+                      value={formData.telephone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                    />
                   </div>
                 </div>
                 <div>
-                  <Label>Mot de passe temporaire</Label>
-                  <Input type="password" placeholder="••••••••" />
+                  <Label>Rôle *</Label>
+                  <Select value={formData.role_id} onValueChange={(value) => setFormData(prev => ({ ...prev, role_id: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un rôle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id.toString()}>
+                          {role.nom} (Niveau {role.niveau})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Mot de passe temporaire *</Label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Annuler
                   </Button>
-                  <Button className="bg-mkb-blue hover:bg-mkb-blue/90">
-                    Créer l'utilisateur
+                  <Button
+                    className="bg-mkb-blue hover:bg-mkb-blue/90"
+                    onClick={handleCreateUser}
+                    disabled={creatingUser}
+                  >
+                    {creatingUser ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Création...
+                      </>
+                    ) : (
+                      'Créer l\'utilisateur'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -279,7 +357,7 @@ export default function UtilisateursPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        {userStats.map((stat) => {
+        {userStatsDisplay.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className="hover:shadow-lg transition-shadow">
@@ -324,12 +402,11 @@ export default function UtilisateursPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
-                  <SelectItem value="CEO">CEO</SelectItem>
-                  <SelectItem value="COO">COO</SelectItem>
-                  <SelectItem value="CTO">CTO</SelectItem>
-                  <SelectItem value="CCO">CCO</SelectItem>
-                  <SelectItem value="Responsable Commercial">Responsable</SelectItem>
-                  <SelectItem value="Agent N2">Agent</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.nom}>
+                      {role.nom}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -338,14 +415,13 @@ export default function UtilisateursPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="suspended">Suspendu</SelectItem>
-                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="actif">Actif</SelectItem>
+                  <SelectItem value="inactif">Inactif</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={loadData}>
                 <Filter className="h-4 w-4 mr-2" />
-                Plus de filtres
+                Actualiser
               </Button>
             </div>
           </CardContent>
@@ -371,9 +447,8 @@ export default function UtilisateursPage() {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Utilisateur</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Rôle</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Département</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Statut</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Dernière connexion</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Date de création</th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
@@ -388,48 +463,70 @@ export default function UtilisateursPage() {
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={user.avatar} 
-                            alt={user.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
+                          <div className="w-10 h-10 rounded-full bg-mkb-blue/10 flex items-center justify-center">
+                            <span className="text-mkb-blue font-semibold text-sm">
+                              {user.prenom.charAt(0)}{user.nom.charAt(0)}
+                            </span>
+                          </div>
                           <div>
-                            <div className="font-medium text-mkb-black">{user.name}</div>
+                            <div className="font-medium text-mkb-black">{user.prenom} {user.nom}</div>
                             <div className="text-sm text-gray-500">{user.email}</div>
+                            {user.telephone && (
+                              <div className="text-xs text-gray-400">{user.telephone}</div>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge className={getRoleColor(user.role)}>
-                          {user.role}
-                        </Badge>
+                        {user.role ? (
+                          <Badge className={getRoleColor(user.role.nom)}>
+                            {user.role.nom} (N{user.role.niveau})
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">Aucun rôle</Badge>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{user.department}</td>
                       <td className="py-3 px-4 text-center">
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status === 'active' ? 'Actif' : 
-                           user.status === 'suspended' ? 'Suspendu' : 'En attente'}
+                        <Badge className={getStatusColor(user.actif)}>
+                          {user.actif ? 'Actif' : 'Inactif'}
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-center text-sm text-gray-600">
-                        {user.lastLogin}
+                        {new Date(user.date_creation).toLocaleDateString('fr-FR')}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Voir les détails"
+                            onClick={() => handleViewUser(user)}
+                          >
                             <Eye className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Modifier"
+                            onClick={() => handleViewUser(user)}
+                          >
                             <Edit className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="sm">
-                            {user.status === 'active' ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title={user.actif ? 'Désactiver' : 'Activer'}
+                            onClick={() => handleToggleStatus(user.id, user.actif)}
+                          >
+                            {user.actif ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Réinitialiser le mot de passe"
+                            onClick={() => handleResetPassword(user.id)}
+                          >
                             <RotateCcw className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-3 w-3" />
                           </Button>
                         </div>
                       </td>
@@ -453,6 +550,14 @@ export default function UtilisateursPage() {
           Gestion des Utilisateurs - <span className="text-mkb-blue font-semibold">#mkbpilot</span>
         </p>
       </motion.div>
+
+      {/* Dialogue de détails utilisateur */}
+      <UserDetailDialog
+        user={selectedUser}
+        open={isUserDetailDialogOpen}
+        onOpenChange={handleCloseUserDetail}
+        onUserUpdated={handleUserUpdated}
+      />
     </div>
   );
 }
