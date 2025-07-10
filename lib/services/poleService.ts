@@ -72,23 +72,31 @@ export const poleService = {
   async assignPoleToUser(userId: string, poleId: number, adminName?: string): Promise<void> {
     try {
       // Vérifier si l'accès existe déjà
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('user_poles')
         .select('id')
         .eq('user_id', userId)
         .eq('pole_id', poleId)
-        .single();
+        .maybeSingle();
+
+      if (existingError && existingError.code !== 'PGRST116') {
+        throw existingError;
+      }
 
       if (existing) {
         throw new Error('L\'utilisateur a déjà accès à ce pôle');
       }
 
       // Récupérer le nom du pôle pour la notification
-      const { data: pole } = await supabase
+      const { data: pole, error: poleError } = await supabase
         .from('poles')
         .select('name')
         .eq('id', poleId)
-        .single();
+        .maybeSingle();
+
+      if (poleError && poleError.code !== 'PGRST116') {
+        throw poleError;
+      }
 
       if (!pole) {
         throw new Error('Pôle non trouvé');
@@ -122,11 +130,15 @@ export const poleService = {
   async removePoleFromUser(userId: string, poleId: number, adminName?: string): Promise<void> {
     try {
       // Récupérer le nom du pôle pour la notification
-      const { data: pole } = await supabase
+      const { data: pole, error: poleError } = await supabase
         .from('poles')
         .select('name')
         .eq('id', poleId)
-        .single();
+        .maybeSingle();
+
+      if (poleError && poleError.code !== 'PGRST116') {
+        throw poleError;
+      }
 
       if (!pole) {
         throw new Error('Pôle non trouvé');

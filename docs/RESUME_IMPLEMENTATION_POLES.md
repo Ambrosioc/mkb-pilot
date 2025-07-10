@@ -4,7 +4,7 @@
 
 ### 1. Services et API
 - ✅ **`poleService.ts`** - Service complet pour la gestion des pôles
-- ✅ **`/api/poles/assign`** - Route API pour assigner/retirer des pôles
+- ✅ **Service direct Supabase** - Assignation/retrait de pôles via poleService
 - ✅ **Intégration avec `userService.ts`** - Ajout des pôles dans les données utilisateur
 
 ### 2. Composants Frontend
@@ -58,7 +58,7 @@ export const poleService = {
 
 ### API Routes
 ```typescript
-// /api/poles/assign
+// Service direct Supabase
 POST - Assigner un pôle à un utilisateur
 DELETE - Retirer un pôle d'un utilisateur
 ```

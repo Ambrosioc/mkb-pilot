@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // PATCH - Marquer une notification comme lue
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Récupérer le token d'autorisation
@@ -45,7 +45,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Marquer la notification comme lue
     const { data: notification, error } = await supabase
@@ -71,7 +71,7 @@ export async function PATCH(
 // DELETE - Supprimer une notification
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Récupérer le token d'autorisation
@@ -112,7 +112,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Supprimer la notification
     const { error } = await supabase

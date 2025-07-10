@@ -85,27 +85,18 @@ export const poleService = {
 }
 ```
 
-### 3. API Routes
+### 3. Service direct Supabase
 
-#### `POST /api/poles/assign`
-**Fonction :** Assigner un pôle à un utilisateur
-**Paramètres :**
-```json
-{
-  "user_id": "uuid",
-  "pole_id": 1
-}
-```
+L'assignation et le retrait de pôles se font directement via le service `poleService.ts` qui utilise Supabase.
 
-#### `DELETE /api/poles/assign`
-**Fonction :** Retirer un pôle d'un utilisateur
-**Paramètres :**
-```json
-{
-  "user_id": "uuid",
-  "pole_id": 1
-}
-```
+**Méthodes disponibles :**
+- `assignPoleToUser(userId, poleId, adminName)` : Assigner un pôle
+- `removePoleFromUser(userId, poleId, adminName)` : Retirer un pôle
+
+**Avantages :**
+- Plus simple et direct
+- Pas de surcharge API
+- Gestion des notifications intégrée
 
 ## 🎨 Interface utilisateur
 
