@@ -4,6 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET - Récupérer les notifications d'un utilisateur
 export async function GET(request: NextRequest) {
   try {
+    // Vérifier les variables d'environnement
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Variables d\'environnement manquantes:', {
+        supabaseUrl: !!supabaseUrl,
+        serviceRoleKey: !!serviceRoleKey
+      });
+      return NextResponse.json({ 
+        error: 'Configuration serveur manquante' 
+      }, { status: 500 });
+    }
+
     // Récupérer le token d'autorisation
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -13,7 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token d\'autorisation manquant' }, { status: 401 });
     }
 
-    // Récupérer l'ID utilisateur depuis les headers (nouvelle approche)
+    // Récupérer l'ID utilisateur depuis les headers
     const userId = request.headers.get('x-user-id');
     
     if (!userId) {
@@ -24,17 +38,13 @@ export async function GET(request: NextRequest) {
     console.log('User ID reçu:', userId);
 
     // Créer un client Supabase avec la clé service_role pour contourner RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false
-        }
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
       }
-    );
+    });
 
     // Vérifier l'utilisateur avec le token (pour la sécurité)
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -50,8 +60,6 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('id', userId)
       .single();
-
-    console.log("userData", userData);
 
     if (userError || !userData) {
       console.error('Erreur lors de la récupération de l\'utilisateur:', userError);
@@ -83,20 +91,37 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Erreur lors de la récupération des notifications:', error);
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+      return NextResponse.json({ error: 'Erreur lors de la récupération des notifications' }, { status: 500 });
     }
 
     console.log('Notifications récupérées:', notifications?.length || 0);
     return NextResponse.json({ notifications: notifications || [] });
   } catch (error) {
-    console.error('Erreur inattendue:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    console.error('Erreur inattendue dans GET /api/notifications:', error);
+    return NextResponse.json({ 
+      error: 'Erreur serveur interne',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    }, { status: 500 });
   }
 }
 
 // POST - Créer une nouvelle notification
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier les variables d'environnement
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Variables d\'environnement manquantes:', {
+        supabaseUrl: !!supabaseUrl,
+        serviceRoleKey: !!serviceRoleKey
+      });
+      return NextResponse.json({ 
+        error: 'Configuration serveur manquante' 
+      }, { status: 500 });
+    }
+
     // Récupérer le token d'autorisation
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -115,17 +140,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer un client Supabase avec la clé service_role pour contourner RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false
-        }
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
       }
-    );
+    });
 
     // Vérifier l'utilisateur avec le token
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
@@ -158,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Erreur lors de la création de la notification:', error);
-      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+      return NextResponse.json({ error: 'Erreur lors de la création de la notification' }, { status: 500 });
     }
 
     // Retourner une réponse de succès avec l'ID de la notification
@@ -168,7 +189,10 @@ export async function POST(request: NextRequest) {
       message: 'Notification créée avec succès'
     });
   } catch (error) {
-    console.error('Erreur inattendue:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    console.error('Erreur inattendue dans POST /api/notifications:', error);
+    return NextResponse.json({ 
+      error: 'Erreur serveur interne',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    }, { status: 500 });
   }
 } 
