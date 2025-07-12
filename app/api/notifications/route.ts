@@ -43,22 +43,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token d\'autorisation manquant' }, { status: 401 });
     }
 
-    // Récupérer l'ID utilisateur depuis les headers
-    const userId = request.headers.get('x-user-id');
-    
-    console.log('Vérification du user-id:', {
-      userIdPresent: !!userId,
-      userId: userId || 'non défini',
-      allHeaders: Object.fromEntries(request.headers.entries())
-    });
-    
-    if (!userId) {
-      console.log('❌ Aucun user-id trouvé dans les headers');
-      return NextResponse.json({ error: 'User ID manquant' }, { status: 400 });
-    }
-
-    console.log('✅ User ID reçu:', userId);
-
     // Créer un client Supabase avec la clé service_role pour contourner RLS
     console.log('Création du client Supabase...');
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -82,7 +66,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
-    console.log('✅ Authentification réussie pour l\'utilisateur:', user.email);
+    console.log('✅ Authentification réussie pour l\'utilisateur:', {
+      email: user.email,
+      id: user.id,
+      user_metadata: user.user_metadata
+    });
+
+    // Utiliser user.id du token (sécurisé) au lieu de x-user-id des headers
+    const userId = user.id;
+    
+    // Log de comparaison pour débogage (optionnel)
+    const headerUserId = request.headers.get('x-user-id');
+    console.log('Comparaison des IDs utilisateur:', {
+      tokenUserId: userId,
+      headerUserId: headerUserId || 'non défini',
+      match: userId === headerUserId ? '✅ Correspondance' : '⚠️ Différence détectée'
+    });
 
     // Vérifier que l'utilisateur existe dans la table users
     console.log('Vérification de l\'existence de l\'utilisateur dans la table users...');
@@ -98,7 +97,8 @@ export async function GET(request: NextRequest) {
         userErrorCode: userError?.code || 'non défini',
         userErrorDetails: userError?.details || 'non défini',
         userDataPresent: !!userData,
-        userIdRecherche: userId
+        userIdRecherche: userId,
+        userIdType: typeof userId
       });
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
@@ -138,7 +138,8 @@ export async function GET(request: NextRequest) {
         error: error.message,
         errorCode: error.code,
         errorDetails: error.details,
-        query: 'SELECT notifications avec jointure users'
+        query: 'SELECT notifications avec jointure users',
+        recipientId: userId
       });
       return NextResponse.json({ error: 'Erreur lors de la récupération des notifications' }, { status: 500 });
     }
@@ -212,19 +213,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token d\'autorisation manquant' }, { status: 401 });
     }
 
-    // Récupérer l'ID utilisateur depuis les headers
-    const senderUserId = request.headers.get('x-user-id');
-    
-    console.log('Vérification du sender user-id:', {
-      senderUserIdPresent: !!senderUserId,
-      senderUserId: senderUserId || 'non défini'
-    });
-    
-    if (!senderUserId) {
-      console.log('❌ Aucun user-id trouvé dans les headers');
-      return NextResponse.json({ error: 'User ID manquant' }, { status: 400 });
-    }
-
     // Créer un client Supabase avec la clé service_role pour contourner RLS
     console.log('Création du client Supabase...');
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -248,7 +236,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
-    console.log('✅ Authentification réussie pour l\'utilisateur:', user.email);
+    console.log('✅ Authentification réussie pour l\'utilisateur:', {
+      email: user.email,
+      id: user.id,
+      user_metadata: user.user_metadata
+    });
+
+    // Utiliser user.id du token (sécurisé) au lieu de x-user-id des headers
+    const senderUserId = user.id;
+    
+    // Log de comparaison pour débogage (optionnel)
+    const headerUserId = request.headers.get('x-user-id');
+    console.log('Comparaison des IDs utilisateur (POST):', {
+      tokenUserId: senderUserId,
+      headerUserId: headerUserId || 'non défini',
+      match: senderUserId === headerUserId ? '✅ Correspondance' : '⚠️ Différence détectée'
+    });
 
     // Parser le body de la requête
     console.log('Parsing du body de la requête...');
