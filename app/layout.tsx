@@ -1,5 +1,6 @@
 import '@/app/globals.css';
 import { AuthProvider } from '@/components/providers/AuthProvider';
+import { ToastProvider } from '@/components/providers/ToastProvider';
 import { Toaster } from '@/components/ui/sonner';
 import type { Metadata } from 'next';
 
@@ -20,7 +21,9 @@ export default function RootLayout({
     <html lang="fr">
       <body className="font-montserrat">
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
         <Toaster position="top-right" />
       </body>
