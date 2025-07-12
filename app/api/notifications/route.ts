@@ -130,15 +130,44 @@ export async function GET(request: NextRequest) {
         error: error.message,
         errorCode: error.code,
         errorDetails: error.details,
-        query: 'SELECT notifications avec jointure users',
+        query: 'SELECT notifications',
         recipientId: userId
       });
       return NextResponse.json({ error: 'Erreur lors de la récupération des notifications' }, { status: 500 });
     }
 
+    // Récupérer les informations des senders si des notifications existent
+    let notificationsWithSenders = notifications || [];
+    if (notifications && notifications.length > 0) {
+      console.log('Récupération des informations des senders...');
+      
+      // Récupérer tous les sender_ids uniques
+      const senderIds = Array.from(new Set(notifications.map(n => n.sender_id).filter(id => id)));
+      
+      if (senderIds.length > 0) {
+        const { data: senders, error: sendersError } = await supabase
+          .from('users')
+          .select('id, prenom, nom, email')
+          .in('id', senderIds);
+
+        if (sendersError) {
+          console.error('❌ Erreur lors de la récupération des senders:', sendersError);
+        } else {
+          // Créer un map pour un accès rapide
+          const sendersMap = new Map(senders?.map(s => [s.id, s]) || []);
+          
+          // Enrichir les notifications avec les infos du sender
+          notificationsWithSenders = notifications.map(notification => ({
+            ...notification,
+            sender: notification.sender_id ? sendersMap.get(notification.sender_id) : null
+          }));
+        }
+      }
+    }
+
     console.log('✅ Notifications récupérées avec succès:', {
-      count: notifications?.length || 0,
-      notifications: notifications?.map(n => ({
+      count: notificationsWithSenders?.length || 0,
+      notifications: notificationsWithSenders?.map(n => ({
         id: n.id,
         title: n.title,
         type: n.type,
@@ -148,7 +177,7 @@ export async function GET(request: NextRequest) {
     });
 
     console.log('=== GET /api/notifications - Requête terminée avec succès ===');
-    return NextResponse.json({ notifications: notifications || [] });
+    return NextResponse.json({ notifications: notificationsWithSenders || [] });
   } catch (error) {
     console.error('❌ Erreur inattendue dans GET /api/notifications:', {
       error: error instanceof Error ? error.message : 'Erreur inconnue',
