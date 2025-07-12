@@ -116,19 +116,11 @@ export async function GET(request: NextRequest) {
 
     console.log('Paramètres de pagination:', { limit, offset });
 
-    // Récupérer les notifications de l'utilisateur avec jointure sur users
-    console.log('Récupération des notifications avec jointure...');
+    // Récupérer les notifications de l'utilisateur (sans jointure automatique)
+    console.log('Récupération des notifications...');
     const { data: notifications, error } = await supabase
       .from('notifications')
-      .select(`
-        *,
-        sender:users!notifications_sender_id_fkey(
-          id,
-          prenom,
-          nom,
-          email
-        )
-      `)
+      .select('*')
       .eq('recipient_id', userId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
