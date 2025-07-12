@@ -72,23 +72,12 @@ export async function GET(request: NextRequest) {
       user_metadata: user.user_metadata
     });
 
-    // Utiliser user.id du token (sécurisé) au lieu de x-user-id des headers
-    const userId = user.id;
-    
-    // Log de comparaison pour débogage (optionnel)
-    const headerUserId = request.headers.get('x-user-id');
-    console.log('Comparaison des IDs utilisateur:', {
-      tokenUserId: userId,
-      headerUserId: headerUserId || 'non défini',
-      match: userId === headerUserId ? '✅ Correspondance' : '⚠️ Différence détectée'
-    });
-
-    // Vérifier que l'utilisateur existe dans la table users
-    console.log('Vérification de l\'existence de l\'utilisateur dans la table users...');
+    // Récupérer l'ID utilisateur de la table users (pas auth.users)
+    console.log('Récupération de l\'ID utilisateur de la table users...');
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', userId)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (userError || !userData) {
@@ -97,11 +86,14 @@ export async function GET(request: NextRequest) {
         userErrorCode: userError?.code || 'non défini',
         userErrorDetails: userError?.details || 'non défini',
         userDataPresent: !!userData,
-        userIdRecherche: userId,
-        userIdType: typeof userId
+        authUserIdRecherche: user.id,
+        authUserIdType: typeof user.id
       });
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
+
+    // Utiliser l'ID de la table users pour les notifications
+    const userId = userData.id;
 
     console.log('✅ Utilisateur trouvé dans la table users:', {
       userId: userData.id,
@@ -263,16 +255,28 @@ export async function POST(request: NextRequest) {
       user_metadata: user.user_metadata
     });
 
-    // Utiliser user.id du token (sécurisé) au lieu de x-user-id des headers
-    const senderUserId = user.id;
-    
-    // Log de comparaison pour débogage (optionnel)
-    const headerUserId = request.headers.get('x-user-id');
-    console.log('Comparaison des IDs utilisateur (POST):', {
-      tokenUserId: senderUserId,
-      headerUserId: headerUserId || 'non défini',
-      match: senderUserId === headerUserId ? '✅ Correspondance' : '⚠️ Différence détectée'
-    });
+    // Récupérer l'ID utilisateur de la table users (pas auth.users)
+    console.log('Récupération de l\'ID utilisateur de la table users (POST)...');
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('❌ Erreur lors de la récupération de l\'utilisateur (POST):', {
+        userError: userError?.message || 'Aucune erreur spécifique',
+        userErrorCode: userError?.code || 'non défini',
+        userErrorDetails: userError?.details || 'non défini',
+        userDataPresent: !!userData,
+        authUserIdRecherche: user.id,
+        authUserIdType: typeof user.id
+      });
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    // Utiliser l'ID de la table users pour les notifications
+    const senderUserId = userData.id;
 
     // Parser le body de la requête
     console.log('Parsing du body de la requête...');
