@@ -1,11 +1,22 @@
 'use client';
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pole, UserPole, poleService } from '@/lib/services/poleService';
+import { poleService } from '@/lib/services/poleService';
 import { User } from '@/lib/services/userService';
 import { Building2, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -17,14 +28,14 @@ interface UserPolesManagerProps {
 }
 
 export function UserPolesManager({ user, onPolesUpdated }: UserPolesManagerProps) {
-    const [userPoles, setUserPoles] = useState<UserPole[]>([]);
-    const [availablePoles, setAvailablePoles] = useState<Pole[]>([]);
+    const [availablePoles, setAvailablePoles] = useState<any[]>([]);
+    const [userPoles, setUserPoles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [assigning, setAssigning] = useState(false);
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
     const [selectedPoleId, setSelectedPoleId] = useState<string>('');
+    const [poleToRemove, setPoleToRemove] = useState<{ id: number; name: string } | null>(null);
 
-    // Charger les données
     const loadData = async () => {
         try {
             setLoading(true);
@@ -77,20 +88,24 @@ export function UserPolesManager({ user, onPolesUpdated }: UserPolesManagerProps
     };
 
     // Retirer un pôle
-    const handleRemovePole = async (poleId: number, poleName: string) => {
-        if (!confirm(`Êtes-vous sûr de vouloir retirer l'accès au pôle '${poleName}' ?`)) {
-            return;
-        }
+    const handleRemovePole = async () => {
+        if (!poleToRemove) return;
 
         try {
-            await poleService.removePoleFromUser(user.id, poleId);
-            toast.success(`Accès au pôle "${poleName}" retiré avec succès`);
+            await poleService.removePoleFromUser(user.id, poleToRemove.id);
+            toast.success(`Accès au pôle &quot;${poleToRemove.name}&quot; retiré avec succès`);
+            setPoleToRemove(null);
             loadData(); // Recharger les données
             onPolesUpdated(); // Notifier le parent
         } catch (error) {
             console.error('Erreur lors de la suppression:', error);
             toast.error('Erreur lors de la suppression de l\'accès');
         }
+    };
+
+    // Ouvrir le dialogue de confirmation de suppression
+    const openRemoveDialog = (poleId: number, poleName: string) => {
+        setPoleToRemove({ id: poleId, name: poleName });
     };
 
     // Filtrer les pôles disponibles (exclure ceux déjà assignés)
@@ -208,14 +223,38 @@ export function UserPolesManager({ user, onPolesUpdated }: UserPolesManagerProps
                                     <Badge className="bg-green-100 text-green-800">
                                         Accès accordé
                                     </Badge>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleRemovePole(userPole.pole_id, userPole.pole_name)}
-                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openRemoveDialog(userPole.pole_id, userPole.pole_name)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Retirer l'accès au pôle</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Êtes-vous sûr de vouloir retirer l&apos;accès au pôle &quot;{userPole.pole_name}&quot; de {user.prenom} {user.nom} ?
+                                                    <br />
+                                                    <br />
+                                                    Cette action ne peut pas être annulée.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={handleRemovePole}
+                                                    className="bg-red-600 hover:bg-red-700"
+                                                >
+                                                    Retirer l'accès
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </div>
                             </div>
                         ))}
