@@ -92,7 +92,8 @@ export function UserPolesManager({ user, onPolesUpdated }: UserPolesManagerProps
         if (!poleToRemove) return;
 
         try {
-            await poleService.removePoleFromUser(user.id, poleToRemove.id);
+            const adminName = 'Administrateur'; // Vous pouvez récupérer le nom de l'admin connecté ici
+            await poleService.removePoleFromUser(user.id, poleToRemove.id, adminName);
             toast.success(`Accès au pôle &quot;${poleToRemove.name}&quot; retiré avec succès`);
             setPoleToRemove(null);
             loadData(); // Recharger les données
