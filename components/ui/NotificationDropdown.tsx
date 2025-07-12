@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useNotificationPermission } from '@/hooks/useNotificationPermission';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -23,7 +24,7 @@ import {
   Trash2,
   User
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Fonction utilitaire pour formater la date
 function formatDate(dateString: string): string {
@@ -88,7 +89,20 @@ export function NotificationDropdown() {
     removeNotification,
     refresh
   } = useNotifications();
+  const { permission, isSupported, requestPermission } = useNotificationPermission();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Demander la permission de notification lors du premier clic
+  useEffect(() => {
+    if (isSupported && permission === 'default') {
+      // Demander la permission automatiquement après un délai
+      const timer = setTimeout(() => {
+        requestPermission();
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, permission, requestPermission]);
 
   const handleNotificationClick = async (notificationId: string, isRead: boolean) => {
     console.log('Notification clicked:', notificationId);
@@ -133,6 +147,15 @@ export function NotificationDropdown() {
               {unreadCount > 9 ? '9+' : unreadCount}
             </motion.span>
           )}
+          {/* Indicateur de permission de notification */}
+          {isSupported && permission === 'denied' && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -bottom-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"
+              title="Notifications désactivées"
+            />
+          )}
         </Button>
       </DropdownMenuTrigger>
 
@@ -159,6 +182,21 @@ export function NotificationDropdown() {
               <Check className="h-3 w-3 mr-1" />
               Marquer tout comme lu
             </Button>
+          )}
+          {/* Message de permission de notification */}
+          {isSupported && permission === 'denied' && (
+            <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+              <div className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Notifications désactivées</span>
+              </div>
+              <button
+                onClick={requestPermission}
+                className="mt-1 text-orange-600 hover:text-orange-800 underline"
+              >
+                Réactiver les notifications
+              </button>
+            </div>
           )}
         </div>
 
