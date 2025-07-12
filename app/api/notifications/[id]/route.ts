@@ -16,14 +16,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Token d\'autorisation manquant' }, { status: 401 });
     }
 
-    // Récupérer l'ID utilisateur depuis les headers
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      console.log('Aucun user-id trouvé dans les headers');
-      return NextResponse.json({ error: 'User ID manquant' }, { status: 400 });
-    }
-
     // Créer un client Supabase avec la clé service_role pour contourner RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +37,23 @@ export async function PATCH(
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
+    // Récupérer l'ID utilisateur de la table users (pas auth.users)
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('❌ Erreur lors de la récupération de l\'utilisateur:', {
+        userError: userError?.message || 'Aucune erreur spécifique',
+        userDataPresent: !!userData,
+        authUserIdRecherche: user.id
+      });
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    const userId = userData.id;
     const { id } = await params;
 
     // Marquer la notification comme lue
@@ -83,14 +92,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Token d\'autorisation manquant' }, { status: 401 });
     }
 
-    // Récupérer l'ID utilisateur depuis les headers
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      console.log('Aucun user-id trouvé dans les headers');
-      return NextResponse.json({ error: 'User ID manquant' }, { status: 400 });
-    }
-
     // Créer un client Supabase avec la clé service_role pour contourner RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,6 +113,23 @@ export async function DELETE(
       return NextResponse.json({ error: 'Token invalide' }, { status: 401 });
     }
 
+    // Récupérer l'ID utilisateur de la table users (pas auth.users)
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.error('❌ Erreur lors de la récupération de l\'utilisateur:', {
+        userError: userError?.message || 'Aucune erreur spécifique',
+        userDataPresent: !!userData,
+        authUserIdRecherche: user.id
+      });
+      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+    }
+
+    const userId = userData.id;
     const { id } = await params;
 
     // Supprimer la notification

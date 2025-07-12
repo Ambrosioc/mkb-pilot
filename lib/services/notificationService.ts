@@ -20,46 +20,30 @@ export interface Notification {
 }
 
 class NotificationService {
-  // Obtenir le token d'authentification et l'ID utilisateur
-  private async getAuthData(): Promise<{ token: string | null; userId: string | null }> {
+  // Obtenir le token d'authentification
+  private async getAuthToken(): Promise<string | null> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || null;
-      
-      // Récupérer l'ID utilisateur depuis la session
-      let userId = null;
-      if (session?.user) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('auth_user_id', session.user.id)
-          .single();
-        
-        userId = userData?.id || null;
-      }
-      
-      return { token, userId };
+      return session?.access_token || null;
     } catch (error) {
-      console.error('Erreur lors de la récupération des données d\'authentification:', error);
-      return { token: null, userId: null };
+      console.error('Erreur lors de la récupération du token d\'authentification:', error);
+      return null;
     }
   }
 
   // Récupérer les notifications d'un utilisateur
   async fetchNotifications(limit: number = 50, offset: number = 0): Promise<Notification[]> {
     try {
-        const { token, userId } = await this.getAuthData();
+      const token = await this.getAuthToken();
       
-      if (!token || !userId) {
-        throw new Error('Données d\'authentification manquantes');
+      if (!token) {
+        throw new Error('Token d\'authentification manquant');
       }
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-user-id': userId
+        'Authorization': `Bearer ${token}`
       };
-
 
       const response = await fetch(`/api/notifications?limit=${limit}&offset=${offset}`, {
         method: 'GET',
@@ -88,16 +72,15 @@ class NotificationService {
     category?: Notification['category'];
   }): Promise<{ success: boolean; notification_id: string; message: string }> {
     try {
-      const { token, userId } = await this.getAuthData();
+      const token = await this.getAuthToken();
       
-      if (!token || !userId) {
-        throw new Error('Données d\'authentification manquantes');
+      if (!token) {
+        throw new Error('Token d\'authentification manquant');
       }
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-user-id': userId
+        'Authorization': `Bearer ${token}`
       };
 
       const response = await fetch('/api/notifications', {
@@ -122,16 +105,15 @@ class NotificationService {
   // Marquer une notification comme lue
   async markAsRead(notificationId: string): Promise<Notification> {
     try {
-      const { token, userId } = await this.getAuthData();
+      const token = await this.getAuthToken();
       
-      if (!token || !userId) {
-        throw new Error('Données d\'authentification manquantes');
+      if (!token) {
+        throw new Error('Token d\'authentification manquant');
       }
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-user-id': userId
+        'Authorization': `Bearer ${token}`
       };
 
       const response = await fetch(`/api/notifications/${notificationId}`, {
@@ -155,16 +137,15 @@ class NotificationService {
   // Marquer toutes les notifications comme lues
   async markAllAsRead(): Promise<void> {
     try {
-      const { token, userId } = await this.getAuthData();
+      const token = await this.getAuthToken();
       
-      if (!token || !userId) {
-        throw new Error('Données d\'authentification manquantes');
+      if (!token) {
+        throw new Error('Token d\'authentification manquant');
       }
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-user-id': userId
+        'Authorization': `Bearer ${token}`
       };
 
       const response = await fetch('/api/notifications/mark-all-read', {
@@ -185,16 +166,15 @@ class NotificationService {
   // Supprimer une notification
   async deleteNotification(notificationId: string): Promise<void> {
     try {
-      const { token, userId } = await this.getAuthData();
+      const token = await this.getAuthToken();
       
-      if (!token || !userId) {
-        throw new Error('Données d\'authentification manquantes');
+      if (!token) {
+        throw new Error('Token d\'authentification manquant');
       }
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-user-id': userId
+        'Authorization': `Bearer ${token}`
       };
 
       const response = await fetch(`/api/notifications/${notificationId}`, {
